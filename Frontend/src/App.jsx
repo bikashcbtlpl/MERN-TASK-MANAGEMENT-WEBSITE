@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -15,10 +15,13 @@ function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/login" />} />
+
         {/* LOGIN */}
         <Route path="/login" element={<Login />} />
 
-        {/* MAIN APP */}
+        {/* PROTECTED ROUTES */}
         <Route
           path="/"
           element={
@@ -29,66 +32,54 @@ function App() {
         >
           <Route path="dashboard" element={<Dashboard />} />
 
-          {/* TASK ROUTE */}
           <Route
             path="tasks"
             element={
-              <ProtectedRoute
-                requiredPermissions={[
-                  "View Task",
-                  "Create Task",
-                  "Edit Task",
-                  "Delete Task",
-                ]}
-              >
+              <ProtectedRoute requiredPermissions={[
+                "View Task",
+                "Create Task",
+                "Edit Task",
+                "Delete Task",
+              ]}>
                 <ManageTask />
               </ProtectedRoute>
             }
           />
 
-          {/* ROLE ROUTE */}
           <Route
             path="roles"
             element={
-              <ProtectedRoute
-                requiredPermissions={[
-                  "Create Role",
-                  "Edit Role",
-                  "Delete Role",
-                ]}
-              >
+              <ProtectedRoute requiredPermissions={[
+                "Create Role",
+                "Edit Role",
+                "Delete Role",
+              ]}>
                 <ManageRole />
               </ProtectedRoute>
             }
           />
 
-          {/* PERMISSION ROUTE */}
           <Route
             path="permissions"
             element={
-              <ProtectedRoute
-                requiredPermissions={[
-                  "Create Permission",
-                  "Edit Permission",
-                  "Delete Permission",
-                ]}
-              >
+              <ProtectedRoute requiredPermissions={[
+                "Create Permission",
+                "Edit Permission",
+                "Delete Permission",
+              ]}>
                 <ManagePermission />
               </ProtectedRoute>
             }
           />
 
-          {/* USER ROUTE */}
           <Route
             path="users"
             element={
-              <ProtectedRoute
-                requiredPermissions={[
-                  "Create User",
-                  "Edit User",
-                  "Delete User",
-                ]}
-              >
+              <ProtectedRoute requiredPermissions={[
+                "Create User",
+                "Edit User",
+                "Delete User",
+              ]}>
                 <ManageUser />
               </ProtectedRoute>
             }

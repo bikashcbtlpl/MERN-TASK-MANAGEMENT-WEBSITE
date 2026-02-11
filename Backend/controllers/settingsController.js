@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 /* ================= GET SETTINGS ================= */
 exports.getSettings = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = req.user;
 
     res.json({
       profile: {
@@ -32,7 +32,7 @@ exports.updateProfile = async (req, res) => {
   try {
     const { name, password } = req.body;
 
-    const user = await User.findById(req.user.userId);
+    const user = req.user;
 
     if (name !== undefined) {
       user.name = name;

@@ -5,4 +5,5 @@ const dashboardController = require("../controllers/dashboardController");
 
 router.get("/", authMiddleware, dashboardController.getDashboardStats);
 
+
 module.exports = router;

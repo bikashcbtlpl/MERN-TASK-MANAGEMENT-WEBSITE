@@ -1,13 +1,39 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import axiosInstance from "../api/axiosInstance";
 
 function ProtectedRoute({ children, requiredPermissions }) {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [isAuth, setIsAuth] = useState(null);
+  const [user, setUser] = useState(null);
 
-  if (!user) {
-    return <Navigate to="/login" />;
+  useEffect(() => {
+    const verifyUser = async () => {
+      try {
+        await axiosInstance.get("/auth/verify");
+
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        setUser(storedUser);
+        setIsAuth(true);
+      } catch (error) {
+        localStorage.removeItem("user");
+        setIsAuth(false);
+      }
+    };
+
+    verifyUser();
+  }, []);
+
+  // While checking auth
+  if (isAuth === null) {
+    return <div>Loading...</div>;
   }
 
-  // 🔑 Permission check (if required)
+  // Not authenticated
+  if (!isAuth) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Permission check
   if (requiredPermissions && requiredPermissions.length > 0) {
     const permissions = user?.permissions || [];
 
@@ -16,7 +42,7 @@ function ProtectedRoute({ children, requiredPermissions }) {
     );
 
     if (!hasAccess) {
-      return <Navigate to="/dashboard" />;
+      return <Navigate to="/dashboard" replace />;
     }
   }
 
