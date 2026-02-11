@@ -1,3 +1,8 @@
+![MERN](https://img.shields.io/badge/Stack-MERN-green)
+![JWT](https://img.shields.io/badge/Auth-JWT-blue)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-success)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
 # 🧠 Task Management System (MERN + JWT + Role Based Access)
 
 A full-stack enterprise-ready Task Management System built using the MERN stack with secure cookie-based authentication, role-based access control (RBAC), and permission management.
