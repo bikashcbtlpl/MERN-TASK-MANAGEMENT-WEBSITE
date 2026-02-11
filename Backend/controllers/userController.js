@@ -1,0 +1,82 @@
+const User = require("../models/User");
+const Role = require("../models/Role");
+const bcrypt = require("bcryptjs");
+const generatePassword = require("../utils/generatePassword");
+const sendEmail = require("../utils/sendEmail");
+
+// ================= GET USERS =================
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await User.find().populate("role", "name");
+    res.json(users);
+  } catch (error) {
+    console.log("Get Users Error:", error);
+    res.status(500).json({ message: "Error fetching users" });
+  }
+};
+
+// ================= CREATE USER =================
+exports.createUser = async (req, res) => {
+  try {
+    const { email, role, status } = req.body;
+
+    // Check existing
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Generate password
+    const plainPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    const newUser = await User.create({
+      email,
+      password: hashedPassword,
+      role,
+      status,
+    });
+
+    // Send email
+    await sendEmail(
+      email,
+      "Your Login Credentials",
+      `Welcome!
+
+Email: ${email}
+Password: ${plainPassword}
+
+Login at: http://localhost:3000`
+    );
+
+    res.status(201).json(newUser);
+  } catch (error) {
+    console.log("Create User Error:", error);
+    res.status(500).json({ message: "Error creating user" });
+  }
+};
+
+// ================= UPDATE USER =================
+exports.updateUser = async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating user" });
+  }
+};
+
+// ================= DELETE USER =================
+exports.deleteUser = async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting user" });
+  }
+};
