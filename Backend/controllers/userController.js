@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const generatePassword = require("../utils/generatePassword");
 const sendEmail = require("../utils/sendEmail");
 
+
 // ================= GET USERS =================
 exports.getUsers = async (req, res) => {
   try {
@@ -53,18 +54,18 @@ exports.createUser = async (req, res) => {
       role,
       status,
     });
-
+    const emailQueue = require("../queues/emailQueue");
     // Send email
-    await sendEmail(
-      email,
-      "Your Login Credentials",
-      `Welcome!
+    await emailQueue.add({
+      to: email,
+      subject: "Your Login Credentials",
+      text: `Welcome!
 
 Email: ${email}
 Password: ${plainPassword}
 
-Login at: http://localhost:3000`
-    );
+Login at: http://localhost:5173`
+  });
 
     res.status(201).json(newUser);
   } catch (error) {
