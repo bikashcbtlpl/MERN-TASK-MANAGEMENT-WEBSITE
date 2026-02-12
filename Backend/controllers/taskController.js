@@ -9,12 +9,28 @@ exports.createTask = async (req, res) => {
       assignedTo = null;
     }
 
+    // 🔒 Prevent assigning to Super Admin (if not Super Admin)
+    if (assignedTo) {
+      const userToAssign = await require("../models/User")
+        .findById(assignedTo)
+        .populate("role");
+
+      if (
+        userToAssign.role.name === "Super Admin" &&
+        req.user.role.name !== "Super Admin"
+      ) {
+        return res.status(403).json({
+          message: "You cannot assign task to Super Admin",
+        });
+      }
+    }
+
     const newTask = await Task.create({
       title,
       description,
       status,
       assignedTo,
-      createdBy: req.user._id, // 🔥 fixed
+      createdBy: req.user._id,
     });
 
     res.status(201).json(newTask);
@@ -25,14 +41,15 @@ exports.createTask = async (req, res) => {
 };
 
 
-// ================= GET TASKS (ROLE BASED) =================
+
+// ================= GET TASKS (ROLE BASED + PAGINATION) =================
 exports.getTasks = async (req, res) => {
   try {
     const user = req.user;
 
     let filter = {};
 
-    // 🔥 If user has only View Task permission (normal user)
+    // 🔥 Role-based filtering
     const userPermissions = user.role.permissions.map(p => p.name);
 
     const isOnlyViewer =
@@ -42,21 +59,36 @@ exports.getTasks = async (req, res) => {
       !userPermissions.includes("Delete Task");
 
     if (isOnlyViewer) {
-      // Normal user → only see their tasks
       filter = { assignedTo: user._id };
     }
 
+    // ================= PAGINATION =================
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    const totalTasks = await Task.countDocuments(filter);
+
     const tasks = await Task.find(filter)
       .populate("assignedTo", "email")
-      .populate("createdBy", "email");
+      .populate("createdBy", "email")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
-    res.json(tasks);
+    res.json({
+      tasks,
+      totalTasks,
+      currentPage: page,
+      totalPages: Math.ceil(totalTasks / limit),
+    });
 
   } catch (error) {
     console.log("Get Tasks Error:", error);
     res.status(500).json({ message: "Error fetching tasks" });
   }
 };
+
 
 
 // ================= GET SINGLE TASK =================
@@ -92,7 +124,6 @@ exports.getTaskById = async (req, res) => {
   }
 };
 
-
 // ================= UPDATE TASK =================
 exports.updateTask = async (req, res) => {
   try {
@@ -110,9 +141,24 @@ exports.updateTask = async (req, res) => {
       userPermissions.includes("View Task") &&
       !userPermissions.includes("Edit Task");
 
-    // 🔥 Normal user cannot edit
     if (isOnlyViewer) {
       return res.status(403).json({ message: "Not allowed to edit task" });
+    }
+
+    // 🔒 Prevent assigning to Super Admin
+    if (req.body.assignedTo) {
+      const userToAssign = await require("../models/User")
+        .findById(req.body.assignedTo)
+        .populate("role");
+
+      if (
+        userToAssign.role.name === "Super Admin" &&
+        user.role.name !== "Super Admin"
+      ) {
+        return res.status(403).json({
+          message: "You cannot assign task to Super Admin",
+        });
+      }
     }
 
     if (!req.body.assignedTo) {
@@ -131,7 +177,6 @@ exports.updateTask = async (req, res) => {
     res.status(500).json({ message: "Error updating task" });
   }
 };
-
 
 // ================= DELETE TASK =================
 exports.deleteTask = async (req, res) => {

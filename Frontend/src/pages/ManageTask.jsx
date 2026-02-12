@@ -5,6 +5,9 @@ function ManageTask() {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
@@ -26,19 +29,33 @@ function ManageTask() {
 
   useEffect(() => {
     if (canView || canCreate || canEdit || canDelete) {
-      fetchTasks();
+      fetchTasks(currentPage);
       fetchUsers();
     }
-  }, []);
+  }, [currentPage]);
 
-  const fetchTasks = async () => {
-    const res = await axiosInstance.get("/tasks");
-    setTasks(res.data);
+  const fetchTasks = async (page = 1) => {
+    const res = await axiosInstance.get(
+      `/tasks?page=${page}&limit=5`
+    );
+
+    setTasks(res.data.tasks);
+    setTotalPages(res.data.totalPages);
   };
 
   const fetchUsers = async () => {
     const res = await axiosInstance.get("/users");
-    setUsers(res.data);
+
+    const loggedInUser = JSON.parse(localStorage.getItem("user"));
+
+    if (loggedInUser?.role !== "Super Admin") {
+      const filteredUsers = res.data.filter(
+        (user) => user.role?.name !== "Super Admin"
+      );
+      setUsers(filteredUsers);
+    } else {
+      setUsers(res.data);
+    }
   };
 
   const openCreateModal = () => {
@@ -72,13 +89,13 @@ function ManageTask() {
       await axiosInstance.post("/tasks", formData);
     }
 
-    fetchTasks();
+    fetchTasks(currentPage);
     setIsModalOpen(false);
   };
 
   const handleDelete = async (id) => {
     await axiosInstance.delete(`/tasks/${id}`);
-    fetchTasks();
+    fetchTasks(currentPage);
   };
 
   return (
@@ -86,7 +103,6 @@ function ManageTask() {
       <div className="manage-role-header">
         <h2>Manage Task</h2>
 
-        {/* 🔥 CREATE BUTTON BASED ON PERMISSION */}
         {canCreate && (
           <button
             className="create-role-btn"
@@ -109,7 +125,6 @@ function ManageTask() {
             <th>Description</th>
             <th>Status</th>
             <th>Assigned To</th>
-
             {(canEdit || canDelete) && <th>Actions</th>}
           </tr>
         </thead>
@@ -135,7 +150,6 @@ function ManageTask() {
 
               {(canEdit || canDelete) && (
                 <td>
-                  {/* 🔥 EDIT BUTTON */}
                   {canEdit && (
                     <button
                       className="edit-role-btn"
@@ -145,7 +159,6 @@ function ManageTask() {
                     </button>
                   )}
 
-                  {/* 🔥 DELETE BUTTON */}
                   {canDelete && (
                     <button
                       className="delete-role-btn"
@@ -161,7 +174,27 @@ function ManageTask() {
         </tbody>
       </table>
 
-      {/* 🔥 MODAL (Only if Create or Edit allowed) */}
+      {/* ✅ PAGINATION CONTROLS */}
+      <div style={{ marginTop: "15px" }}>
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(currentPage - 1)}
+        >
+          Prev
+        </button>
+
+        <span style={{ margin: "0 10px" }}>
+          Page {currentPage} of {totalPages}
+        </span>
+
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(currentPage + 1)}
+        >
+          Next
+        </button>
+      </div>
+
       {isModalOpen && (canCreate || canEdit) && (
         <div className="modal-overlay">
           <div className="modal">
@@ -213,10 +246,7 @@ function ManageTask() {
                 >
                   <option value="">Unassigned</option>
                   {users.map((user) => (
-                    <option
-                      key={user._id}
-                      value={user._id}
-                    >
+                    <option key={user._id} value={user._id}>
                       {user.email}
                     </option>
                   ))}

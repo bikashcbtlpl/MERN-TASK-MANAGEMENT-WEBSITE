@@ -24,7 +24,7 @@ function Sidebar() {
 
   return (
     <div className="sidebar">
-      <div className="sidebar-logo">LOGO</div>
+      <div className="sidebar-logo">TASK MANAGEMENT</div>
 
       <div className="sidebar-nav">
 

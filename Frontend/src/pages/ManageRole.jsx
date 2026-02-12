@@ -21,7 +21,19 @@ function ManageRole() {
   const fetchRoles = async () => {
     try {
       const response = await axiosInstance.get("/roles");
-      setRoles(response.data);
+
+      const loggedInUser = JSON.parse(localStorage.getItem("user"));
+
+      // If NOT Super Admin → hide Super Admin role
+      if (loggedInUser?.role !== "Super Admin") {
+        const filteredRoles = response.data.filter(
+          (role) => role.name !== "Super Admin"
+        );
+        setRoles(filteredRoles);
+      } else {
+        setRoles(response.data);
+      }
+
     } catch (error) {
       console.log("Error fetching roles", error);
     }
@@ -93,26 +105,27 @@ function ManageRole() {
 
               {(canEdit || canDelete) && (
                 <td>
-                  {canEdit && (
-                    <button
-                      className="edit-role-btn"
-                      onClick={() =>
-                        navigate(`/roles/edit/${role.name}`)
-                      }
-                    >
-                      Edit
-                    </button>
-                  )}
+                  {!(role.name === "Super Admin" && 
+                    JSON.parse(localStorage.getItem("user"))?.role !== "Super Admin") && (
+                    <>
+                      <button
+                        className="edit-role-btn"
+                        onClick={() =>
+                          navigate(`/roles/edit/${role.name}`)
+                        }
+                      >
+                        Edit
+                      </button>
 
-                  {canDelete && (
-                    <button
-                      className="delete-role-btn"
-                      onClick={() =>
-                        handleDelete(role._id)
-                      }
-                    >
-                      Delete
-                    </button>
+                      <button
+                        className="delete-role-btn"
+                        onClick={() =>
+                          handleDelete(role._id)
+                        }
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
                 </td>
               )}

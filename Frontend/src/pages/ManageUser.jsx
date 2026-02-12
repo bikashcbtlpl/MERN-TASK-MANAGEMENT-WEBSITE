@@ -29,12 +29,35 @@ function ManageUser() {
 
   const fetchUsers = async () => {
     const res = await axiosInstance.get("/users");
-    setUsers(res.data);
+
+    const loggedInUser = JSON.parse(localStorage.getItem("user"));
+
+    // If NOT Super Admin → hide Super Admin users
+    if (loggedInUser?.role !== "Super Admin") {
+      const filteredUsers = res.data.filter(
+        (u) => u.role?.name !== "Super Admin"
+      );
+      setUsers(filteredUsers);
+    } else {
+      setUsers(res.data);
+    }
   };
+
 
   const fetchRoles = async () => {
     const res = await axiosInstance.get("/roles");
-    setRoles(res.data);
+
+    const loggedInUser = JSON.parse(localStorage.getItem("user"));
+
+    // If NOT Super Admin → remove Super Admin from dropdown
+    if (loggedInUser?.role !== "Super Admin") {
+      const filteredRoles = res.data.filter(
+        (role) => role.name !== "Super Admin"
+      );
+      setRoles(filteredRoles);
+    } else {
+      setRoles(res.data);
+    }
   };
 
   const openCreateModal = () => {
@@ -130,22 +153,23 @@ function ManageUser() {
 
               {(canEdit || canDelete) && (
                 <td>
-                  {canEdit && (
-                    <button
-                      className="edit-role-btn"
-                      onClick={() => openEditModal(user)}
-                    >
-                      Edit
-                    </button>
-                  )}
+                  {!(user.role?.name === "Super Admin" &&
+                    JSON.parse(localStorage.getItem("user"))?.role !== "Super Admin") && (
+                    <>
+                      <button
+                        className="edit-role-btn"
+                        onClick={() => openEditModal(user)}
+                      >
+                        Edit
+                      </button>
 
-                  {canDelete && (
-                    <button
-                      className="delete-role-btn"
-                      onClick={() => handleDelete(user._id)}
-                    >
-                      Delete
-                    </button>
+                      <button
+                        className="delete-role-btn"
+                        onClick={() => handleDelete(user._id)}
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
                 </td>
               )}

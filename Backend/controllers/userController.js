@@ -76,6 +76,24 @@ Login at: http://localhost:3000`
 // ================= UPDATE USER =================
 exports.updateUser = async (req, res) => {
   try {
+    const loggedInUser = req.user;
+
+    const userToUpdate = await User.findById(req.params.id).populate("role");
+
+    if (!userToUpdate) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 🔐 Protect Super Admin account
+    if (
+      userToUpdate.role.name === "Super Admin" &&
+      loggedInUser.role.name !== "Super Admin"
+    ) {
+      return res.status(403).json({
+        message: "Only Super Admin can modify this user",
+      });
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -83,16 +101,38 @@ exports.updateUser = async (req, res) => {
     );
 
     res.json(updatedUser);
+
   } catch (error) {
     res.status(500).json({ message: "Error updating user" });
   }
 };
 
+
 // ================= DELETE USER =================
 exports.deleteUser = async (req, res) => {
   try {
+    const loggedInUser = req.user;
+
+    const userToDelete = await User.findById(req.params.id).populate("role");
+
+    if (!userToDelete) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 🔐 Protect Super Admin account
+    if (
+      userToDelete.role.name === "Super Admin" &&
+      loggedInUser.role.name !== "Super Admin"
+    ) {
+      return res.status(403).json({
+        message: "Only Super Admin can delete this user",
+      });
+    }
+
     await User.findByIdAndDelete(req.params.id);
+
     res.json({ message: "User deleted successfully" });
+
   } catch (error) {
     res.status(500).json({ message: "Error deleting user" });
   }
