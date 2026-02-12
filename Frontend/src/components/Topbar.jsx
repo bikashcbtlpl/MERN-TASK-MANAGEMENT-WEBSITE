@@ -55,6 +55,7 @@ function Topbar() {
     try {
       await axiosInstance.post("/auth/logout");
       localStorage.removeItem("user");
+      setUser(null);
       navigate("/login");
     } catch (error) {
       console.log("Logout failed:", error);
