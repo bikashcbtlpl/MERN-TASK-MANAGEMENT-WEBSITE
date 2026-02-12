@@ -19,7 +19,7 @@ exports.getSettings = async (req, res) => {
       security: {
         minPasswordLength: 6,
         enableRegistration: true,
-        sessionTimeout: 30,
+        sessionTimeout: 60,
       },
     });
   } catch (error) {

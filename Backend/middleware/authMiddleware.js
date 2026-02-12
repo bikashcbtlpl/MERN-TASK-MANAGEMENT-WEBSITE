@@ -2,18 +2,20 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const authMiddleware = async (req, res, next) => {
-
   try {
+    // 🔥 Check cookies exist
+    if (!req.cookies || !req.cookies.token) {
+      return res.status(401).json({
+        message: "Unauthorized - No token",
+      });
+    }
+
     const token = req.cookies.token;
 
-    if (!token) {
-      return res.status(401).json({ message: "Unauthorized - No token" });
-    }
-    
-    // 1️⃣ Verify token
+    // 🔐 Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 2️⃣ Check user in DB
+    // 👤 Fetch user with role + permissions
     const user = await User.findById(decoded.userId)
       .populate({
         path: "role",
@@ -23,22 +25,27 @@ const authMiddleware = async (req, res, next) => {
       });
 
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({
+        message: "User not found",
+      });
     }
 
-    // 3️⃣ Check if user is active
     if (user.status !== "Active") {
-      return res.status(403).json({ message: "User is inactive" });
+      return res.status(403).json({
+        message: "User is inactive",
+      });
     }
 
-    // 4️⃣ Attach fresh user to request
+    // ✅ Attach full user object
     req.user = user;
 
     next();
-
   } catch (error) {
-    console.log("VERIFY ERROR:", error.message); // 🔥 ALSO ADD THIS
-    return res.status(401).json({ message: "Unauthorized - Invalid token" });
+    console.log("AUTH ERROR:", error.message);
+
+    return res.status(401).json({
+      message: "Unauthorized - Invalid or expired token",
+    });
   }
 };
 

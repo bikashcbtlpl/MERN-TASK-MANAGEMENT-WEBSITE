@@ -9,12 +9,30 @@ function Topbar() {
   const [user, setUser] = useState(null);
   const dropdownRef = useRef();
 
-  const pageName =
-    location.pathname === "/dashboard"
-      ? "Dashboard"
-      : location.pathname.replace("/", "");
+  /* ================= PAGE TITLE LOGIC ================= */
 
-  // Load user
+  const formatPageTitle = () => {
+    const path = location.pathname;
+
+    if (path === "/dashboard") return "Dashboard";
+    if (path === "/roles") return "Roles";
+    if (path === "/roles/create") return "Role / Create";
+
+    if (path.startsWith("/roles/edit/")) {
+      const roleName = decodeURIComponent(path.split("/")[3] || "");
+      return `Role / Edit / ${roleName}`;
+    }
+
+    if (path === "/tasks") return "Tasks";
+    if (path === "/permissions") return "Permissions";
+    if (path === "/users") return "Users";
+    if (path === "/settings") return "Settings";
+
+    return path.replace("/", "").toUpperCase();
+  };
+
+  /* ================= LOAD USER ================= */
+
   useEffect(() => {
     const loadUser = () => {
       const storedUser = localStorage.getItem("user");
@@ -31,19 +49,20 @@ function Topbar() {
     };
   }, []);
 
-  // Logout
-    const handleLogout = async () => {
-      try {
-        await axiosInstance.post("/auth/logout");
-        localStorage.removeItem("user");
-        navigate("/login");
-      } catch (error) {
-        console.log("Logout failed:", error);
-      }
-    };
+  /* ================= LOGOUT ================= */
 
+  const handleLogout = async () => {
+    try {
+      await axiosInstance.post("/auth/logout");
+      localStorage.removeItem("user");
+      navigate("/login");
+    } catch (error) {
+      console.log("Logout failed:", error);
+    }
+  };
 
-  // Close dropdown
+  /* ================= CLOSE DROPDOWN ================= */
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -59,7 +78,8 @@ function Topbar() {
       document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🔥 Get First Letter
+  /* ================= AVATAR INITIAL ================= */
+
   const getInitial = () => {
     if (user?.name) return user.name.charAt(0).toUpperCase();
     if (user?.email) return user.email.charAt(0).toUpperCase();
@@ -68,7 +88,9 @@ function Topbar() {
 
   return (
     <div className="topbar">
-      <div className="page-title">{pageName.toUpperCase()}</div>
+      <div className="page-title">
+        {formatPageTitle()}
+      </div>
 
       <div className="account-section" ref={dropdownRef}>
         <div

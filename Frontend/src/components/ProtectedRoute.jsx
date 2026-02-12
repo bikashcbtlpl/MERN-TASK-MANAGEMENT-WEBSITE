@@ -2,43 +2,39 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 
-function ProtectedRoute({ children, requiredPermissions }) {
-  const [isAuth, setIsAuth] = useState(null);
+function ProtectedRoute({ children, requiredPermissions = [] }) {
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
     const verifyUser = async () => {
       try {
-        await axiosInstance.get("/auth/verify");
+        const res = await axiosInstance.get("/auth/verify");
 
-        const storedUser = JSON.parse(localStorage.getItem("user"));
-        setUser(storedUser);
-        setIsAuth(true);
+        const freshUser = res.data.user;
+
+        // 🔥 Update localStorage with fresh permissions
+        localStorage.setItem("user", JSON.stringify(freshUser));
+
+        setUser(freshUser);
       } catch (error) {
         localStorage.removeItem("user");
-        setIsAuth(false);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
     };
 
     verifyUser();
   }, []);
 
-  // While checking auth
-  if (isAuth === null) {
-    return <div>Loading...</div>;
-  }
+  if (loading) return <div>Loading...</div>;
 
-  // Not authenticated
-  if (!isAuth) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
-  // Permission check
-  if (requiredPermissions && requiredPermissions.length > 0) {
-    const permissions = user?.permissions || [];
-
+  if (requiredPermissions.length > 0) {
     const hasAccess = requiredPermissions.some((perm) =>
-      permissions.includes(perm)
+      user.permissions.includes(perm)
     );
 
     if (!hasAccess) {

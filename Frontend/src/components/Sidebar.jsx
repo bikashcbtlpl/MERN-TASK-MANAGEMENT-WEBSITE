@@ -1,7 +1,9 @@
 import { NavLink } from "react-router-dom";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 function Sidebar() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user } = useContext(AuthContext);
   const permissions = user?.permissions || [];
 
   const hasPermission = (permissionList) => {
@@ -9,6 +11,14 @@ function Sidebar() {
       permissions.includes(perm)
     );
   };
+
+  const canManageTask = hasPermission([
+    "Create Task",
+    "Edit Task",
+    "Delete Task",
+  ]);
+
+  const canViewTask = permissions.includes("View Task");
 
   return (
     <div className="sidebar">
@@ -19,14 +29,16 @@ function Sidebar() {
         {/* Always Visible */}
         <NavLink to="/dashboard">Dashboard</NavLink>
 
-        {/* TASK */}
-        {hasPermission([
-          "View Task",
-          "Create Task",
-          "Edit Task",
-          "Delete Task",
-        ]) && (
+        {/* TASK SECTION */}
+
+        {/* If user can manage tasks */}
+        {canManageTask && (
           <NavLink to="/tasks">Manage Task</NavLink>
+        )}
+
+        {/* If user only has view permission */}
+        {!canManageTask && canViewTask && (
+          <NavLink to="/my-tasks">My Task</NavLink>
         )}
 
         {/* ROLE */}
@@ -59,7 +71,6 @@ function Sidebar() {
           <NavLink to="/users">Manage User</NavLink>
         )}
 
-        {/* Optional */}
         <NavLink to="/settings">Settings</NavLink>
 
       </div>

@@ -4,6 +4,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const userController = require("../controllers/userController");
 
 router.get("/", authMiddleware, userController.getUsers);
+router.get("/me", authMiddleware, userController.getCurrentUser);
 router.post("/", authMiddleware, userController.createUser);
 router.put("/:id", authMiddleware, userController.updateUser);
 router.delete("/:id", authMiddleware, userController.deleteUser);

@@ -15,6 +15,23 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const user = req.user;
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      role: user.role.name,
+      permissions: user.role.permissions.map(p => p.name),
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching user" });
+  }
+};
+
+
 // ================= CREATE USER =================
 exports.createUser = async (req, res) => {
   try {

@@ -14,6 +14,14 @@ function ManageUser() {
     status: "Active",
   });
 
+  // 🔥 RBAC
+  const loggedUser = JSON.parse(localStorage.getItem("user"));
+  const permissions = loggedUser?.permissions || [];
+
+  const canCreate = permissions.includes("Create User");
+  const canEdit = permissions.includes("Edit User");
+  const canDelete = permissions.includes("Delete User");
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
@@ -30,6 +38,7 @@ function ManageUser() {
   };
 
   const openCreateModal = () => {
+    if (!canCreate) return;
     setEditingUser(null);
     setFormData({
       email: "",
@@ -40,6 +49,8 @@ function ManageUser() {
   };
 
   const openEditModal = (user) => {
+    if (!canEdit) return;
+
     setEditingUser(user);
     setFormData({
       email: user.email,
@@ -52,6 +63,9 @@ function ManageUser() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (editingUser && !canEdit) return;
+    if (!editingUser && !canCreate) return;
+
     if (editingUser) {
       await axiosInstance.put(`/users/${editingUser._id}`, formData);
     } else {
@@ -63,6 +77,8 @@ function ManageUser() {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) return;
+
     await axiosInstance.delete(`/users/${id}`);
     fetchUsers();
   };
@@ -71,9 +87,12 @@ function ManageUser() {
     <div className="manage-role-container">
       <div className="manage-role-header">
         <h2>Manage User</h2>
-        <button className="create-role-btn" onClick={openCreateModal}>
-          + Add User
-        </button>
+
+        {canCreate && (
+          <button className="create-role-btn" onClick={openCreateModal}>
+            + Add User
+          </button>
+        )}
       </div>
 
       <p>
@@ -87,7 +106,7 @@ function ManageUser() {
             <th>Email</th>
             <th>Role</th>
             <th>Status</th>
-            <th>Actions</th>
+            {(canEdit || canDelete) && <th>Actions</th>}
           </tr>
         </thead>
 
@@ -108,21 +127,28 @@ function ManageUser() {
                   {user.status}
                 </span>
               </td>
-              <td>
-                <button
-                  className="edit-role-btn"
-                  onClick={() => openEditModal(user)}
-                >
-                  Edit
-                </button>
 
-                <button
-                  className="delete-role-btn"
-                  onClick={() => handleDelete(user._id)}
-                >
-                  Delete
-                </button>
-              </td>
+              {(canEdit || canDelete) && (
+                <td>
+                  {canEdit && (
+                    <button
+                      className="edit-role-btn"
+                      onClick={() => openEditModal(user)}
+                    >
+                      Edit
+                    </button>
+                  )}
+
+                  {canDelete && (
+                    <button
+                      className="delete-role-btn"
+                      onClick={() => handleDelete(user._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -144,7 +170,7 @@ function ManageUser() {
                     setFormData({ ...formData, email: e.target.value })
                   }
                   required
-                  disabled={editingUser} // prevent editing email
+                  disabled={editingUser}
                 />
               </div>
 

@@ -1,42 +1,59 @@
 const express = require("express");
 const router = express.Router();
+
 const authMiddleware = require("../middleware/authMiddleware");
 const taskController = require("../controllers/taskController");
 const checkPermission = require("../middleware/permissionMiddleware");
 
-router.post("/", authMiddleware, taskController.createTask);
-router.get("/", authMiddleware, taskController.getTasks);
-router.get("/:id", authMiddleware, taskController.getTaskById);
-router.put("/:id", authMiddleware, taskController.updateTask);
-router.delete("/:id", authMiddleware, taskController.deleteTask);
-
-router.get(
-  "/",
-  authMiddleware,
-  checkPermission(["View Task", "Create Task", "Edit Task", "Delete Task"]),
-  taskController.getTasks
-);
-
+/* ================= CREATE TASK ================= */
 router.post(
   "/",
   authMiddleware,
-  checkPermission("Create Task"),
+  checkPermission(["Create Task"]),
   taskController.createTask
 );
 
+/* ================= GET TASKS ================= */
+router.get(
+  "/",
+  authMiddleware,
+  checkPermission([
+    "View Task",
+    "Create Task",
+    "Edit Task",
+    "Delete Task",
+  ]),
+  taskController.getTasks
+);
+
+router.get(
+  "/my",
+  authMiddleware,
+  taskController.getMyTasks
+);
+
+/* ================= GET SINGLE TASK ================= */
+router.get(
+  "/:id",
+  authMiddleware,
+  checkPermission(["View Task"]),
+  taskController.getTaskById
+);
+
+/* ================= UPDATE TASK ================= */
 router.put(
   "/:id",
   authMiddleware,
-  checkPermission("Edit Task"),
+  checkPermission(["Edit Task"]),
   taskController.updateTask
 );
 
+/* ================= DELETE TASK ================= */
 router.delete(
   "/:id",
   authMiddleware,
-  checkPermission("Delete Task"),
+  checkPermission(["Delete Task"]),
   taskController.deleteTask
 );
-
 
 module.exports = router;

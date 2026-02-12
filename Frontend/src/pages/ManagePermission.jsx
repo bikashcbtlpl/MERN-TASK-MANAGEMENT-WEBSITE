@@ -11,6 +11,14 @@ function ManagePermission() {
     status: "Active",
   });
 
+  // 🔥 RBAC
+  const loggedUser = JSON.parse(localStorage.getItem("user"));
+  const userPermissions = loggedUser?.permissions || [];
+
+  const canCreate = userPermissions.includes("Create Permission");
+  const canEdit = userPermissions.includes("Edit Permission");
+  const canDelete = userPermissions.includes("Delete Permission");
+
   useEffect(() => {
     fetchPermissions();
   }, []);
@@ -21,19 +29,29 @@ function ManagePermission() {
   };
 
   const openCreateModal = () => {
+    if (!canCreate) return;
+
     setEditingPermission(null);
     setFormData({ name: "", status: "Active" });
     setIsModalOpen(true);
   };
 
   const openEditModal = (permission) => {
+    if (!canEdit) return;
+
     setEditingPermission(permission);
-    setFormData(permission);
+    setFormData({
+      name: permission.name,
+      status: permission.status,
+    });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (editingPermission && !canEdit) return;
+    if (!editingPermission && !canCreate) return;
 
     if (editingPermission) {
       await axiosInstance.put(
@@ -49,6 +67,8 @@ function ManagePermission() {
   };
 
   const handleDelete = async (id) => {
+    if (!canDelete) return;
+
     await axiosInstance.delete(`/permissions/${id}`);
     fetchPermissions();
   };
@@ -57,12 +77,17 @@ function ManagePermission() {
     <div className="manage-role-container">
       <div className="manage-role-header">
         <h2>Manage Permission</h2>
-        <button className="create-role-btn" onClick={openCreateModal}>
-          + Create Permission
-        </button>
+
+        {canCreate && (
+          <button className="create-role-btn" onClick={openCreateModal}>
+            + Create Permission
+          </button>
+        )}
       </div>
 
-      <p>Total Permissions: <strong>{permissions.length}</strong></p>
+      <p>
+        Total Permissions: <strong>{permissions.length}</strong>
+      </p>
 
       <table className="role-table">
         <thead>
@@ -70,7 +95,7 @@ function ManagePermission() {
             <th>#</th>
             <th>Name</th>
             <th>Status</th>
-            <th>Actions</th>
+            {(canEdit || canDelete) && <th>Actions</th>}
           </tr>
         </thead>
 
@@ -90,21 +115,28 @@ function ManagePermission() {
                   {p.status}
                 </span>
               </td>
-              <td>
-                <button
-                  className="edit-role-btn"
-                  onClick={() => openEditModal(p)}
-                >
-                  Edit
-                </button>
 
-                <button
-                  className="delete-role-btn"
-                  onClick={() => handleDelete(p._id)}
-                >
-                  Delete
-                </button>
-              </td>
+              {(canEdit || canDelete) && (
+                <td>
+                  {canEdit && (
+                    <button
+                      className="edit-role-btn"
+                      onClick={() => openEditModal(p)}
+                    >
+                      Edit
+                    </button>
+                  )}
+
+                  {canDelete && (
+                    <button
+                      className="delete-role-btn"
+                      onClick={() => handleDelete(p._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -114,7 +146,9 @@ function ManagePermission() {
         <div className="modal-overlay">
           <div className="modal">
             <h3>
-              {editingPermission ? "Edit Permission" : "Create Permission"}
+              {editingPermission
+                ? "Edit Permission"
+                : "Create Permission"}
             </h3>
 
             <form onSubmit={handleSubmit}>
@@ -147,6 +181,7 @@ function ManagePermission() {
                 <button type="submit" className="save-btn">
                   {editingPermission ? "Update" : "Create"}
                 </button>
+
                 <button
                   type="button"
                   className="cancel-btn"

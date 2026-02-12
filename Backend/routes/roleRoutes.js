@@ -5,6 +5,11 @@ const roleController = require("../controllers/roleController");
 
 router.post("/", authMiddleware, roleController.createRole);
 router.get("/", authMiddleware, roleController.getRoles);
+
+// 🔥 NEW ROUTES
+router.get("/name/:roleName", authMiddleware, roleController.getRoleByName);
+router.put("/name/:roleName", authMiddleware, roleController.updateRoleByName);
+
 router.put("/:id", authMiddleware, roleController.updateRole);
 router.delete("/:id", authMiddleware, roleController.deleteRole);
 
