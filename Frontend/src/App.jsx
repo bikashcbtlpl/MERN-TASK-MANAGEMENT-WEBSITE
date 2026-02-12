@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+import { useAuth } from "./context/AuthContext";
 
 import Dashboard from "./pages/Dashboard";
 import ManageTask from "./pages/ManageTask";
@@ -13,6 +14,12 @@ import Settings from "./pages/Settings";
 import MyTask from "./pages/MyTask";
 
 function App() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+  
   return (
     <BrowserRouter>
       <Routes>

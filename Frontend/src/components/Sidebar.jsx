@@ -3,8 +3,9 @@ import { useAuth } from "../context/AuthContext";
 
 
 function Sidebar() {
-  const { user } = useAuth();
+  const { user,loading } = useAuth();
   const permissions = user?.permissions || [];
+  if (loading) return null;
 
 
   const hasPermission = (permissionList) => {

@@ -14,7 +14,7 @@ function Layout() {
 
       if (!loginTime || !user) return;
 
-      const sessionMinutes = user.sessionTimeout || 30; // default 30 min
+      const sessionMinutes = user.sessionTimeout || 60; // default 30 min
       const timeoutMs = sessionMinutes * 60 * 1000;
 
       const currentTime = Date.now();

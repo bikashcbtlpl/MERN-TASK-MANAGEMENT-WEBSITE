@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance"; // ✅ USE THIS
+import { useAuth } from "../context/AuthContext";   // ✅ ADD THIS
+import axiosInstance from "../api/axiosInstance";
 
 function Login() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();   // ✅ GET setUser
 
   const [formData, setFormData] = useState({
     email: "",
@@ -25,10 +27,14 @@ function Login() {
 
     try {
       const response = await axiosInstance.post(
-        "/auth/login",   // ✅ NO full URL
+        "/auth/login",
         formData
       );
 
+      // 🔥 UPDATE CONTEXT
+      setUser(response.data.user);
+
+      // Optional (still okay to keep)
       localStorage.setItem(
         "user",
         JSON.stringify(response.data.user)
