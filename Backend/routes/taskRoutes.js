@@ -5,20 +5,26 @@ const authMiddleware = require("../middleware/authMiddleware");
 const checkPermission = require("../middleware/permissionMiddleware");
 const taskController = require("../controllers/taskController");
 
+/* ✅ SINGLE UPLOAD MIDDLEWARE */
+const upload = require("../middleware/upload");
+
 /* =======================================================
-   CREATE TASK
+   CREATE TASK (WITH FILE UPLOAD)
 ======================================================= */
 router.post(
   "/",
   authMiddleware,
   checkPermission(["Create Task"]),
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "videos", maxCount: 5 },
+    { name: "attachments", maxCount: 10 },
+  ]),
   taskController.createTask
 );
 
-
 /* =======================================================
    GET ALL TASKS (PAGINATED + ROLE BASED)
-   Admin / Manager / Roles with multiple permissions
 ======================================================= */
 router.get(
   "/",
@@ -32,10 +38,8 @@ router.get(
   taskController.getTasks
 );
 
-
 /* =======================================================
-   GET MY TASKS (Normal User)
-   ⚠ Must be BEFORE "/:id"
+   GET MY TASKS
 ======================================================= */
 router.get(
   "/my",
@@ -43,7 +47,6 @@ router.get(
   checkPermission(["View Task"]),
   taskController.getMyTasks
 );
-
 
 /* =======================================================
    GET SINGLE TASK
@@ -55,17 +58,20 @@ router.get(
   taskController.getTaskById
 );
 
-
 /* =======================================================
-   UPDATE TASK
+   UPDATE TASK (WITH FILE UPLOAD)
 ======================================================= */
 router.put(
   "/:id",
   authMiddleware,
   checkPermission(["Edit Task"]),
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "videos", maxCount: 5 },
+    { name: "attachments", maxCount: 10 },
+  ]),
   taskController.updateTask
 );
-
 
 /* =======================================================
    DELETE TASK

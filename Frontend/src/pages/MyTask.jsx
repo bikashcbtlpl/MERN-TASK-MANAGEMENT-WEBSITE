@@ -7,76 +7,160 @@ function MyTask() {
   const navigate = useNavigate();
 
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // ================= FETCH TASKS =================
-  const fetchMyTasks = useCallback(async () => {
-    try {
-      setLoading(true);
+  // loaders
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-      const res = await axiosInstance.get("/tasks/my");
-      setTasks(res.data || []);
-    } catch (error) {
-      console.log(
-        "Error fetching tasks:",
-        error.response?.data?.message
-      );
-      setTasks([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // filters
+  const [search, setSearch] = useState("");
+  const [taskStatus, setTaskStatus] = useState("");
+  const [completionStatus, setCompletionStatus] = useState("");
 
+  // pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTasks, setTotalTasks] = useState(0);
+
+  /* ================= FETCH TASKS ================= */
+  const fetchMyTasks = useCallback(
+    async (page = 1, silent = false) => {
+      try {
+        if (silent) setRefreshing(true);
+        else setInitialLoading(false); // 🔥 prevent full page reload
+
+        const params = new URLSearchParams({
+          page,
+          limit: 10,
+        });
+
+        if (search) params.append("search", search);
+        if (taskStatus) params.append("taskStatus", taskStatus);
+        if (completionStatus)
+          params.append("completionStatus", completionStatus);
+
+        const res = await axiosInstance.get(
+          `/tasks/my?${params.toString()}`
+        );
+
+        setTasks(res.data.tasks || []);
+        setTotalPages(res.data.totalPages || 1);
+        setTotalTasks(res.data.totalTasks || 0);
+
+      } catch (error) {
+        console.log(
+          "Error fetching tasks:",
+          error.response?.data?.message
+        );
+      } finally {
+        setInitialLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [search, taskStatus, completionStatus]
+  );
+
+  /* LOAD WHEN FILTERS OR PAGE CHANGE */
   useEffect(() => {
-    fetchMyTasks();
-  }, [fetchMyTasks]);
+    fetchMyTasks(currentPage, true); // 🔥 silent fetch
+  }, [fetchMyTasks, currentPage]);
 
-  // ================= SOCKET LISTENER =================
+  /* SOCKET REFRESH */
   useEffect(() => {
-    socket.on("taskUpdated", fetchMyTasks);
+    const handler = () => fetchMyTasks(currentPage, true);
+    socket.on("taskUpdated", handler);
+    return () => socket.off("taskUpdated", handler);
+  }, [fetchMyTasks, currentPage]);
 
-    return () => {
-      socket.off("taskUpdated", fetchMyTasks);
-    };
-  }, [fetchMyTasks]);
+  const formatDate = (date) =>
+    date ? new Date(date).toLocaleDateString() : "-";
 
-  // ================= FORMAT DATE =================
-  const formatDate = (date) => {
-    if (!date) return "-";
-    return new Date(date).toLocaleDateString();
-  };
-
-  // ================= STATS =================
   const completed = tasks.filter(
     (t) => t.completionStatus === "Completed"
   ).length;
 
   const active = tasks.filter(
-    (t) => t.taskStatus === "In Progress"
+    (t) =>
+      t.taskStatus !== "Closed" &&
+      t.completionStatus !== "Cancelled"
   ).length;
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  if (initialLoading) return <div>Loading...</div>;
 
   return (
     <div className="manage-role-container">
       <div className="manage-role-header">
         <h2>My Tasks</h2>
+        {refreshing && (
+          <span style={{ fontSize: "13px", color: "#777" }}>
+            Updating...
+          </span>
+        )}
       </div>
 
-      {/* ================= SUMMARY CARDS ================= */}
-      <div className="task-summary" style={{ marginBottom: "15px" }}>
-            <span>Total: <strong>{tasks.length}</strong></span>
-            <span style={{ marginLeft: "15px" }}>
-              Active: <strong>{active}</strong>
-            </span>
-            <span style={{ marginLeft: "15px" }}>
-              Completed: <strong>{completed}</strong>
-            </span>
-          </div>
+      {/* FILTERS */}
+      <div className="task-filters">
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
 
-      {/* ================= TASK TABLE ================= */}
+        <select
+          value={taskStatus}
+          onChange={(e) => {
+            setTaskStatus(e.target.value);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="">All Task Status</option>
+          <option value="Open">Open</option>
+          <option value="In Progress">In Progress</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Closed">Closed</option>
+        </select>
+
+        <select
+          value={completionStatus}
+          onChange={(e) => {
+            setCompletionStatus(e.target.value);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="">All Completion</option>
+          <option value="Pending">Pending</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <button
+          onClick={() => {
+            setSearch("");
+            setTaskStatus("");
+            setCompletionStatus("");
+            setCurrentPage(1);
+          }}
+        >
+          Reset
+        </button>
+      </div>
+
+      {/* SUMMARY */}
+      <div className="task-summary" style={{ marginBottom: "15px" }}>
+        <span>Total: <strong>{totalTasks}</strong></span>
+        <span style={{ marginLeft: "15px" }}>
+          Active: <strong>{active}</strong>
+        </span>
+        <span style={{ marginLeft: "15px" }}>
+          Completed: <strong>{completed}</strong>
+        </span>
+      </div>
+
+      {/* TABLE */}
       <table className="role-table">
         <thead>
           <tr>
@@ -91,25 +175,20 @@ function MyTask() {
         </thead>
 
         <tbody>
-          {tasks.length > 0 ? (
+          {tasks.length ? (
             tasks.map((task, index) => (
               <tr
                 key={task._id}
-                style={{ cursor: "pointer" }}
                 onClick={() => navigate(`/tasks/${task._id}`)}
+                style={{ cursor: "pointer" }}
               >
-                <td>{index + 1}</td>
-
+                <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{task.title}</td>
-
-                {/* TASK STATUS */}
                 <td>
                   <span className="role-status inactive">
                     {task.taskStatus}
                   </span>
                 </td>
-
-                {/* COMPLETION STATUS */}
                 <td>
                   <span
                     className={
@@ -121,11 +200,8 @@ function MyTask() {
                     {task.completionStatus}
                   </span>
                 </td>
-
                 <td>{formatDate(task.startDate)}</td>
                 <td>{formatDate(task.endDate)}</td>
-
-                {/* ATTACHMENT COUNT */}
                 <td>
                   📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0} | 📎 {task.attachments?.length || 0}
                 </td>
@@ -140,6 +216,29 @@ function MyTask() {
           )}
         </tbody>
       </table>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
+            Prev
+          </button>
+
+          <span className="page-info">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

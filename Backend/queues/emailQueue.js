@@ -1,12 +1,13 @@
+require("dotenv").config();
 const Queue = require("bull");
 const Redis = require("ioredis");
 
-const redis = new Redis(); // default localhost:6379
+const redis = new Redis();
 
 const emailQueue = new Queue("emailQueue", {
   redis: {
-    host: "127.0.0.1",
-    port: 6379,
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT),
   },
 });
 
