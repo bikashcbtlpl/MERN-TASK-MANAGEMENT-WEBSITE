@@ -143,6 +143,9 @@
 }
 
 .account-name {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
   cursor: pointer;
   font-weight: 500;
   color: #1e293b;
@@ -208,63 +211,6 @@
   }
 }
 
-.manage-task-container {
-  width: 100%;
-}
-
-.manage-task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.create-btn {
-  background-color: #3b82f6;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: 0.3s ease;
-}
-
-.create-btn:hover {
-  background-color: #2563eb;
-}
-
-.total-count {
-  margin-bottom: 15px;
-  color: #475569;
-}
-
-/* TABLE */
-
-.task-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.task-table th,
-.task-table td {
-  padding: 12px 15px;
-  text-align: left;
-}
-
-.task-table thead {
-  background-color: #f1f5f9;
-}
-
-.task-table tbody tr {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.task-table tbody tr:hover {
-  background-color: #f8fafc;
-}
 
 /* STATUS */
 
@@ -287,27 +233,6 @@
 
 /* BUTTONS */
 
-.edit-btn {
-  background-color: #facc15;
-  border: none;
-  padding: 6px 10px;
-  margin-right: 5px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.delete-btn {
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.delete-btn:hover {
-  background-color: #dc2626;
-}
 
 .form-container {
   max-width: 500px;
@@ -325,35 +250,10 @@
   height: 70px;
 }
 
-.task-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.task-form input,
-.task-form textarea,
-.task-form select {
-  padding: 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-}
-
-.submit-btn {
-  background-color: #3b82f6;
-  color: white;
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.submit-btn:hover {
-  background-color: #2563eb;
-}
 
 .manage-role-container {
   width: 100%;
+  padding: 30px;
 }
 
 .manage-role-header {
@@ -363,24 +263,7 @@
   margin-bottom: 20px;
 }
 
-.create-role-btn {
-  background-color: #3b82f6;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: 0.3s ease;
-}
 
-.create-role-btn:hover {
-  background-color: #2563eb;
-}
-
-.total-role-count {
-  margin-bottom: 15px;
-  color: #475569;
-}
 
 /* TABLE */
 
@@ -531,67 +414,10 @@
   }
 }
 
-.manage-permission-container {
-  width: 100%;
-}
 
-.manage-permission-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.create-permission-btn {
-  background-color: #3b82f6;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.total-permission-count {
-  margin-bottom: 15px;
-  color: #475569;
-}
-
-/* TABLE */
-
-.permission-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.permission-table th,
-.permission-table td {
-  padding: 12px 15px;
-  text-align: left;
-}
-
-.permission-table thead {
-  background-color: #f1f5f9;
-}
-
-.permission-table tbody tr {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.permission-table tbody tr:hover {
-  background-color: #f8fafc;
-}
 
 /* STATUS */
 
-.permission-status {
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 12px;
-  font-weight: 600;
-}
 
 .active {
   background-color: #dcfce7;
@@ -603,136 +429,9 @@
   color: #991b1b;
 }
 
-/* BUTTONS */
-
-.edit-permission-btn {
-  background-color: #facc15;
-  border: none;
-  padding: 6px 10px;
-  margin-right: 5px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.delete-permission-btn {
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.manage-user-container {
-  width: 100%;
-}
-
-.manage-user-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.add-user-btn {
-  background-color: #3b82f6;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.total-user-count {
-  margin-bottom: 15px;
-  color: #475569;
-}
-
-.user-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.user-table th,
-.user-table td {
-  padding: 12px 15px;
-  text-align: left;
-}
-
-.user-table thead {
-  background-color: #f1f5f9;
-}
-
-.user-table tbody tr {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.user-table tbody tr:hover {
-  background-color: #f8fafc;
-}
-
-.user-status {
-  padding: 5px 10px;
-  border-radius: 15px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.active {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.inactive {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-.edit-user-btn {
-  background-color: #facc15;
-  border: none;
-  padding: 6px 10px;
-  margin-right: 5px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.delete-user-btn {
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.permission-checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 120px;
-  overflow-y: auto;
-  border: 1px solid #e2e8f0;
-  padding: 8px;
-  border-radius: 6px;
-}
-
-.checkbox-item {
-  font-size: 14px;
-}
 
 .settings-container {
   width: 100%;
-}
-
-.settings-heading {
-  margin-bottom: 20px;
-  font-size: 22px;
-  font-weight: 600;
-  color: #1e293b;
 }
 
 .settings-card {
@@ -766,20 +465,6 @@
   border-radius: 6px;
 }
 
-.checkbox-group {
-  flex-direction: row;
-  align-items: center;
-}
-
-.save-btn {
-  background-color: #3b82f6;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
 .save-btn:hover {
   background-color: #2563eb;
 }
@@ -804,24 +489,6 @@
   text-align: center;
   margin-bottom: 20px;
   color: #1e293b;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  margin-bottom: 5px;
-  font-size: 14px;
-  color: #475569;
-}
-
-.form-group input {
-  padding: 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
 }
 
 .password-wrapper {
@@ -879,11 +546,7 @@
   margin: 0 auto 10px auto;
 }
 
-.account-name {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
+
 
 .role-form-container {
   display: flex;
@@ -903,35 +566,6 @@
   margin-bottom: 20px;
 }
 
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.permission-list {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.permission-item {
-  font-size: 14px;
-}
 
 .save-btn {
   background: #2563eb;
@@ -999,44 +633,6 @@
   border-radius: 5px;
 }
 
-.manage-role-container {
-  padding: 30px;
-}
-
-.manage-role-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.create-role-btn {
-  background: #2563eb;
-  color: white;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: 0.2s ease;
-}
-
-.create-role-btn:hover {
-  background: #1e40af;
-}
-
-.role-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.role-table thead {
-  background: #f3f4f6;
-}
 
 .role-table th {
   text-align: left;
@@ -1108,6 +704,20 @@
   background: #f9fafb;
 }
 
+.create-role-btn {
+  background-color: #3b82f6;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.create-role-btn:hover {
+  background-color: #2563eb;
+}
+
 .pagination {
   margin-top: 15px;
   display: flex;
@@ -1118,4 +728,17 @@
 .pagination button {
   padding: 6px 12px;
   cursor: pointer;
+}
+
+.role-table td,
+.role-table th {
+  padding: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.role-table td:nth-child(3) {
+  max-width: 300px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
