@@ -1,16 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axiosInstance from "../api/axiosInstance";
+import socket from "../socket";
 
 function Dashboard() {
   const user = JSON.parse(localStorage.getItem("user"));
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  // ================= FETCH STATS =================
+  const fetchStats = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/dashboard");
       setStats(res.data);
@@ -19,22 +17,44 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (!stats) return <div>No Data</div>;
+  // Initial Load
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // ================= SOCKET REALTIME UPDATE =================
+  useEffect(() => {
+    // Ensure socket connected
+    if (!socket.connected) socket.connect();
+
+    const handleUpdate = () => {
+      fetchStats();
+    };
+
+    socket.on("taskUpdated", handleUpdate);
+
+    return () => {
+      socket.off("taskUpdated", handleUpdate);
+    };
+  }, [fetchStats]);
+
+  // ================= LOADING STATES =================
+  if (loading) return <div style={{ padding: "20px" }}>Loading dashboard...</div>;
+  if (!stats) return <div style={{ padding: "20px" }}>No dashboard data</div>;
 
   return (
     <div className="dashboard-container">
       <div className="card-container">
 
-        {user?.role === "Super Admin" || user?.role === "Admin" ? (
+        {/* Admin only */}
+        {(user?.role === "Super Admin" || user?.role === "Admin") && (
           <div className="dashboard-card">
             <h3>Total Users</h3>
             <p>{stats.totalUsers}</p>
           </div>
-        ) : null}
-
+        )}
 
         {/* Everyone sees these */}
         <div className="dashboard-card">

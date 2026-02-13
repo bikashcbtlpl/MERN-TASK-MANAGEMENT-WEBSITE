@@ -5,21 +5,32 @@ import Layout from "./components/Layout";
 import { useAuth } from "./context/AuthContext";
 
 import Dashboard from "./pages/Dashboard";
+
+// TASKS
 import ManageTask from "./pages/ManageTask";
+import TaskForm from "./pages/TaskForm";
+import TaskDetails from "./pages/TaskDetails";
+import MyTask from "./pages/MyTask";
+
+// ROLES
 import RoleForm from "./pages/RoleForm";
 import ManageRole from "./pages/ManageRole";
+
+// PERMISSIONS
 import ManagePermission from "./pages/ManagePermission";
+
+// USERS
 import ManageUser from "./pages/ManageUser";
+
 import Settings from "./pages/Settings";
-import MyTask from "./pages/MyTask";
 
 function App() {
   const { loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
-  
+
   return (
     <BrowserRouter>
       <Routes>
@@ -40,12 +51,12 @@ function App() {
           }
         >
 
-          {/* Dashboard */}
+          {/* ================= DASHBOARD ================= */}
           <Route path="dashboard" element={<Dashboard />} />
 
           {/* ================= TASKS ================= */}
 
-          {/* Admin Manage Task */}
+          {/* Manage Tasks (Admin) */}
           <Route
             path="tasks"
             element={
@@ -61,13 +72,41 @@ function App() {
             }
           />
 
-          {/* Normal User My Tasks */}
+          {/* Create Task */}
+          <Route
+            path="tasks/create"
+            element={
+              <ProtectedRoute requiredPermissions={["Create Task"]}>
+                <TaskForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Edit Task */}
+          <Route
+            path="tasks/edit/:id"
+            element={
+              <ProtectedRoute requiredPermissions={["Edit Task"]}>
+                <TaskForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* View Task Details */}
+          <Route
+            path="tasks/:id"
+            element={
+              <ProtectedRoute requiredPermissions={["View Task"]}>
+                <TaskDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Normal User - My Tasks */}
           <Route
             path="my-tasks"
             element={
-              <ProtectedRoute
-                requiredPermissions={["View Task"]}
-              >
+              <ProtectedRoute requiredPermissions={["View Task"]}>
                 <MyTask />
               </ProtectedRoute>
             }
@@ -94,9 +133,7 @@ function App() {
           <Route
             path="roles/create"
             element={
-              <ProtectedRoute
-                requiredPermissions={["Create Role"]}
-              >
+              <ProtectedRoute requiredPermissions={["Create Role"]}>
                 <RoleForm />
               </ProtectedRoute>
             }
@@ -105,9 +142,7 @@ function App() {
           <Route
             path="roles/edit/:roleName"
             element={
-              <ProtectedRoute
-                requiredPermissions={["Edit Role"]}
-              >
+              <ProtectedRoute requiredPermissions={["Edit Role"]}>
                 <RoleForm />
               </ProtectedRoute>
             }

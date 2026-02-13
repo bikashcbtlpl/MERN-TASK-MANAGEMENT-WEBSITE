@@ -3,23 +3,26 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const app = express();
 const morgan = require("morgan");
+const http = require("http");
+const { Server } = require("socket.io");
 
-// Middleware
+const app = express();
+
+/* ================= MIDDLEWARE ================= */
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // your frontend
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );
 
 app.use(morgan("dev"));
-
 app.use(express.json());
-
 app.use(cookieParser());
+
+/* ================= ROUTES ================= */
 
 const roleRoutes = require("./routes/roleRoutes");
 app.use("/api/roles", roleRoutes);
@@ -42,21 +45,45 @@ app.use("/api/settings", settingsRoutes);
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
+/* ================= MONGODB ================= */
 
-// MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected Successfully"))
   .catch((err) => console.log("MongoDB Error:", err));
 
-// Test Route
+/* ================= SOCKET.IO SETUP ================= */
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
+});
+
+// Make io accessible inside controllers
+app.set("io", io);
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+/* ================= TEST ROUTE ================= */
+
 app.get("/", (req, res) => {
   res.send("Backend Running...");
 });
 
-// Start Server
-const PORT = process.env.PORT;
+/* ================= START SERVER ================= */
 
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

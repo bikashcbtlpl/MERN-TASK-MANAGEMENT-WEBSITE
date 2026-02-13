@@ -11,42 +11,48 @@ exports.getDashboardStats = async (req, res) => {
     let activeTasks = 0;
 
     const roleName = user.role?.name;
-
     const isAdmin =
-      roleName === "Admin" ||
-      roleName === "Super Admin";
+      roleName === "Admin" || roleName === "Super Admin";
 
-    // ================= ADMIN =================
+    /* ================= ADMIN ================= */
     if (isAdmin) {
+
       totalUsers = await User.countDocuments();
 
+      // ✅ Count ALL tasks (including cancelled)
       totalTasks = await Task.countDocuments();
 
+      // ✅ Completed tasks only
       completedTasks = await Task.countDocuments({
-        status: "Completed",
+        completionStatus: "Completed",
       });
 
+      // ✅ Active = NOT closed AND NOT cancelled
       activeTasks = await Task.countDocuments({
-        status: "In Progress",
+        taskStatus: { $ne: "Closed" },
+        completionStatus: { $ne: "Cancelled" },
       });
     }
 
-    // ================= NORMAL USER =================
+    /* ================= NORMAL USER ================= */
     else {
-      totalUsers = 0;
 
+      // ✅ Count ALL assigned tasks
       totalTasks = await Task.countDocuments({
         assignedTo: user._id,
       });
 
+      // ✅ Completed tasks
       completedTasks = await Task.countDocuments({
         assignedTo: user._id,
-        status: "Completed",
+        completionStatus: "Completed",
       });
 
+      // ✅ Active tasks only (not closed + not cancelled)
       activeTasks = await Task.countDocuments({
         assignedTo: user._id,
-        status: "In Progress",
+        taskStatus: { $ne: "Closed" },
+        completionStatus: { $ne: "Cancelled" },
       });
     }
 

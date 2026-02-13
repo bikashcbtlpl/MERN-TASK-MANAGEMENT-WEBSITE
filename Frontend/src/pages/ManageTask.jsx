@@ -1,24 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
+import socket from "../socket";
 
 function ManageTask() {
-  const [tasks, setTasks] = useState([]);
-  const [users, setUsers] = useState([]);
+  const navigate = useNavigate();
 
+  const [tasks, setTasks] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
-
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    status: "In Progress",
-    assignedTo: "",
-  });
-
-  // 🔥 GET USER PERMISSIONS
+  // 🔐 Permissions
   const user = JSON.parse(localStorage.getItem("user"));
   const permissions = user?.permissions || [];
 
@@ -27,75 +21,65 @@ function ManageTask() {
   const canEdit = permissions.includes("Edit Task");
   const canDelete = permissions.includes("Delete Task");
 
+  // ================= FETCH TASKS =================
+  const fetchTasks = useCallback(async (page = 1) => {
+    try {
+      setLoading(true);
+
+      const res = await axiosInstance.get(
+        `/tasks?page=${page}&limit=5`
+      );
+
+      setTasks(res.data.tasks || []);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalTasks(res.data.totalTasks || 0);
+
+      if (page > 1 && res.data.tasks.length === 0) {
+        setCurrentPage(page - 1);
+      }
+
+    } catch (error) {
+      console.log("Fetch Tasks Error:", error.response?.data?.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (canView || canCreate || canEdit || canDelete) {
       fetchTasks(currentPage);
-      fetchUsers();
     }
-  }, [currentPage]);
+  }, [currentPage, fetchTasks]);
 
-  const fetchTasks = async (page = 1) => {
-    const res = await axiosInstance.get(
-      `/tasks?page=${page}&limit=5`
-    );
+  // ================= SOCKET =================
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchTasks(currentPage);
+    };
 
-    setTasks(res.data.tasks);
-    setTotalPages(res.data.totalPages);
-  };
+    socket.on("taskUpdated", handleUpdate);
 
-  const fetchUsers = async () => {
-    const res = await axiosInstance.get("/users");
+    return () => {
+      socket.off("taskUpdated", handleUpdate);
+    };
+  }, [currentPage, fetchTasks]);
 
-    const loggedInUser = JSON.parse(localStorage.getItem("user"));
-
-    if (loggedInUser?.role !== "Super Admin") {
-      const filteredUsers = res.data.filter(
-        (user) => user.role?.name !== "Super Admin"
-      );
-      setUsers(filteredUsers);
-    } else {
-      setUsers(res.data);
-    }
-  };
-
-  const openCreateModal = () => {
-    setEditingTask(null);
-    setFormData({
-      title: "",
-      description: "",
-      status: "In Progress",
-      assignedTo: "",
-    });
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (task) => {
-    setEditingTask(task);
-    setFormData({
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      assignedTo: task.assignedTo?._id || "",
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (editingTask) {
-      await axiosInstance.put(`/tasks/${editingTask._id}`, formData);
-    } else {
-      await axiosInstance.post("/tasks", formData);
-    }
-
-    fetchTasks(currentPage);
-    setIsModalOpen(false);
-  };
-
+  // ================= DELETE =================
   const handleDelete = async (id) => {
-    await axiosInstance.delete(`/tasks/${id}`);
-    fetchTasks(currentPage);
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
+
+    try {
+      await axiosInstance.delete(`/tasks/${id}`);
+      fetchTasks(currentPage);
+    } catch (error) {
+      console.log("Delete Error:", error.response?.data?.message);
+    }
+  };
+
+  // ================= FORMAT DATE =================
+  const formatDate = (date) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString();
   };
 
   return (
@@ -106,7 +90,7 @@ function ManageTask() {
         {canCreate && (
           <button
             className="create-role-btn"
-            onClick={openCreateModal}
+            onClick={() => navigate("/tasks/create")}
           >
             + Create Task
           </button>
@@ -114,181 +98,133 @@ function ManageTask() {
       </div>
 
       <p>
-        Total Tasks: <strong>{tasks.length}</strong>
+        Total Tasks: <strong>{totalTasks}</strong>
       </p>
 
-      <table className="role-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Status</th>
-            <th>Assigned To</th>
-            {(canEdit || canDelete) && <th>Actions</th>}
-          </tr>
-        </thead>
+      {loading ? (
+        <div style={{ padding: "20px" }}>Loading tasks...</div>
+      ) : (
+        <>
+          <table className="role-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Task Status</th>
+                <th>Status</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Assigned</th>
+                <th>Files</th>
+                {(canEdit || canDelete) && <th>Actions</th>}
+              </tr>
+            </thead>
 
-        <tbody>
-          {tasks.map((task, index) => (
-            <tr key={task._id}>
-              <td>{index + 1}</td>
-              <td>{task.title}</td>
-              <td>{task.description}</td>
-              <td>
-                <span
-                  className={
-                    task.status === "Completed"
-                      ? "role-status active"
-                      : "role-status inactive"
-                  }
-                >
-                  {task.status}
-                </span>
-              </td>
-              <td>{task.assignedTo?.email || "Unassigned"}</td>
+            <tbody>
+              {tasks.length > 0 ? (
+                tasks.map((task, index) => (
+                  <tr
+                    key={task._id}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/tasks/${task._id}`)}
+                  >
+                    <td>{(currentPage - 1) * 5 + index + 1}</td>
 
-              {(canEdit || canDelete) && (
-                <td>
-                  {canEdit && (
-                    <button
-                      className="edit-role-btn"
-                      onClick={() => openEditModal(task)}
-                    >
-                      Edit
-                    </button>
-                  )}
+                    <td>{task.title}</td>
 
-                  {canDelete && (
-                    <button
-                      className="delete-role-btn"
-                      onClick={() => handleDelete(task._id)}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </td>
+                    {/* TASK STATUS */}
+                    <td>
+                      <span className="role-status inactive">
+                        {task.taskStatus}
+                      </span>
+                    </td>
+
+                    {/* COMPLETION STATUS */}
+                    <td>
+                      <span
+                        className={
+                          task.completionStatus === "Completed"
+                            ? "role-status active"
+                            : "role-status inactive"
+                        }
+                      >
+                        {task.completionStatus}
+                      </span>
+                    </td>
+
+                    <td>{formatDate(task.startDate)}</td>
+                    <td>{formatDate(task.endDate)}</td>
+
+                    <td>{task.assignedTo?.email || "Unassigned"}</td>
+
+                    {/* ATTACHMENTS COUNT */}
+                    <td>
+                      📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0} | 📎 {task.attachments?.length || 0}
+                    </td>
+
+                    {(canEdit || canDelete) && (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {canEdit && (
+                          <button
+                            className="edit-role-btn"
+                            onClick={() =>
+                              navigate(`/tasks/edit/${task._id}`)
+                            }
+                          >
+                            Edit
+                          </button>
+                        )}
+
+                        {canDelete && (
+                          <button
+                            className="delete-role-btn"
+                            onClick={() =>
+                              handleDelete(task._id)
+                            }
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9" style={{ textAlign: "center" }}>
+                    No tasks found
+                  </td>
+                </tr>
               )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
 
-      {/* ✅ PAGINATION CONTROLS */}
-      <div style={{ marginTop: "15px" }}>
-        <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(currentPage - 1)}
-        >
-          Prev
-        </button>
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                disabled={currentPage === 1}
+                onClick={() =>
+                  setCurrentPage((prev) => prev - 1)
+                }
+              >
+                Prev
+              </button>
 
-        <span style={{ margin: "0 10px" }}>
-          Page {currentPage} of {totalPages}
-        </span>
+              <span className="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
 
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage(currentPage + 1)}
-        >
-          Next
-        </button>
-      </div>
-
-      {isModalOpen && (canCreate || canEdit) && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>
-              {editingTask ? "Edit Task" : "Create Task"}
-            </h3>
-
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Title</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      title: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Description</label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      description: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Assign User</label>
-                <select
-                  value={formData.assignedTo}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      assignedTo: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">Unassigned</option>
-                  {users.map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value,
-                    })
-                  }
-                >
-                  <option value="In Progress">
-                    In Progress
-                  </option>
-                  <option value="Completed">
-                    Completed
-                  </option>
-                </select>
-              </div>
-
-              <div className="modal-buttons">
-                <button type="submit" className="save-btn">
-                  {editingTask ? "Update" : "Create"}
-                </button>
-
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) => prev + 1)
+                }
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

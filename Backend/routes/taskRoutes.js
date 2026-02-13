@@ -2,10 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
-const taskController = require("../controllers/taskController");
 const checkPermission = require("../middleware/permissionMiddleware");
+const taskController = require("../controllers/taskController");
 
-/* ================= CREATE TASK ================= */
+/* =======================================================
+   CREATE TASK
+======================================================= */
 router.post(
   "/",
   authMiddleware,
@@ -13,7 +15,11 @@ router.post(
   taskController.createTask
 );
 
-/* ================= GET TASKS ================= */
+
+/* =======================================================
+   GET ALL TASKS (PAGINATED + ROLE BASED)
+   Admin / Manager / Roles with multiple permissions
+======================================================= */
 router.get(
   "/",
   authMiddleware,
@@ -26,13 +32,22 @@ router.get(
   taskController.getTasks
 );
 
+
+/* =======================================================
+   GET MY TASKS (Normal User)
+   ⚠ Must be BEFORE "/:id"
+======================================================= */
 router.get(
   "/my",
   authMiddleware,
+  checkPermission(["View Task"]),
   taskController.getMyTasks
 );
 
-/* ================= GET SINGLE TASK ================= */
+
+/* =======================================================
+   GET SINGLE TASK
+======================================================= */
 router.get(
   "/:id",
   authMiddleware,
@@ -40,7 +55,10 @@ router.get(
   taskController.getTaskById
 );
 
-/* ================= UPDATE TASK ================= */
+
+/* =======================================================
+   UPDATE TASK
+======================================================= */
 router.put(
   "/:id",
   authMiddleware,
@@ -48,7 +66,10 @@ router.put(
   taskController.updateTask
 );
 
-/* ================= DELETE TASK ================= */
+
+/* =======================================================
+   DELETE TASK
+======================================================= */
 router.delete(
   "/:id",
   authMiddleware,
