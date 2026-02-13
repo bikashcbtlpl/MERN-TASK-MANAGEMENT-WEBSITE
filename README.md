@@ -9,7 +9,7 @@ A full-stack enterprise-ready Task Management System built using the MERN stack 
 
 ---
 
-## 📌 Features
+## 📌 Featuress
 
 ### 🔐 Authentication
 - JWT-based authentication
