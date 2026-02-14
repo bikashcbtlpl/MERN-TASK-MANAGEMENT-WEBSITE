@@ -89,8 +89,7 @@ function MyTask() {
 
   return (
     <div className="manage-role-container">
-      <div className="manage-role-header">
-        <h2>My Tasks</h2>
+      <div>
         {refreshing && (
           <span style={{ fontSize: "13px", color: "#777" }}>
             Updating...

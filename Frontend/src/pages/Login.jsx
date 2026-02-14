@@ -79,7 +79,7 @@ function Login() {
                 required
               />
               <span
-                className="toggle-password"
+                className="show-password-btn"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? "Hide" : "Show"}

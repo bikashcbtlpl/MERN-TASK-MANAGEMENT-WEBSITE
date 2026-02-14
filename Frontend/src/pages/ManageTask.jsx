@@ -22,7 +22,7 @@
     const permissions = user?.permissions || [];
 
     const canView = permissions.includes("View Task");
-    const canCreate = permissions.includes("Create Task");
+    const canCreate = permissions.includes("Create Task");                
     const canEdit = permissions.includes("Edit Task");
     const canDelete = permissions.includes("Delete Task");
 
@@ -34,7 +34,7 @@
 
           const params = new URLSearchParams({
             page,
-            limit: 10, // 🔥 updated limit
+            limit: 10, 
           });
 
           if (search) params.append("search", search);

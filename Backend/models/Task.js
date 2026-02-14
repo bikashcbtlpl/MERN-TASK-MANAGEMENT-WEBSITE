@@ -67,10 +67,10 @@ const taskSchema = new mongoose.Schema(
 /* =====================================================
    🔒 VALIDATION ON CREATE / SAVE
 ===================================================== */
-taskSchema.pre("save", function (next) {
+taskSchema.pre("save", function () {
   if (this.startDate && this.endDate) {
     if (this.endDate < this.startDate) {
-      return next(new Error("End date cannot be before start date"));
+      throw new Error("End date cannot be before start date");
     }
   }
 
@@ -78,29 +78,27 @@ taskSchema.pre("save", function (next) {
     this.completionStatus === "Completed" &&
     this.taskStatus !== "Closed"
   ) {
-    return next(
-      new Error("Task must be Closed before marking as Completed")
+    throw new Error(
+      "Task must be Closed before marking as Completed"
     );
   }
-
-  next();
 });
 
 /* =====================================================
-   🔒 VALIDATION ON UPDATE (findOneAndUpdate / updateOne)
+   🔒 VALIDATION ON UPDATE (SAFE + NO CRASH)
 ===================================================== */
-taskSchema.pre("findOneAndUpdate", async function (next) {
-  const update = this.getUpdate();
+taskSchema.pre("findOneAndUpdate", function () {
+  const update = this.getUpdate() || {};
+  const data = update.$set || update;
 
-  const startDate = update.startDate ?? update.$set?.startDate;
-  const endDate = update.endDate ?? update.$set?.endDate;
-  const taskStatus = update.taskStatus ?? update.$set?.taskStatus;
-  const completionStatus =
-    update.completionStatus ?? update.$set?.completionStatus;
+  const startDate = data.startDate;
+  const endDate = data.endDate;
+  const taskStatus = data.taskStatus;
+  const completionStatus = data.completionStatus;
 
   if (startDate && endDate) {
     if (new Date(endDate) < new Date(startDate)) {
-      return next(new Error("End date cannot be before start date"));
+      throw new Error("End date cannot be before start date");
     }
   }
 
@@ -109,12 +107,10 @@ taskSchema.pre("findOneAndUpdate", async function (next) {
     taskStatus &&
     taskStatus !== "Closed"
   ) {
-    return next(
-      new Error("Task must be Closed before marking as Completed")
+    throw new Error(
+      "Task must be Closed before marking as Completed"
     );
   }
-
-  next();
 });
 
 module.exports = mongoose.model("Task", taskSchema);

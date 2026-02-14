@@ -39,7 +39,7 @@ function TaskDetails() {
         <div className="task-header">
           <div>
             <h2>Task Details</h2>
-            <p className="task-id">ID: {task._id}</p>
+            <p className="task-id">TASK ID: {task._id}</p>
           </div>
 
           <div className="header-actions">
