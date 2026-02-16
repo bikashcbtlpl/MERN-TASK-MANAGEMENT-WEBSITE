@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";   // ✅ ADD THIS
+import { useAuth } from "../context/AuthContext"; 
 import axiosInstance from "../api/axiosInstance";
+import { toast } from "react-toastify";
 
 function Login() {
   const navigate = useNavigate();
-  const { setUser } = useAuth();   // ✅ GET setUser
+  const { setUser } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -31,10 +32,8 @@ function Login() {
         formData
       );
 
-      // 🔥 UPDATE CONTEXT
       setUser(response.data.user);
 
-      // Optional (still okay to keep)
       localStorage.setItem(
         "user",
         JSON.stringify(response.data.user)
@@ -42,12 +41,19 @@ function Login() {
 
       localStorage.setItem("loginTime", Date.now());
 
+      // ✅ SHOW TOAST HERE ONLY
+      toast.success("Login successful");
+
       navigate("/dashboard");
 
     } catch (error) {
-      setError(
-        error.response?.data?.message || "Login failed"
-      );
+      const message =
+        error.response?.data?.message || "Login failed";
+
+      setError(message);
+
+      // optional error toast
+      toast.error(message);
     }
   };
 

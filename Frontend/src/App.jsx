@@ -24,6 +24,10 @@ import ManageUser from "./pages/ManageUser";
 
 import Settings from "./pages/Settings";
 
+/* 🔥 TOASTIFY IMPORTS */
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 function App() {
   const { loading } = useAuth();
 
@@ -33,6 +37,21 @@ function App() {
 
   return (
     <BrowserRouter>
+
+      {/* 🔥 GLOBAL TOAST CONTAINER */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}          // disappears after 3 sec
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        pauseOnFocusLoss
+        draggable
+        limit={3}                 // prevents infinite stacking
+        theme="colored"
+      />
+
       <Routes>
 
         {/* Default Redirect */}
@@ -56,7 +75,6 @@ function App() {
 
           {/* ================= TASKS ================= */}
 
-          {/* Manage Tasks (Admin) */}
           <Route
             path="tasks"
             element={
@@ -72,7 +90,6 @@ function App() {
             }
           />
 
-          {/* Create Task */}
           <Route
             path="tasks/create"
             element={
@@ -82,7 +99,6 @@ function App() {
             }
           />
 
-          {/* Edit Task */}
           <Route
             path="tasks/edit/:id"
             element={
@@ -92,7 +108,6 @@ function App() {
             }
           />
 
-          {/* View Task Details */}
           <Route
             path="tasks/:id"
             element={
@@ -102,7 +117,6 @@ function App() {
             }
           />
 
-          {/* Normal User - My Tasks */}
           <Route
             path="my-tasks"
             element={

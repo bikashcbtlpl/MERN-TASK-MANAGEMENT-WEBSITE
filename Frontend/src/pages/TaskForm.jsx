@@ -76,9 +76,10 @@ function TaskForm() {
   const fetchUsers = async () => {
     try {
       const res = await axiosInstance.get("/users");
+
       const loggedInUser = JSON.parse(localStorage.getItem("user"));
 
-      if (loggedInUser?.role !== "Super Admin") {
+      if (loggedInUser?.role?.name !== "Super Admin") {
         const filtered = res.data.filter(
           (user) => user.role?.name !== "Super Admin"
         );
@@ -86,8 +87,8 @@ function TaskForm() {
       } else {
         setUsers(res.data);
       }
-    } catch {
-      console.log("Error fetching users");
+    } catch (err) {
+      console.log("Error fetching users:", err);
     }
   };
 
@@ -112,20 +113,25 @@ function TaskForm() {
         videos: res.data.videos || [],
         attachments: res.data.attachments || [],
       });
-
-    } catch {
-      console.log("Error fetching task");
+    } catch (err) {
+      console.log("Error fetching task:", err);
     }
   };
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchUsers();
-      if (isEditMode) await fetchTask();
-      setLoading(false);
+      try {
+        await fetchUsers();
+        if (isEditMode) await fetchTask();
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setLoading(false);
+      }
     };
+
     loadData();
-  }, []);
+  }, [id]);
 
   /* ================= FILE INPUT ================= */
   const handleFileChange = (e, field) => {
@@ -282,7 +288,6 @@ function TaskForm() {
             </div>
           </div>
 
-
           {/* ASSIGN */}
           <div className="form-section">
             <h3>Assignment</h3>
@@ -329,7 +334,6 @@ function TaskForm() {
                           <button
                             type="button"
                             className="delete-btn"
-                            aria-label="Remove file"
                             onClick={()=>removeExistingFile(field,i)}
                           >
                             ✕

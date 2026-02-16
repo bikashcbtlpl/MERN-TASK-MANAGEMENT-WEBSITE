@@ -1,5 +1,7 @@
 const Task = require("../models/Task");
 const User = require("../models/User");
+const path = require("path");
+const { Worker } = require("worker_threads");
 
 /* =====================================================
    STATUS VALIDATION HELPER
@@ -22,11 +24,40 @@ const validateStatusCombo = (taskStatus, completionStatus) => {
 };
 
 /* =====================================================
-   SAFE CLOUDINARY FILE EXTRACTOR
+   WORKER UPLOAD HELPER
 ===================================================== */
-const extractFiles = (files, field) => {
+const runUploadWorker = (filePath, resourceType = "auto") => {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(
+      path.join(__dirname, "../workers/cloudinaryWorker.js"),
+      {
+        workerData: { filePath, resourceType },
+      }
+    );
+
+    worker.on("message", (data) => {
+      if (data.success) resolve(data.url);
+      else reject(data.error);
+    });
+
+    worker.on("error", reject);
+    worker.on("exit", (code) => {
+      if (code !== 0) reject("Worker stopped unexpectedly");
+    });
+  });
+};
+
+/* =====================================================
+   SAFE CLOUDINARY FILE EXTRACTOR (WITH WORKER)
+===================================================== */
+const extractFiles = async (files, field) => {
   if (!files || !files[field]) return [];
-  return files[field].map((f) => f.path);
+
+  const uploads = files[field].map((file) =>
+    runUploadWorker(file.path)
+  );
+
+  return Promise.all(uploads);
 };
 
 /* =====================================================
@@ -47,9 +78,10 @@ exports.createTask = async (req, res) => {
 
     if (!assignedTo || assignedTo === "") assignedTo = null;
 
-    const images = extractFiles(req.files, "images");
-    const videos = extractFiles(req.files, "videos");
-    const attachments = extractFiles(req.files, "attachments");
+    // 🔥 Worker uploads here
+    const images = await extractFiles(req.files, "images");
+    const videos = await extractFiles(req.files, "videos");
+    const attachments = await extractFiles(req.files, "attachments");
 
     if (assignedTo) {
       const userToAssign = await User.findById(assignedTo).populate("role");
@@ -91,7 +123,7 @@ exports.createTask = async (req, res) => {
 };
 
 /* =====================================================
-   UPDATE TASK (🔥 DELETE + KEEP + ADD FILES)
+   UPDATE TASK
 ===================================================== */
 exports.updateTask = async (req, res) => {
   try {
@@ -121,19 +153,17 @@ exports.updateTask = async (req, res) => {
     const statusError = validateStatusCombo(taskStatus, completionStatus);
     if (statusError) return res.status(400).json({ message: statusError });
 
-    /* ===== PARSE EXISTING FILES FROM FRONTEND ===== */
     existingImages = existingImages ? JSON.parse(existingImages) : [];
     existingVideos = existingVideos ? JSON.parse(existingVideos) : [];
     existingAttachments = existingAttachments
       ? JSON.parse(existingAttachments)
       : [];
 
-    /* ===== NEW FILES FROM CLOUDINARY ===== */
-    const newImages = extractFiles(req.files, "images");
-    const newVideos = extractFiles(req.files, "videos");
-    const newAttachments = extractFiles(req.files, "attachments");
+    // 🔥 Worker uploads here
+    const newImages = await extractFiles(req.files, "images");
+    const newVideos = await extractFiles(req.files, "videos");
+    const newAttachments = await extractFiles(req.files, "attachments");
 
-    /* ===== FINAL FILE ARRAYS ===== */
     const finalImages = [...existingImages, ...newImages];
     const finalVideos = [...existingVideos, ...newVideos];
     const finalAttachments = [...existingAttachments, ...newAttachments];
@@ -161,6 +191,7 @@ exports.updateTask = async (req, res) => {
 /* =====================================================
    REMAINING ROUTES UNCHANGED
 ===================================================== */
+
 exports.getTasks = async (req, res) => {
   try {
     const user = req.user;
@@ -198,14 +229,17 @@ exports.getTasks = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
+    
 
     res.json({
       tasks,
       totalTasks,
       currentPage: page,
       totalPages: Math.ceil(totalTasks / limit),
+      
+    
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Error fetching tasks" });
   }
 };
