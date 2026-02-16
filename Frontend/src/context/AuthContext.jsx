@@ -14,6 +14,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const verifyUser = async () => {
+
+      const storedUser = localStorage.getItem("user");
+
+      if (!storedUser) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await axiosInstance.get("/auth/verify");
         setUser(res.data.user);
