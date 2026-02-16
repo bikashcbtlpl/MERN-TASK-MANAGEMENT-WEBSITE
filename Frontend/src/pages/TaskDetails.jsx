@@ -76,6 +76,14 @@ function TaskDetails() {
             </span>
           </div>
 
+          {/* ✅ NEW: ACTIVE / INACTIVE STATUS */}
+          <div className="detail-box">
+            <label>Task Visibility</label>
+            <span className={`status-badge ${task.isActive ? "active" : "inactive"}`}>
+              {task.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+
           <div className="detail-box full-width">
             <label>Description</label>
             <p>{task.description}</p>
@@ -89,19 +97,6 @@ function TaskDetails() {
           <div className="detail-box">
             <label>End Date</label>
             <p>{task.endDate ? new Date(task.endDate).toLocaleDateString() : "Not set"}</p>
-          </div>
-
-          <div className="detail-box">
-            <label>Completion Status</label>
-            <span className={`status-badge ${
-              task.completionStatus === "Completed"
-                ? "completed"
-                : task.completionStatus === "Cancelled"
-                ? "cancelled"
-                : "pending"
-            }`}>
-              {task.completionStatus}
-            </span>
           </div>
 
           <div className="detail-box">
@@ -169,7 +164,7 @@ function TaskDetails() {
 
             <ul className="attachment-list">
               {task.attachments.map((file, i) => {
-                const fileName = decodeURIComponent(file.split("/").pop());
+                const fileName = file ? decodeURIComponent(file.split("/").pop()) : "file";
 
                 return (
                   <li key={i} className="attachment-item">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
+import Select from "react-select";   // ✅ added
 
 function TaskForm() {
   const navigate = useNavigate();
@@ -14,11 +15,11 @@ function TaskForm() {
     title: "",
     description: "",
     taskStatus: "Open",
-    completionStatus: "Pending",
     startDate: "",
     endDate: "",
     notes: "",
     assignedTo: "",
+    isActive: true,
   });
 
   const [dateError, setDateError] = useState("");
@@ -35,7 +36,6 @@ function TaskForm() {
     attachments: [],
   });
 
-  /* ================= DATE VALIDATION ================= */
   const validateDates = (start, end) => {
     if (start && end && new Date(end) < new Date(start)) {
       setDateError("End date cannot be before start date");
@@ -45,38 +45,9 @@ function TaskForm() {
     return true;
   };
 
-  /* ================= STATUS VALIDATION ================= */
-  const validateStatus = () => {
-    const openStates = ["Open", "In Progress", "On Hold"];
-
-    if (
-      openStates.includes(formData.taskStatus) &&
-      formData.completionStatus !== "Pending"
-    ) {
-      alert(
-        "Open / In Progress / On Hold tasks must have completion status = Pending"
-      );
-      return false;
-    }
-
-    if (
-      formData.taskStatus === "Closed" &&
-      !["Completed", "Cancelled"].includes(formData.completionStatus)
-    ) {
-      alert(
-        "Closed tasks must have completion status = Completed or Cancelled"
-      );
-      return false;
-    }
-
-    return true;
-  };
-
-  /* ================= FETCH USERS ================= */
   const fetchUsers = async () => {
     try {
       const res = await axiosInstance.get("/users");
-
       const loggedInUser = JSON.parse(localStorage.getItem("user"));
 
       if (loggedInUser?.role?.name !== "Super Admin") {
@@ -92,7 +63,6 @@ function TaskForm() {
     }
   };
 
-  /* ================= FETCH TASK ================= */
   const fetchTask = async () => {
     try {
       const res = await axiosInstance.get(`/tasks/${id}`);
@@ -101,11 +71,11 @@ function TaskForm() {
         title: res.data.title || "",
         description: res.data.description || "",
         taskStatus: res.data.taskStatus || "Open",
-        completionStatus: res.data.completionStatus || "Pending",
         startDate: res.data.startDate?.split("T")[0] || "",
         endDate: res.data.endDate?.split("T")[0] || "",
         notes: res.data.notes || "",
         assignedTo: res.data.assignedTo?._id || "",
+        isActive: res.data.isActive ?? true,
       });
 
       setExistingFiles({
@@ -120,20 +90,13 @@ function TaskForm() {
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        await fetchUsers();
-        if (isEditMode) await fetchTask();
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setLoading(false);
-      }
+      await fetchUsers();
+      if (isEditMode) await fetchTask();
+      setLoading(false);
     };
-
     loadData();
   }, [id]);
 
-  /* ================= FILE INPUT ================= */
   const handleFileChange = (e, field) => {
     setFiles({
       ...files,
@@ -141,18 +104,15 @@ function TaskForm() {
     });
   };
 
-  /* ================= DELETE EXISTING FILE ================= */
   const removeExistingFile = (field, index) => {
     const updated = [...existingFiles[field]];
     updated.splice(index, 1);
     setExistingFiles({ ...existingFiles, [field]: updated });
   };
 
-  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateStatus()) return;
     if (!validateDates(formData.startDate, formData.endDate)) return;
 
     try {
@@ -187,13 +147,13 @@ function TaskForm() {
 
   if (loading) return <div className="loading-page">Loading...</div>;
 
-  const getName = (url) => {
-    try {
-      return decodeURIComponent(url.split("/").pop());
-    } catch {
-      return "file";
-    }
-  };
+  const userOptions = [
+    { value: "", label: "Unassigned" },
+    ...users.map((u) => ({
+      value: u._id,
+      label: u.name || u.email,
+    })),
+  ];
 
   return (
     <div className="task-page">
@@ -226,10 +186,31 @@ function TaskForm() {
               >
                 <option>Open</option>
                 <option>In Progress</option>
+                <option>Pending</option>
                 <option>On Hold</option>
                 <option>Closed</option>
+                <option>Completed</option>
+                <option>Cancelled</option>
               </select>
             </div>
+
+            {isEditMode && (
+              <div className="form-group">
+                <label>Task Visibility</label>
+                <select
+                  value={formData.isActive ? "Active" : "Inactive"}
+                  onChange={(e)=>
+                    setFormData({
+                      ...formData,
+                      isActive: e.target.value === "Active"
+                    })
+                  }
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            )}
 
             <div className="form-group full-width">
               <label>Description</label>
@@ -274,18 +255,6 @@ function TaskForm() {
                 </small>
               )}
             </div>
-
-            <div className="form-group">
-              <label>Completion Status</label>
-              <select
-                value={formData.completionStatus}
-                onChange={(e)=>setFormData({...formData,completionStatus:e.target.value})}
-              >
-                <option>Pending</option>
-                <option>Completed</option>
-                <option>Cancelled</option>
-              </select>
-            </div>
           </div>
 
           {/* ASSIGN */}
@@ -294,15 +263,21 @@ function TaskForm() {
 
             <div className="form-group">
               <label>Assign User</label>
-              <select
-                value={formData.assignedTo}
-                onChange={(e)=>setFormData({...formData,assignedTo:e.target.value})}
-              >
-                <option value="">Unassigned</option>
-                {users.map(u=>(
-                  <option key={u._id} value={u._id}>{u.email}</option>
-                ))}
-              </select>
+
+              {/* ✅ SEARCHABLE DROPDOWN */}
+              <Select
+                options={userOptions}
+                value={userOptions.find(o => o.value === formData.assignedTo)}
+                onChange={(selected)=>
+                  setFormData({
+                    ...formData,
+                    assignedTo: selected?.value || ""
+                  })
+                }
+                isSearchable
+                isClearable
+                placeholder="Search user..."
+              />
             </div>
 
             <div className="form-group full-width">
@@ -321,16 +296,13 @@ function TaskForm() {
 
             {isEditMode && (
               <div className="existing-files">
-
                 {["images","videos","attachments"].map(field => (
                   existingFiles[field]?.length > 0 && (
                     <div key={field} className="existing-group">
                       <label>{field.toUpperCase()}</label>
-
                       {existingFiles[field].map((f,i)=>(
                         <div key={i} className="existing-item">
-                          <span>{getName(f)}</span>
-
+                          <span>{f.split("/").pop()}</span>
                           <button
                             type="button"
                             className="delete-btn"
@@ -340,11 +312,9 @@ function TaskForm() {
                           </button>
                         </div>
                       ))}
-
                     </div>
                   )
                 ))}
-
               </div>
             )}
 
@@ -366,7 +336,6 @@ function TaskForm() {
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                 onChange={(e)=>handleFileChange(e,"attachments")} />
             </div>
-
           </div>
 
           <div className="form-actions">

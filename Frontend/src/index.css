@@ -763,6 +763,58 @@
   margin: auto;
 }
 
+/* ================= TASK STATUS BADGES ================= */
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Open */
+.status-open {
+  background: #e3f2fd;
+  color: #1e88e5;
+}
+
+/* In Progress */
+.status-in-progress {
+  background: #fff8e1;
+  color: #f9a825;
+}
+
+/* Pending */
+.status-pending {
+  background: #f3e5f5;
+  color: #8e24aa;
+}
+
+/* On Hold */
+.status-on-hold {
+  background: #ede7f6;
+  color: #5e35b1;
+}
+
+/* Closed */
+.status-closed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Completed */
+.status-completed {
+  background: #e0f2f1;
+  color: #00695c;
+}
+
+/* Cancelled */
+.status-cancelled {
+  background: #ffebee;
+  color: #c62828;
+}
+
 .permission-matrix {
   margin-top: 25px;
 }
@@ -816,6 +868,95 @@
 
 .download-btn:hover {
   background: #1e40af;
+}
+
+/* ================= INLINE SELECTS (TABLE EDIT MODE) ================= */
+
+.role-table select {
+  padding: 5px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+/* Hover */
+.role-table select:hover {
+  border-color: #4a90e2;
+  background: #f7fbff;
+}
+
+/* Focus */
+.role-table select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74,144,226,0.2);
+}
+
+/* Disabled */
+.role-table select:disabled {
+  background: #f3f3f3;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* ================= BADGE STYLE (NON-EDIT MODE) ================= */
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Status colors */
+.status-open { background: #e3f2fd; color: #1e88e5; }
+.status-in-progress { background: #fff3e0; color: #fb8c00; }
+.status-pending { background: #ede7f6; color: #5e35b1; }
+.status-on-hold { background: #fce4ec; color: #c2185b; }
+.status-completed { background: #e8f5e9; color: #2e7d32; }
+.status-closed { background: #eceff1; color: #455a64; }
+.status-cancelled { background: #ffebee; color: #c62828; }
+
+/* ================= ACTIVE / INACTIVE BADGE ================= */
+
+.role-status {
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-status.active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.role-status.inactive {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Minimal styling for searchable dropdown inside table */
+.inline-select {
+  min-width: 140px;
+  font-size: 13px;
+}
+
+.inline-select .react-select__control {
+  min-height: 32px;
+  border: 1px solid #ddd;
+  box-shadow: none;
+}
+
+.inline-select .react-select__menu {
+  z-index: 9999;
+  font-size: 13px;
 }
 
 

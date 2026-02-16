@@ -22,6 +22,7 @@ exports.getCurrentUser = async (req, res) => {
 
     res.json({
       id: user._id,
+      name: user.name, // ✅ added
       email: user.email,
       role: user.role.name,
       permissions: user.role.permissions.map(p => p.name),
@@ -36,7 +37,7 @@ exports.getCurrentUser = async (req, res) => {
 // ================= CREATE USER =================
 exports.createUser = async (req, res) => {
   try {
-    const { email, role, status } = req.body;
+    const { name, email, role, status } = req.body; // ✅ added name
 
     // Check existing
     const existingUser = await User.findOne({ email });
@@ -49,12 +50,15 @@ exports.createUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const newUser = await User.create({
+      name, // ✅ saved
       email,
       password: hashedPassword,
       role,
       status,
     });
+
     const emailQueue = require("../queues/emailQueue");
+
     // Send email
     await emailQueue.add({
       to: email,
@@ -65,14 +69,16 @@ Email: ${email}
 Password: ${plainPassword}
 
 Login at: http://localhost:5173`
-  });
+    });
 
     res.status(201).json(newUser);
+
   } catch (error) {
     console.log("Create User Error:", error);
     res.status(500).json({ message: "Error creating user" });
   }
 };
+
 
 // ================= UPDATE USER =================
 exports.updateUser = async (req, res) => {
@@ -97,7 +103,7 @@ exports.updateUser = async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      req.body,   // ✅ name will be updated automatically here
       { new: true }
     );
 

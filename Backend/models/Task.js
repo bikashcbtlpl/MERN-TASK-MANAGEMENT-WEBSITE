@@ -18,8 +18,13 @@ const taskSchema = new mongoose.Schema(
     // ================= TASK STATUS =================
     taskStatus: {
       type: String,
-      enum: ["Open", "In Progress", "On Hold", "Closed"],
+      enum: ["Open", "In Progress", "Pending", "On Hold", "Closed", "Completed", "Cancelled"],
       default: "Open",
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
     },
 
     // ================= SCHEDULE =================
@@ -29,13 +34,6 @@ const taskSchema = new mongoose.Schema(
 
     endDate: {
       type: Date,
-    },
-
-    // ================= COMPLETION STATUS =================
-    completionStatus: {
-      type: String,
-      enum: ["Pending", "Completed", "Cancelled"],
-      default: "Pending",
     },
 
     // ================= MEDIA =================
@@ -73,15 +71,6 @@ taskSchema.pre("save", function () {
       throw new Error("End date cannot be before start date");
     }
   }
-
-  if (
-    this.completionStatus === "Completed" &&
-    this.taskStatus !== "Closed"
-  ) {
-    throw new Error(
-      "Task must be Closed before marking as Completed"
-    );
-  }
 });
 
 /* =====================================================
@@ -93,23 +82,11 @@ taskSchema.pre("findOneAndUpdate", function () {
 
   const startDate = data.startDate;
   const endDate = data.endDate;
-  const taskStatus = data.taskStatus;
-  const completionStatus = data.completionStatus;
 
   if (startDate && endDate) {
     if (new Date(endDate) < new Date(startDate)) {
       throw new Error("End date cannot be before start date");
     }
-  }
-
-  if (
-    completionStatus === "Completed" &&
-    taskStatus &&
-    taskStatus !== "Closed"
-  ) {
-    throw new Error(
-      "Task must be Closed before marking as Completed"
-    );
   }
 });
 

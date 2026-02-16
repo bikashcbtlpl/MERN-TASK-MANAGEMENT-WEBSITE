@@ -9,6 +9,7 @@ function ManageUser() {
   const [editingUser, setEditingUser] = useState(null);
 
   const [formData, setFormData] = useState({
+    name: "",          // ✅ NEW
     email: "",
     role: "",
     status: "Active",
@@ -32,7 +33,6 @@ function ManageUser() {
 
     const loggedInUser = JSON.parse(localStorage.getItem("user"));
 
-    // If NOT Super Admin → hide Super Admin users
     if (loggedInUser?.role !== "Super Admin") {
       const filteredUsers = res.data.filter(
         (u) => u.role?.name !== "Super Admin"
@@ -43,13 +43,11 @@ function ManageUser() {
     }
   };
 
-
   const fetchRoles = async () => {
     const res = await axiosInstance.get("/roles");
 
     const loggedInUser = JSON.parse(localStorage.getItem("user"));
 
-    // If NOT Super Admin → remove Super Admin from dropdown
     if (loggedInUser?.role !== "Super Admin") {
       const filteredRoles = res.data.filter(
         (role) => role.name !== "Super Admin"
@@ -64,6 +62,7 @@ function ManageUser() {
     if (!canCreate) return;
     setEditingUser(null);
     setFormData({
+      name: "",      // ✅ NEW
       email: "",
       role: "",
       status: "Active",
@@ -76,6 +75,7 @@ function ManageUser() {
 
     setEditingUser(user);
     setFormData({
+      name: user.name || "",     // ✅ NEW
       email: user.email,
       role: user.role?._id || "",
       status: user.status,
@@ -126,6 +126,7 @@ function ManageUser() {
         <thead>
           <tr>
             <th>#</th>
+            <th>Name</th> {/* ✅ NEW */}
             <th>Email</th>
             <th>Role</th>
             <th>Status</th>
@@ -137,6 +138,7 @@ function ManageUser() {
           {users.map((user, index) => (
             <tr key={user._id}>
               <td>{index + 1}</td>
+              <td>{user.name || "-"}</td> {/* ✅ NEW */}
               <td>{user.email}</td>
               <td>{user.role?.name}</td>
               <td>
@@ -185,6 +187,20 @@ function ManageUser() {
             <h3>{editingUser ? "Edit User" : "Add User"}</h3>
 
             <form onSubmit={handleSubmit}>
+
+              {/* ✅ NEW NAME FIELD */}
+              <div className="form-group">
+                <label>Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="Enter name (optional)"
+                />
+              </div>
+
               <div className="form-group">
                 <label>Email</label>
                 <input
@@ -242,6 +258,7 @@ function ManageUser() {
                   Cancel
                 </button>
               </div>
+
             </form>
           </div>
         </div>

@@ -26,7 +26,6 @@ function Dashboard() {
 
   // ================= SOCKET REALTIME UPDATE =================
   useEffect(() => {
-    // Ensure socket connected
     if (!socket.connected) socket.connect();
 
     const handleUpdate = () => {
@@ -49,7 +48,7 @@ function Dashboard() {
       <div className="card-container">
 
         {/* Admin only */}
-        {(user?.role === "Super Admin" || user?.role === "Admin") && (
+        {(user?.role?.name === "Super Admin" || user?.role?.name === "Admin") && (
           <div className="dashboard-card">
             <h3>Total Users</h3>
             <p>{stats.totalUsers}</p>

@@ -2,26 +2,7 @@ const Task = require("../models/Task");
 const User = require("../models/User");
 const path = require("path");
 const { Worker } = require("worker_threads");
-
-/* =====================================================
-   STATUS VALIDATION HELPER
-===================================================== */
-const validateStatusCombo = (taskStatus, completionStatus) => {
-  const openStates = ["Open", "In Progress", "On Hold"];
-
-  if (openStates.includes(taskStatus) && completionStatus !== "Pending") {
-    return "Open / In Progress / On Hold tasks must have completion status = Pending";
-  }
-
-  if (
-    taskStatus === "Closed" &&
-    !["Completed", "Cancelled"].includes(completionStatus)
-  ) {
-    return "Closed tasks must have completion status = Completed or Cancelled";
-  }
-
-  return null;
-};
+const emailQueue = require("../queues/emailQueue"); // ✅ USE BULL QUEUE
 
 /* =====================================================
    WORKER UPLOAD HELPER
@@ -48,15 +29,13 @@ const runUploadWorker = (filePath, resourceType = "auto") => {
 };
 
 /* =====================================================
-   SAFE CLOUDINARY FILE EXTRACTOR (WITH WORKER)
+   SAFE CLOUDINARY FILE EXTRACTOR
 ===================================================== */
 const extractFiles = async (files, field) => {
   if (!files || !files[field]) return [];
-
   const uploads = files[field].map((file) =>
     runUploadWorker(file.path)
   );
-
   return Promise.all(uploads);
 };
 
@@ -69,7 +48,6 @@ exports.createTask = async (req, res) => {
       title,
       description,
       taskStatus,
-      completionStatus,
       assignedTo,
       startDate,
       endDate,
@@ -78,16 +56,18 @@ exports.createTask = async (req, res) => {
 
     if (!assignedTo || assignedTo === "") assignedTo = null;
 
-    // 🔥 Worker uploads here
     const images = await extractFiles(req.files, "images");
     const videos = await extractFiles(req.files, "videos");
     const attachments = await extractFiles(req.files, "attachments");
 
+    let assignedUser = null;
+
     if (assignedTo) {
-      const userToAssign = await User.findById(assignedTo).populate("role");
+      assignedUser = await User.findById(assignedTo).populate("role");
+
       if (
-        userToAssign &&
-        userToAssign.role.name === "Super Admin" &&
+        assignedUser &&
+        assignedUser.role.name === "Super Admin" &&
         req.user.role.name !== "Super Admin"
       ) {
         return res
@@ -96,14 +76,10 @@ exports.createTask = async (req, res) => {
       }
     }
 
-    const statusError = validateStatusCombo(taskStatus, completionStatus);
-    if (statusError) return res.status(400).json({ message: statusError });
-
     const newTask = await Task.create({
       title,
       description,
       taskStatus,
-      completionStatus,
       assignedTo,
       startDate,
       endDate,
@@ -113,6 +89,15 @@ exports.createTask = async (req, res) => {
       attachments,
       createdBy: req.user._id,
     });
+
+    /* 📧 SEND EMAIL USING BULL QUEUE */
+    if (assignedUser?.email) {
+      await emailQueue.add({
+        to: assignedUser.email,
+        subject: "New Task Assigned",
+        text: `You have been assigned a new task:\n\nTitle: ${title}\nStatus: ${taskStatus}`,
+      });
+    }
 
     req.app.get("io")?.emit("taskUpdated");
     res.status(201).json(newTask);
@@ -141,7 +126,6 @@ exports.updateTask = async (req, res) => {
 
     let {
       taskStatus = task.taskStatus,
-      completionStatus = task.completionStatus,
       assignedTo,
       existingImages,
       existingVideos,
@@ -150,16 +134,12 @@ exports.updateTask = async (req, res) => {
 
     if (assignedTo === "") assignedTo = null;
 
-    const statusError = validateStatusCombo(taskStatus, completionStatus);
-    if (statusError) return res.status(400).json({ message: statusError });
-
     existingImages = existingImages ? JSON.parse(existingImages) : [];
     existingVideos = existingVideos ? JSON.parse(existingVideos) : [];
     existingAttachments = existingAttachments
       ? JSON.parse(existingAttachments)
       : [];
 
-    // 🔥 Worker uploads here
     const newImages = await extractFiles(req.files, "images");
     const newVideos = await extractFiles(req.files, "videos");
     const newAttachments = await extractFiles(req.files, "attachments");
@@ -180,6 +160,19 @@ exports.updateTask = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    /* 📧 EMAIL IF REASSIGNED */
+    if (assignedTo && String(assignedTo) !== String(task.assignedTo)) {
+      const reassignedUser = await User.findById(assignedTo);
+
+      if (reassignedUser?.email) {
+        await emailQueue.add({
+          to: reassignedUser.email,
+          subject: "Task Assigned to You",
+          text: `A task has been assigned to you:\n\nTitle: ${updatedTask.title}\nStatus: ${updatedTask.taskStatus}`,
+        });
+      }
+    }
+
     req.app.get("io")?.emit("taskUpdated");
     res.json(updatedTask);
   } catch (error) {
@@ -189,9 +182,8 @@ exports.updateTask = async (req, res) => {
 };
 
 /* =====================================================
-   REMAINING ROUTES UNCHANGED
+   OTHER CONTROLLERS (UNCHANGED)
 ===================================================== */
-
 exports.getTasks = async (req, res) => {
   try {
     const user = req.user;
@@ -214,8 +206,6 @@ exports.getTasks = async (req, res) => {
     }
 
     if (req.query.taskStatus) filter.taskStatus = req.query.taskStatus;
-    if (req.query.completionStatus)
-      filter.completionStatus = req.query.completionStatus;
 
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
@@ -224,20 +214,17 @@ exports.getTasks = async (req, res) => {
     const totalTasks = await Task.countDocuments(filter);
 
     const tasks = await Task.find(filter)
-      .populate("assignedTo", "email")
-      .populate("createdBy", "email")
+      .populate("assignedTo", "email name")
+      .populate("createdBy", "email name")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
-    
 
     res.json({
       tasks,
       totalTasks,
       currentPage: page,
       totalPages: Math.ceil(totalTasks / limit),
-      
-    
     });
   } catch {
     res.status(500).json({ message: "Error fetching tasks" });
@@ -247,8 +234,8 @@ exports.getTasks = async (req, res) => {
 exports.getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("assignedTo", "email")
-      .populate("createdBy", "email");
+      .populate("assignedTo", "email name")
+      .populate("createdBy", "email name");
 
     if (!task) return res.status(404).json({ message: "Task not found" });
     res.json(task);
@@ -288,8 +275,8 @@ exports.getMyTasks = async (req, res) => {
     const totalTasks = await Task.countDocuments(filter);
 
     const tasks = await Task.find(filter)
-      .populate("assignedTo", "email")
-      .populate("createdBy", "email")
+      .populate("assignedTo", "email name")
+      .populate("createdBy", "email name")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });

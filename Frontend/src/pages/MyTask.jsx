@@ -8,26 +8,21 @@ function MyTask() {
 
   const [tasks, setTasks] = useState([]);
 
-  // loaders
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // filters
   const [search, setSearch] = useState("");
   const [taskStatus, setTaskStatus] = useState("");
-  const [completionStatus, setCompletionStatus] = useState("");
 
-  // pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalTasks, setTotalTasks] = useState(0);
 
-  /* ================= FETCH TASKS ================= */
   const fetchMyTasks = useCallback(
     async (page = 1, silent = false) => {
       try {
         if (silent) setRefreshing(true);
-        else setInitialLoading(false); // 🔥 prevent full page reload
+        else setInitialLoading(false);
 
         const params = new URLSearchParams({
           page,
@@ -36,17 +31,18 @@ function MyTask() {
 
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
-        if (completionStatus)
-          params.append("completionStatus", completionStatus);
 
         const res = await axiosInstance.get(
           `/tasks/my?${params.toString()}`
         );
 
-        setTasks(res.data.tasks || []);
-        setTotalPages(res.data.totalPages || 1);
-        setTotalTasks(res.data.totalTasks || 0);
+        const activeTasks = (res.data.tasks || []).filter(
+          (t) => t.isActive !== false
+        );
 
+        setTasks(activeTasks);
+        setTotalPages(res.data.totalPages || 1);
+        setTotalTasks(activeTasks.length);
       } catch (error) {
         console.log(
           "Error fetching tasks:",
@@ -57,15 +53,13 @@ function MyTask() {
         setRefreshing(false);
       }
     },
-    [search, taskStatus, completionStatus]
+    [search, taskStatus]
   );
 
-  /* LOAD WHEN FILTERS OR PAGE CHANGE */
   useEffect(() => {
-    fetchMyTasks(currentPage, true); // 🔥 silent fetch
+    fetchMyTasks(currentPage, true);
   }, [fetchMyTasks, currentPage]);
 
-  /* SOCKET REFRESH */
   useEffect(() => {
     const handler = () => fetchMyTasks(currentPage, true);
     socket.on("taskUpdated", handler);
@@ -76,13 +70,13 @@ function MyTask() {
     date ? new Date(date).toLocaleDateString() : "-";
 
   const completed = tasks.filter(
-    (t) => t.completionStatus === "Completed"
+    (t) => t.taskStatus === "Completed"
   ).length;
 
   const active = tasks.filter(
     (t) =>
       t.taskStatus !== "Closed" &&
-      t.completionStatus !== "Cancelled"
+      t.taskStatus !== "Cancelled"
   ).length;
 
   if (initialLoading) return <div>Loading...</div>;
@@ -97,7 +91,6 @@ function MyTask() {
         )}
       </div>
 
-      {/* FILTERS */}
       <div className="task-filters">
         <input
           type="text"
@@ -119,19 +112,9 @@ function MyTask() {
           <option value="">All Task Status</option>
           <option value="Open">Open</option>
           <option value="In Progress">In Progress</option>
+          <option value="Pending">Pending</option>
           <option value="On Hold">On Hold</option>
           <option value="Closed">Closed</option>
-        </select>
-
-        <select
-          value={completionStatus}
-          onChange={(e) => {
-            setCompletionStatus(e.target.value);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="">All Completion</option>
-          <option value="Pending">Pending</option>
           <option value="Completed">Completed</option>
           <option value="Cancelled">Cancelled</option>
         </select>
@@ -140,7 +123,6 @@ function MyTask() {
           onClick={() => {
             setSearch("");
             setTaskStatus("");
-            setCompletionStatus("");
             setCurrentPage(1);
           }}
         >
@@ -148,7 +130,6 @@ function MyTask() {
         </button>
       </div>
 
-      {/* SUMMARY */}
       <div className="task-summary" style={{ marginBottom: "15px" }}>
         <span>Total: <strong>{totalTasks}</strong></span>
         <span style={{ marginLeft: "15px" }}>
@@ -159,14 +140,12 @@ function MyTask() {
         </span>
       </div>
 
-      {/* TABLE */}
       <table className="role-table">
         <thead>
           <tr>
             <th>#</th>
             <th>Title</th>
             <th>Task Status</th>
-            <th>Status</th>
             <th>Start</th>
             <th>End</th>
             <th>Files</th>
@@ -183,24 +162,21 @@ function MyTask() {
               >
                 <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{task.title}</td>
+
+                {/* ✅ FIXED STATUS COLOR */}
                 <td>
-                  <span className="role-status inactive">
+                  <span
+                    className={`status-badge status-${task.taskStatus
+                      ?.toLowerCase()
+                      .replace(" ", "-")}`}
+                  >
                     {task.taskStatus}
                   </span>
                 </td>
-                <td>
-                  <span
-                    className={
-                      task.completionStatus === "Completed"
-                        ? "role-status active"
-                        : "role-status inactive"
-                    }
-                  >
-                    {task.completionStatus}
-                  </span>
-                </td>
+
                 <td>{formatDate(task.startDate)}</td>
                 <td>{formatDate(task.endDate)}</td>
+
                 <td>
                   📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0} | 📎 {task.attachments?.length || 0}
                 </td>
@@ -216,7 +192,6 @@ function MyTask() {
         </tbody>
       </table>
 
-      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="pagination">
           <button

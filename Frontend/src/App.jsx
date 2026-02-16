@@ -24,7 +24,7 @@ import ManageUser from "./pages/ManageUser";
 
 import Settings from "./pages/Settings";
 
-/* 🔥 TOASTIFY IMPORTS */
+// TOASTIFY IMPORTS
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -38,17 +38,17 @@ function App() {
   return (
     <BrowserRouter>
 
-      {/* 🔥 GLOBAL TOAST CONTAINER */}
+      {/* GLOBAL TOAST CONTAINER */}
       <ToastContainer
         position="top-right"
-        autoClose={3000}          // disappears after 3 sec
+        autoClose={3000}        
         hideProgressBar={false}
         newestOnTop
         closeOnClick
         pauseOnHover
         pauseOnFocusLoss
         draggable
-        limit={3}                 // prevents infinite stacking
+        limit={3}                 
         theme="colored"
       />
 

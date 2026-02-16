@@ -47,7 +47,6 @@ const storage = new CloudinaryStorage({
       };
     }
 
-    /* ===== FALLBACK ===== */
     return {
       folder: "tasks/misc",
       resource_type: "auto",
@@ -55,9 +54,6 @@ const storage = new CloudinaryStorage({
   },
 });
 
-/* =====================================================
-   SINGLE MULTER INSTANCE
-===================================================== */
 const upload = multer({
   storage,
   limits: {
@@ -65,7 +61,4 @@ const upload = multer({
   },
 });
 
-/* =====================================================
-   EXPORT
-===================================================== */
 module.exports = upload;

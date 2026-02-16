@@ -24,13 +24,12 @@ exports.getDashboardStats = async (req, res) => {
 
       // ✅ Completed tasks only
       completedTasks = await Task.countDocuments({
-        completionStatus: "Completed",
+        taskStatus: "Completed",
       });
 
       // ✅ Active = NOT closed AND NOT cancelled
       activeTasks = await Task.countDocuments({
-        taskStatus: { $ne: "Closed" },
-        completionStatus: { $ne: "Cancelled" },
+        taskStatus: { $nin: ["Closed", "Cancelled"] },
       });
     }
 
@@ -45,14 +44,13 @@ exports.getDashboardStats = async (req, res) => {
       // ✅ Completed tasks
       completedTasks = await Task.countDocuments({
         assignedTo: user._id,
-        completionStatus: "Completed",
+        taskStatus: "Completed",
       });
 
       // ✅ Active tasks only (not closed + not cancelled)
       activeTasks = await Task.countDocuments({
         assignedTo: user._id,
-        taskStatus: { $ne: "Closed" },
-        completionStatus: { $ne: "Cancelled" },
+        taskStatus: { $nin: ["Closed", "Cancelled"] },
       });
     }
 
