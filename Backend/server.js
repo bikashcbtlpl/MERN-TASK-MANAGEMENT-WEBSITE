@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -6,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
+
 
 const app = express();
 
@@ -23,6 +25,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 /* ================= ROUTES ================= */
+
 
 const roleRoutes = require("./routes/roleRoutes");
 app.use("/api/roles", roleRoutes);
@@ -44,6 +47,9 @@ app.use("/api/settings", settingsRoutes);
 
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
+
+const projectRoutes = require("./routes/projectRoutes");
+app.use("/api/projects", projectRoutes);
 
 /* ================= MONGODB ================= */
 

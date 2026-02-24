@@ -29,6 +29,9 @@ function MyTask() {
           limit: 10,
         });
 
+        const selectedProject = localStorage.getItem("selectedProject") || "";
+        if (selectedProject) params.append("project", selectedProject);
+
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
 
@@ -59,6 +62,13 @@ function MyTask() {
   useEffect(() => {
     fetchMyTasks(currentPage, true);
   }, [fetchMyTasks, currentPage]);
+
+  // Listen for project selection changes in Topbar (localStorage)
+  useEffect(() => {
+    const handler = () => fetchMyTasks(1, true);
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, [fetchMyTasks]);
 
   useEffect(() => {
     const handler = () => fetchMyTasks(currentPage, true);

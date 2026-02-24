@@ -1,13 +1,18 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 
 function Topbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user, setUser } = useAuth();
   const dropdownRef = useRef();
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(() => {
+    return localStorage.getItem("selectedProject") || "";
+  });
 
   /* ================= PAGE TITLE LOGIC ================= */
 
@@ -35,19 +40,30 @@ function Topbar() {
 
   useEffect(() => {
     const loadUser = () => {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
+      // projects will be fetched below via API using authenticated cookie
     };
 
     loadUser();
-    window.addEventListener("storage", loadUser);
+    const handleStorage = () => setSelectedProject(localStorage.getItem("selectedProject") || "");
+    window.addEventListener("storage", handleStorage);
 
-    return () => {
-      window.removeEventListener("storage", loadUser);
-    };
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await axiosInstance.get("/projects");
+        const data = res.data || {};
+        const list = data.projects || data;
+        setProjects(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.log("Error loading projects for topbar:", err);
+      }
+    };
+
+    if (user) fetchProjects();
+  }, [user]);
 
   /* ================= LOGOUT ================= */
 
@@ -98,13 +114,38 @@ function Topbar() {
           className="account-name"
           onClick={() => setOpen(!open)}
         >
-          <div className="avatar-circle">
-            {getInitial()}
-          </div>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              {/* Project selector for team projects (moved left of account) */}
+              {projects.length > 0 && (
+                <select
+                  value={selectedProject}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedProject(val);
+                    localStorage.setItem("selectedProject", val);
+                    // fire storage event for other tabs
+                    window.dispatchEvent(new Event('storage'));
+                    // navigate to My Task so user sees filtered tasks
+                    navigate('/tasks');
+                  }}
+                  style={{ marginRight: 4, padding: 6, borderRadius: 4 }}
+                >
+                  <option value="">All Projects</option>
+                  {projects.map(p => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
+              )}
 
-          <span>
-            {user?.name || user?.email?.split("@")[0] || "User"}
-          </span>
+              <div className="avatar-circle">
+                {getInitial()}
+              </div>
+
+              <span>
+                {user?.name || user?.email?.split("@")[0] || "User"}
+              </span>
+            </div>
         </div>
 
         {open && (
@@ -114,7 +155,7 @@ function Topbar() {
             </div>
 
             <h4>{user?.name || user?.email}</h4>
-            <p>{user?.role || "No Role"}</p>
+            <p>{user?.role?.name || "No Role"}</p>
 
             <button
               className="logout-btn"

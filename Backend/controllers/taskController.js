@@ -44,6 +44,7 @@ const extractFiles = async (files, field) => {
 ===================================================== */
 exports.createTask = async (req, res) => {
   try {
+
     let {
       title,
       description,
@@ -52,6 +53,7 @@ exports.createTask = async (req, res) => {
       startDate,
       endDate,
       notes,
+      project,
     } = req.body;
 
     if (!assignedTo || assignedTo === "") assignedTo = null;
@@ -84,11 +86,22 @@ exports.createTask = async (req, res) => {
       startDate,
       endDate,
       notes,
+      project,
       images,
       videos,
       attachments,
       createdBy: req.user._id,
     });
+
+    // If task has a project, add it to the project's tasks array
+    if (project) {
+      const Project = require("../models/Project");
+      try {
+        await Project.findByIdAndUpdate(project, { $addToSet: { tasks: newTask._id } });
+      } catch (e) {
+        console.log("Warning: could not add task to project tasks array", e);
+      }
+    }
 
     /* 📧 SEND EMAIL USING BULL QUEUE */
     if (assignedUser?.email) {
@@ -124,13 +137,19 @@ exports.updateTask = async (req, res) => {
     if (isOnlyViewer)
       return res.status(403).json({ message: "Not allowed to edit task" });
 
+
     let {
       taskStatus = task.taskStatus,
       assignedTo,
       existingImages,
       existingVideos,
       existingAttachments,
+      project,
     } = req.body;
+
+    // Normalize empty strings to null so Mongoose doesn't try to cast "" to ObjectId
+    if (assignedTo === "") assignedTo = null;
+    if (project === "") project = null;
 
     if (assignedTo === "") assignedTo = null;
 
@@ -148,17 +167,44 @@ exports.updateTask = async (req, res) => {
     const finalVideos = [...existingVideos, ...newVideos];
     const finalAttachments = [...existingAttachments, ...newAttachments];
 
+    // Build explicit update object to avoid passing raw req.body values that may be invalid
+    const updateData = {
+      taskStatus,
+      assignedTo,
+      project,
+      images: finalImages,
+      videos: finalVideos,
+      attachments: finalAttachments,
+    };
+
+    // Include other updatable fields if present in req.body
+    const otherFields = ["title", "description", "startDate", "endDate", "notes", "isActive"];
+    otherFields.forEach((f) => {
+      if (Object.prototype.hasOwnProperty.call(req.body, f)) updateData[f] = req.body[f];
+    });
+
     const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
-      {
-        ...req.body,
-        assignedTo,
-        images: finalImages,
-        videos: finalVideos,
-        attachments: finalAttachments,
-      },
+      updateData,
       { new: true, runValidators: true }
     );
+
+    // If project changed, make sure to update project's tasks arrays
+    try {
+      const Project = require("../models/Project");
+      const oldProjectId = task.project ? String(task.project) : null;
+      const newProjectId = project || null;
+
+      if (oldProjectId && (!newProjectId || String(oldProjectId) !== String(newProjectId))) {
+        await Project.findByIdAndUpdate(oldProjectId, { $pull: { tasks: updatedTask._id } }).catch(() => {});
+      }
+
+      if (newProjectId) {
+        await Project.findByIdAndUpdate(newProjectId, { $addToSet: { tasks: updatedTask._id } }).catch(() => {});
+      }
+    } catch (e) {
+      console.log("Warning updating project task lists:", e);
+    }
 
     /* 📧 EMAIL IF REASSIGNED */
     if (assignedTo && String(assignedTo) !== String(task.assignedTo)) {
@@ -187,22 +233,34 @@ exports.updateTask = async (req, res) => {
 exports.getTasks = async (req, res) => {
   try {
     const user = req.user;
+
     let filter = {};
 
     const perms = user.role.permissions.map((p) => p.name);
-    const isOnlyViewer =
-      perms.includes("View Task") &&
-      !perms.includes("Create Task") &&
-      !perms.includes("Edit Task") &&
-      !perms.includes("Delete Task");
+    const isSuperAdmin = user.role && user.role.name === "Super Admin";
 
-    if (isOnlyViewer) filter.assignedTo = user._id;
+    // If not super admin, restrict to tasks assigned to user or tasks in projects where user is in team
+    if (!isSuperAdmin) {
+      // Find projects where user is in team
+      const Project = require("../models/Project");
+      const userProjects = await Project.find({ team: user._id }).select("_id");
+      const projectIds = userProjects.map((p) => p._id);
 
+      filter.$or = [{ assignedTo: user._id }];
+      if (projectIds.length) filter.$or.push({ project: { $in: projectIds } });
+    }
+
+    // Apply search (title/description) on top of existing filter
     if (req.query.search) {
-      filter.$or = [
-        { title: { $regex: req.query.search, $options: "i" } },
-        { description: { $regex: req.query.search, $options: "i" } },
-      ];
+      const searchFilter = {
+        $or: [
+          { title: { $regex: req.query.search, $options: "i" } },
+          { description: { $regex: req.query.search, $options: "i" } },
+        ],
+      };
+
+      if (Object.keys(filter).length === 0) filter = searchFilter;
+      else filter = { $and: [filter, searchFilter] };
     }
 
     if (req.query.taskStatus) filter.taskStatus = req.query.taskStatus;
@@ -259,7 +317,26 @@ exports.getMyTasks = async (req, res) => {
     const userId = req.user._id;
     const search = req.query.search || "";
 
-    let filter = { assignedTo: userId };
+    const Project = require("../models/Project");
+
+    // If project filter provided, ensure user is allowed to view that project
+    const projectFilter = req.query.project;
+    if (projectFilter) {
+      const proj = await Project.findById(projectFilter).select("team");
+      if (!proj) return res.status(404).json({ message: "Project not found" });
+      const isTeamMember = proj.team.some(t => String(t) === String(userId));
+      const isSuperAdmin = req.user.role && req.user.role.name === "Super Admin";
+      if (!isTeamMember && !isSuperAdmin) return res.status(403).json({ message: "Access denied" });
+      // Show tasks for that project
+      var filter = { project: projectFilter };
+    } else {
+      // Include tasks assigned to user or tasks in projects where user is a team member
+      const userProjects = await Project.find({ team: userId }).select("_id");
+      const projectIds = userProjects.map((p) => p._id);
+
+      var filter = { $or: [{ assignedTo: userId }] };
+      if (projectIds.length) filter.$or.push({ project: { $in: projectIds } });
+    }
 
     if (search) {
       filter.$or = [

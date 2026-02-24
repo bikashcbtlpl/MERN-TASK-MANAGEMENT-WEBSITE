@@ -8,6 +8,9 @@ function TaskDetails() {
 
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+  const [hoverUser, setHoverUser] = useState(null);
+  const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
 
   const user = JSON.parse(localStorage.getItem("user"));
   const permissions = user?.permissions || [];
@@ -24,9 +27,70 @@ function TaskDetails() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await axiosInstance.get("/users");
+      setUsers(Array.isArray(res.data) ? res.data : (res.data.users || []));
+    } catch (err) {
+      console.log("Error fetching users for mentions", err);
+    }
+  };
+
   useEffect(() => {
     fetchTask();
+    fetchUsers();
   }, []);
+
+  const getHandle = (u) => {
+    if (!u) return "user";
+    if (u.username) return u.username;
+    if (u.email) return u.email.split("@")[0];
+    if (u.name) return u.name.replace(/\s+/g, "").toLowerCase();
+    return "user";
+  };
+
+  const resolveHandleToUser = (handle) => {
+    if (!handle) return null;
+    const h = handle.replace(/^@/, "").toLowerCase();
+    return users.find((u) => {
+      const candidates = [
+        u.username && u.username.toLowerCase(),
+        u.email && u.email.split("@")[0].toLowerCase(),
+        u.name && u.name.replace(/\s+/g, "").toLowerCase(),
+      ].filter(Boolean);
+
+      return candidates.includes(h);
+    });
+  };
+
+  const renderDescription = (text) => {
+    if (!text) return null;
+    // Split on @mentions but keep the marker
+    const parts = text.split(/(@[A-Za-z0-9_\.-]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const matchedUser = resolveHandleToUser(part);
+        return (
+          <span
+            key={i}
+            className="mention"
+            onMouseEnter={(e) => {
+              if (matchedUser) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setHoverPos({ x: rect.left, y: rect.bottom + 6 });
+                setHoverUser(matchedUser);
+              }
+            }}
+            onMouseLeave={() => setHoverUser(null)}
+            style={{ color: "#1a73e8", cursor: matchedUser ? "pointer" : "default", fontWeight: 600 }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
 
   if (loading) return <div className="loading-page">Loading...</div>;
   if (!task) return <div>Task not found</div>;
@@ -86,7 +150,36 @@ function TaskDetails() {
 
           <div className="detail-box full-width">
             <label>Description</label>
-            <p>{task.description}</p>
+            <p style={{ position: "relative" }}>
+              {renderDescription(task.description)}
+            </p>
+            {hoverUser && (
+              <div
+                className="mention-popup"
+                style={{
+                  position: "fixed",
+                  top: hoverPos.y,
+                  left: hoverPos.x,
+                  background: "white",
+                  padding: 12,
+                  borderRadius: 6,
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+                  zIndex: 2000,
+                  minWidth: 200,
+                }}
+              >
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <div className="avatar-circle small" style={{ width: 36, height: 36, fontSize: 14 }}>
+                    {hoverUser.name ? hoverUser.name.charAt(0).toUpperCase() : (hoverUser.email?.charAt(0) || "U")} 
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{hoverUser.name || hoverUser.email}</div>
+                    <div style={{ fontSize: 12, color: "#666" }}>{hoverUser.email}</div>
+                    <div style={{ fontSize: 12, color: "#666" }}>{hoverUser.role?.name}</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="detail-box">
@@ -100,21 +193,9 @@ function TaskDetails() {
           </div>
 
           <div className="detail-box">
-            <label>Assigned To</label>
-            <p>{task.assignedTo?.email || "Unassigned"}</p>
-          </div>
-
-          <div className="detail-box">
             <label>Created By</label>
             <p>{task.createdBy?.email}</p>
           </div>
-
-          {task.notes && (
-            <div className="detail-box full-width">
-              <label>Notes</label>
-              <p>{task.notes}</p>
-            </div>
-          )}
         </div>
 
         {/* ================= IMAGES ================= */}

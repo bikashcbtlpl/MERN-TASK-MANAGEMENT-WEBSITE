@@ -9,9 +9,9 @@ function Sidebar() {
 
 
   const hasPermission = (permissionList) => {
-    return permissionList.some((perm) =>
-      permissions.includes(perm)
-    );
+    // Super Admin bypass
+    if (user?.role?.name === "Super Admin") return true;
+    return permissionList.some((perm) => permissions.includes(perm));
   };
 
   const canManageTask = hasPermission([
@@ -20,7 +20,7 @@ function Sidebar() {
     "Delete Task",
   ]);
 
-  const canViewTask = permissions.includes("View Task");
+  const canViewTask = hasPermission(["View Task"]);
 
   return (
     <div className="sidebar">
@@ -31,6 +31,16 @@ function Sidebar() {
         {/* Always Visible */}
         <NavLink to="/dashboard">Dashboard</NavLink>
 
+        {/* PROJECT SECTION - visible only to users with project permissions */}
+        {hasPermission([
+          "View Project",
+          "Create Project",
+          "Edit Project",
+          "Delete Project",
+        ]) && (
+          <NavLink to="/projects">Manage Projects</NavLink>
+        )}
+
         {/* TASK SECTION */}
 
         {/* If user can manage tasks */}
@@ -38,7 +48,7 @@ function Sidebar() {
           <NavLink to="/tasks">Manage Task</NavLink>
         )}
 
-        {/* If user only has view permission */}
+        {/* If user only has view permission, show My Task (not Manage Task) */}
         {!canManageTask && canViewTask && (
           <NavLink to="/my-tasks">My Task</NavLink>
         )}

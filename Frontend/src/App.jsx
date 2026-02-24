@@ -1,3 +1,5 @@
+import ManageProject from "./pages/ManageProject";
+import ProjectFormPage from "./pages/ProjectFormPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -69,6 +71,12 @@ function App() {
             </ProtectedRoute>
           }
         >
+
+
+          {/* ================= PROJECTS ================= */}
+          <Route path="projects" element={<ManageProject />} />
+          <Route path="projects/create" element={<ProjectFormPage mode="create" />} />
+          <Route path="projects/edit/:id" element={<ProjectFormPage mode="edit" />} />
 
           {/* ================= DASHBOARD ================= */}
           <Route path="dashboard" element={<Dashboard />} />
