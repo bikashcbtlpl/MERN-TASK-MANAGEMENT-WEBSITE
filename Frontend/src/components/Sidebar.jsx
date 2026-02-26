@@ -41,6 +41,9 @@ function Sidebar() {
           <NavLink to="/projects">Manage Projects</NavLink>
         )}
 
+        {/* DOCUMENTS - visible to all authenticated users; access controlled on page */}
+        <NavLink to="/documents">Documents</NavLink>
+
         {/* TASK SECTION */}
 
         {/* If user can manage tasks */}

@@ -60,11 +60,14 @@ router.get(
 
 /* =======================================================
    UPDATE TASK (WITH FILE UPLOAD)
+   Allow users with 'Edit Task' permission OR the task assignee to update.
 ======================================================= */
+const canEditTask = require("../middleware/canEditTask");
+
 router.put(
   "/:id",
   authMiddleware,
-  checkPermission(["Edit Task"]),
+  canEditTask,
   upload.fields([
     { name: "images", maxCount: 10 },
     { name: "videos", maxCount: 5 },

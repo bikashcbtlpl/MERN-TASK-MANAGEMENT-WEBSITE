@@ -36,6 +36,9 @@ app.use("/api/permissions", permissionRoutes);
 const taskRoutes = require("./routes/taskRoutes");
 app.use("/api/tasks", taskRoutes);
 
+const issueRoutes = require("./routes/issueRoutes");
+app.use("/api/issues", issueRoutes);
+
 const userRoutes = require("./routes/userRoutes");
 app.use("/api/users", userRoutes);
 
@@ -50,6 +53,9 @@ app.use("/api/auth", authRoutes);
 
 const projectRoutes = require("./routes/projectRoutes");
 app.use("/api/projects", projectRoutes);
+
+const documentRoutes = require("./routes/documentRoutes");
+app.use("/api/documents", documentRoutes);
 
 /* ================= MONGODB ================= */
 

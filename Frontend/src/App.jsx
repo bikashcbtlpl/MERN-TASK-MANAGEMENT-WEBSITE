@@ -20,6 +20,7 @@ import ManageRole from "./pages/ManageRole";
 
 // PERMISSIONS
 import ManagePermission from "./pages/ManagePermission";
+import Documents from "./pages/Documents";
 
 // USERS
 import ManageUser from "./pages/ManageUser";
@@ -97,6 +98,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* ================= DOCUMENTS ================= */}
+          <Route path="documents" element={<Documents />} />
 
           <Route
             path="tasks/create"

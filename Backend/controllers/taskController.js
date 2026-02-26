@@ -134,7 +134,10 @@ exports.updateTask = async (req, res) => {
       userPermissions.includes("View Task") &&
       !userPermissions.includes("Edit Task");
 
-    if (isOnlyViewer)
+    const isAssignedUser = task.assignedTo && String(task.assignedTo) === String(user._id);
+
+    // If the user only has view permission and is not assigned to the task, deny edit
+    if (isOnlyViewer && !isAssignedUser)
       return res.status(403).json({ message: "Not allowed to edit task" });
 
 
@@ -168,7 +171,7 @@ exports.updateTask = async (req, res) => {
     const finalAttachments = [...existingAttachments, ...newAttachments];
 
     // Build explicit update object to avoid passing raw req.body values that may be invalid
-    const updateData = {
+    let updateData = {
       taskStatus,
       assignedTo,
       project,
@@ -182,6 +185,11 @@ exports.updateTask = async (req, res) => {
     otherFields.forEach((f) => {
       if (Object.prototype.hasOwnProperty.call(req.body, f)) updateData[f] = req.body[f];
     });
+
+    // If user is only a viewer but is the assigned user, restrict updates to taskStatus only
+    if (isOnlyViewer && isAssignedUser) {
+      updateData = { taskStatus };
+    }
 
     const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
@@ -274,6 +282,7 @@ exports.getTasks = async (req, res) => {
     const tasks = await Task.find(filter)
       .populate("assignedTo", "email name")
       .populate("createdBy", "email name")
+      .populate("project", "name")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -289,15 +298,26 @@ exports.getTasks = async (req, res) => {
   }
 };
 
+const Issue = require("../models/Issue");
+
 exports.getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate("assignedTo", "email name")
-      .populate("createdBy", "email name");
+      .populate("createdBy", "email name")
+      .populate("project", "name");
 
     if (!task) return res.status(404).json({ message: "Task not found" });
-    res.json(task);
-  } catch {
+
+    // Include related issues for this task
+    const issues = await Issue.find({ task: task._id }).populate("reportedBy", "email name").sort({ createdAt: -1 });
+
+    const taskObj = task.toObject();
+    taskObj.issues = issues;
+
+    res.json(taskObj);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error fetching task" });
   }
 };
@@ -354,6 +374,7 @@ exports.getMyTasks = async (req, res) => {
     const tasks = await Task.find(filter)
       .populate("assignedTo", "email name")
       .populate("createdBy", "email name")
+      .populate("project", "name")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });

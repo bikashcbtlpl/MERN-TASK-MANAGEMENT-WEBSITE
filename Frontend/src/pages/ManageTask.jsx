@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import socket from "../socket";
 import { toast } from "react-toastify";
-import Select from "react-select";   // ✅ ADDED
 
 function ManageTask() {
   const navigate = useNavigate();
 
   const [tasks, setTasks] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalTasks, setTotalTasks] = useState(0);
@@ -26,13 +26,6 @@ function ManageTask() {
   const canCreate = permissions.includes("Create Task");
   const canEdit = permissions.includes("Edit Task");
   const canDelete = permissions.includes("Delete Task");
-
-  /* FETCH USERS */
-  useEffect(() => {
-    axiosInstance.get("/users")
-      .then(res => setUsers(res.data || []))
-      .catch(() => {});
-  }, []);
 
   /* FETCH TASKS */
   const fetchTasks = useCallback(
@@ -71,6 +64,17 @@ function ManageTask() {
     if (canView || canCreate || canEdit || canDelete) {
       fetchTasks(currentPage);
     }
+    // fetch projects for quick-assign dropdown
+    const fetchProjects = async () => {
+      try {
+        const res = await axiosInstance.get("/projects");
+        setProjects(Array.isArray(res.data) ? res.data : (res.data.projects || []));
+      } catch (err) {
+        // ignore errors silently
+      }
+    };
+
+    fetchProjects();
   }, [currentPage, fetchTasks]);
 
   useEffect(() => {
@@ -107,14 +111,7 @@ function ManageTask() {
     return new Date(date).toLocaleDateString();
   };
 
-  /* ✅ CREATE SEARCHABLE OPTIONS */
-  const userOptions = [
-    { value: "", label: "Unassigned" },
-    ...users.map(u => ({
-      value: u._id,
-      label: u.name ? `${u.name} (${u.email})` : u.email
-    }))
-  ];
+  /* Tasks are assigned via Project team; show project instead */
 
   return (
     <div className="manage-role-container">
@@ -199,7 +196,7 @@ function ManageTask() {
                 <th>Task Status</th>
                 <th>Start</th>
                 <th>End</th>
-                <th>Assigned</th>
+                <th>Project</th>
                 <th>Files</th>
                 {(canEdit || canDelete) && <th>Actions</th>}
               </tr>
@@ -256,40 +253,23 @@ function ManageTask() {
                   <td>{formatDate(task.startDate)}</td>
                   <td>{formatDate(task.endDate)}</td>
 
-                  {/* ✅ SEARCHABLE ASSIGNED DROPDOWN */}
                   <td onClick={(e) => e.stopPropagation()}>
                     {canEdit ? (
-                      <Select
-                        className="inline-select"
-                        classNamePrefix="react-select"
-                        options={[
-                          { value: "", label: "Unassigned" },
-                          ...users.map(u => ({
-                            value: u._id,
-                            label: u.name || u.email
-                          }))
-                        ]}
-                        value={
-                          task.assignedTo?._id
-                            ? {
-                                value: task.assignedTo._id,
-                                label: task.assignedTo.name || task.assignedTo.email
-                              }
-                            : { value: "", label: "Unassigned" }
-                        }
-                        onChange={(selected) =>
+                      <select
+                        value={task.project?._id || ""}
+                        onChange={(e) =>
                           updateTaskField(task._id, {
-                            assignedTo: selected?.value || null
+                            project: e.target.value || "",
                           })
                         }
-                        placeholder="Unassigned"
-                        isClearable
-                        isSearchable
-                      />
+                      >
+                        <option value="">Unassigned</option>
+                        {projects.map((p) => (
+                          <option key={p._id} value={p._id}>{p.name}</option>
+                        ))}
+                      </select>
                     ) : (
-                      task.assignedTo?.name ||
-                      task.assignedTo?.email ||
-                      "Unassigned"
+                      task.project?.name || "-"
                     )}
                   </td>
 

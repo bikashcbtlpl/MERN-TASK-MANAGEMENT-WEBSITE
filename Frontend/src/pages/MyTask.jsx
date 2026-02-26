@@ -63,6 +63,23 @@ function MyTask() {
     fetchMyTasks(currentPage, true);
   }, [fetchMyTasks, currentPage]);
 
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+
+  const getCurrentUserId = () => currentUser?._id || currentUser?.id || null;
+  const getAssigneeId = (task) => task.assignedTo?._id || task.assignedTo?.id || null;
+
+  const updateStatus = async (taskId, status) => {
+    try {
+      setRefreshing(true);
+      await axiosInstance.put(`/tasks/${taskId}`, { taskStatus: status });
+      await fetchMyTasks(currentPage, true);
+    } catch (err) {
+      console.error("Error updating status", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Listen for project selection changes in Topbar (localStorage)
   useEffect(() => {
     const handler = () => fetchMyTasks(1, true);
@@ -173,15 +190,31 @@ function MyTask() {
                 <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{task.title}</td>
 
-                {/* ✅ FIXED STATUS COLOR */}
+                {/* ✅ FIXED STATUS COLOR (editable for assignee or users with Edit Task) */}
                 <td>
-                  <span
-                    className={`status-badge status-${task.taskStatus
-                      ?.toLowerCase()
-                      .replace(" ", "-")}`}
-                  >
-                    {task.taskStatus}
-                  </span>
+                  {currentUser && (getCurrentUserId() === getAssigneeId(task) || currentUser.permissions?.includes("Edit Task")) ? (
+                    <select
+                      value={task.taskStatus}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => updateStatus(task._id, e.target.value)}
+                    >
+                      <option>Open</option>
+                      <option>In Progress</option>
+                      <option>Pending</option>
+                      <option>On Hold</option>
+                      <option>Closed</option>
+                      <option>Completed</option>
+                      <option>Cancelled</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`status-badge status-${task.taskStatus
+                        ?.toLowerCase()
+                        .replace(" ", "-")}`}
+                    >
+                      {task.taskStatus}
+                    </span>
+                  )}
                 </td>
 
                 <td>{formatDate(task.startDate)}</td>

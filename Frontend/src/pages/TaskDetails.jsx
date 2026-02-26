@@ -9,6 +9,9 @@ function TaskDetails() {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
+  const [issues, setIssues] = useState([]);
+  const [issueTitle, setIssueTitle] = useState("");
+  const [issueDescription, setIssueDescription] = useState("");
   const [hoverUser, setHoverUser] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
 
@@ -39,7 +42,47 @@ function TaskDetails() {
   useEffect(() => {
     fetchTask();
     fetchUsers();
+    fetchIssues();
   }, []);
+
+  const fetchIssues = async () => {
+    try {
+      const res = await axiosInstance.get(`/issues/task/${id}`);
+      setIssues(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.log("Error fetching issues", err);
+    }
+  };
+
+  const submitIssue = async (e) => {
+    e.preventDefault();
+    if (!issueTitle || !issueDescription) return;
+    try {
+      const res = await axiosInstance.post(`/issues`, {
+        task: id,
+        title: issueTitle,
+        description: issueDescription,
+      });
+      setIssueTitle("");
+      setIssueDescription("");
+      // prepend new issue
+      setIssues((s) => [res.data, ...s]);
+    } catch (err) {
+      console.error("Error creating issue", err);
+    }
+  };
+
+  const canResolve = user?.role && (user.role.name === "Super Admin" || user.role.name === "Admin");
+
+  const resolveIssue = async (issueId) => {
+    try {
+      const res = await axiosInstance.patch(`/issues/${issueId}/resolve`);
+      // update issue in list
+      setIssues((s) => s.map((it) => (it._id === res.data._id ? res.data : it)));
+    } catch (err) {
+      console.error("Error resolving issue", err);
+    }
+  };
 
   const getHandle = (u) => {
     if (!u) return "user";
@@ -274,6 +317,58 @@ function TaskDetails() {
             </ul>
           </div>
         )}
+
+        {/* ================= ISSUES ================= */}
+        <div className="media-section">
+          <h3>Issues</h3>
+
+          <div style={{ marginBottom: 12 }}>
+            <form onSubmit={submitIssue}>
+              <input
+                placeholder="Issue title"
+                value={issueTitle}
+                onChange={(e) => setIssueTitle(e.target.value)}
+                style={{ width: "100%", padding: 8, marginBottom: 8 }}
+              />
+              <textarea
+                placeholder="Describe the issue"
+                value={issueDescription}
+                onChange={(e) => setIssueDescription(e.target.value)}
+                style={{ width: "100%", padding: 8, minHeight: 80 }}
+              />
+              <div style={{ marginTop: 8 }}>
+                <button className="primary-btn" type="submit">Report Issue</button>
+              </div>
+            </form>
+          </div>
+
+          {issues.length === 0 ? (
+            <div>No issues reported for this task.</div>
+          ) : (
+            <ul className="attachment-list">
+              {issues.map((iss) => (
+                <li key={iss._id} className="attachment-item">
+                  <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                    <div>
+                      <strong>{iss.title}</strong>
+                      <div style={{ fontSize: 13, color: "#444" }}>{iss.description}</div>
+                      <div style={{ fontSize: 12, color: "#666" }}>Reported by: {iss.reportedBy?.email || "Unknown"}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 12 }}>{new Date(iss.createdAt).toLocaleString()}</div>
+                      <div style={{ marginTop: 6, display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
+                        <span className="status-badge">{iss.status}</span>
+                        {canResolve && iss.status !== "Resolved" && (
+                          <button className="secondary-btn" onClick={() => resolveIssue(iss._id)}>Resolve</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
       </div>
     </div>
