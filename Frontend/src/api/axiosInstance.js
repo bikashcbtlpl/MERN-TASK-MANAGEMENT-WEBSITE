@@ -13,9 +13,7 @@ axiosInstance.interceptors.response.use(
   /* ================= GLOBAL ERROR HANDLER ================= */
   (error) => {
     const message =
-      error.response?.data?.message ||
-      error.message ||
-      "Something went wrong";
+      error.response?.data?.message || error.message || "Something went wrong";
 
     // 🔥 Show toast automatically
     toast.error(message);
@@ -27,7 +25,7 @@ axiosInstance.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

@@ -61,9 +61,7 @@ function RoleForm() {
   const fetchRole = async () => {
     const res = await axiosInstance.get("/roles");
 
-    const role = res.data.find(
-      (r) => r.name === decodeURIComponent(roleName)
-    );
+    const role = res.data.find((r) => r.name === decodeURIComponent(roleName));
 
     if (!role) return;
 
@@ -95,20 +93,16 @@ function RoleForm() {
     const moduleIds = modulePerms.map((p) => p._id);
 
     const allSelected = moduleIds.every((id) =>
-      formData.permissions.includes(id)
+      formData.permissions.includes(id),
     );
 
     if (allSelected) {
       setFormData((prev) => ({
         ...prev,
-        permissions: prev.permissions.filter(
-          (id) => !moduleIds.includes(id)
-        ),
+        permissions: prev.permissions.filter((id) => !moduleIds.includes(id)),
       }));
     } else {
-      const newPerms = [
-        ...new Set([...formData.permissions, ...moduleIds]),
-      ];
+      const newPerms = [...new Set([...formData.permissions, ...moduleIds])];
 
       setFormData((prev) => ({
         ...prev,
@@ -120,9 +114,7 @@ function RoleForm() {
   const isModuleAllSelected = (modulePerms) => {
     const moduleIds = modulePerms.map((p) => p._id);
 
-    return moduleIds.every((id) =>
-      formData.permissions.includes(id)
-    );
+    return moduleIds.every((id) => formData.permissions.includes(id));
   };
 
   /* ================= SUBMIT ================= */
@@ -136,7 +128,7 @@ function RoleForm() {
 
         await axiosInstance.put(
           `/roles/${roleId}`, // ✅ FIXED
-          formData
+          formData,
         );
       } else {
         await axiosInstance.post("/roles", formData);
@@ -155,9 +147,7 @@ function RoleForm() {
   return (
     <div className="role-form-container">
       <div className="role-form-card">
-        <h2>
-          {isEdit ? `Edit Role` : "Create Role"}
-        </h2>
+        <h2>{isEdit ? `Edit Role` : "Create Role"}</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -207,74 +197,51 @@ function RoleForm() {
               </thead>
 
               <tbody>
-                {Object.entries(modules).map(
-                  ([moduleName, modulePerms]) => (
-                    <tr key={moduleName}>
-                      <td>{moduleName}</td>
+                {Object.entries(modules).map(([moduleName, modulePerms]) => (
+                  <tr key={moduleName}>
+                    <td>{moduleName}</td>
 
-                      {/* ALL */}
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={isModuleAllSelected(
-                            modulePerms
+                    {/* ALL */}
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={isModuleAllSelected(modulePerms)}
+                        onChange={() => toggleAllForModule(modulePerms)}
+                      />
+                    </td>
+
+                    {["Create", "View", "Edit", "Delete"].map((action) => {
+                      const perm = modulePerms.find(
+                        (p) => p.name === `${action} ${moduleName}`,
+                      );
+
+                      return (
+                        <td key={action}>
+                          {perm && (
+                            <input
+                              type="checkbox"
+                              checked={formData.permissions.includes(perm._id)}
+                              onChange={() => togglePermission(perm._id)}
+                            />
                           )}
-                          onChange={() =>
-                            toggleAllForModule(
-                              modulePerms
-                            )
-                          }
-                        />
-                      </td>
-
-                      {["Create", "View", "Edit", "Delete"].map(
-                        (action) => {
-                          const perm =
-                            modulePerms.find(
-                              (p) =>
-                                p.name ===
-                                `${action} ${moduleName}`
-                            );
-
-                          return (
-                            <td key={action}>
-                              {perm && (
-                                <input
-                                  type="checkbox"
-                                  checked={formData.permissions.includes(
-                                    perm._id
-                                  )}
-                                  onChange={() =>
-                                    togglePermission(
-                                      perm._id
-                                    )
-                                  }
-                                />
-                              )}
-                            </td>
-                          );
-                        }
-                      )}
-                    </tr>
-                  )
-                )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           <div className="form-actions">
             <button type="submit" className="save-btn">
-              {isEdit
-                ? "Update Role"
-                : "Create Role"}
+              {isEdit ? "Update Role" : "Create Role"}
             </button>
 
             <button
               type="button"
               className="cancel-btn"
-              onClick={() =>
-                navigate("/roles")
-              }
+              onClick={() => navigate("/roles")}
             >
               Cancel
             </button>

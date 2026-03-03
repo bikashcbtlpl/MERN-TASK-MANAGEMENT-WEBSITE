@@ -9,14 +9,24 @@ router.post(
   "/",
   authMiddleware,
   // allow any authenticated user to report an issue; permissions can be tightened
-  issueController.createIssue
+  issueController.createIssue,
 );
 
 router.get("/task/:taskId", authMiddleware, issueController.getIssuesByTask);
 
-router.get("/", authMiddleware, checkPermission(["View Issue"]), issueController.getAllIssues);
+router.get(
+  "/",
+  authMiddleware,
+  checkPermission(["View Issue"]),
+  issueController.getAllIssues,
+);
 
-router.patch("/:id", authMiddleware, checkPermission(["Edit Issue"]), issueController.updateIssue);
+router.patch(
+  "/:id",
+  authMiddleware,
+  checkPermission(["Edit Issue"]),
+  issueController.updateIssue,
+);
 
 // Admins and Super Admins can quickly resolve an issue
 router.patch("/:id/resolve", authMiddleware, issueController.resolveIssue);

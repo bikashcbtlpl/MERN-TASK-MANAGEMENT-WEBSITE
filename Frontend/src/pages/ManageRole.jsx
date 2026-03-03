@@ -27,13 +27,12 @@ function ManageRole() {
       // If NOT Super Admin → hide Super Admin role
       if (loggedInUser?.role !== "Super Admin") {
         const filteredRoles = response.data.filter(
-          (role) => role.name !== "Super Admin"
+          (role) => role.name !== "Super Admin",
         );
         setRoles(filteredRoles);
       } else {
         setRoles(response.data);
       }
-
     } catch (error) {
       console.log("Error fetching roles", error);
     }
@@ -99,29 +98,26 @@ function ManageRole() {
                 </span>
               </td>
 
-              <td>
-                {role.permissions?.map((p) => p.name).join(", ")}
-              </td>
+              <td>{role.permissions?.map((p) => p.name).join(", ")}</td>
 
               {(canEdit || canDelete) && (
                 <td>
-                  {!(role.name === "Super Admin" && 
-                    JSON.parse(localStorage.getItem("user"))?.role !== "Super Admin") && (
+                  {!(
+                    role.name === "Super Admin" &&
+                    JSON.parse(localStorage.getItem("user"))?.role !==
+                      "Super Admin"
+                  ) && (
                     <>
                       <button
                         className="edit-role-btn"
-                        onClick={() =>
-                          navigate(`/roles/edit/${role.name}`)
-                        }
+                        onClick={() => navigate(`/roles/edit/${role.name}`)}
                       >
                         Edit
                       </button>
 
                       <button
                         className="delete-role-btn"
-                        onClick={() =>
-                          handleDelete(role._id)
-                        }
+                        onClick={() => handleDelete(role._id)}
                       >
                         Delete
                       </button>

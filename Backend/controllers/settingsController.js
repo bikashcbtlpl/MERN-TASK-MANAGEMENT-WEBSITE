@@ -49,12 +49,10 @@ exports.updateProfile = async (req, res) => {
       message: "Profile updated successfully",
       name: user.name, // return updated name
     });
-
   } catch (error) {
     res.status(500).json({ message: "Profile update failed" });
   }
 };
-
 
 /* ================= UPDATE EMAIL SETTINGS ================= */
 exports.updateEmailSettings = async (req, res) => {

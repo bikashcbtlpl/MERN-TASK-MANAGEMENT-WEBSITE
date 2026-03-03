@@ -37,11 +37,9 @@ exports.updatePermission = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const updated = await Permission.findByIdAndUpdate(
-      id,
-      req.body,
-      { returnDocument: "after" }
-    );
+    const updated = await Permission.findByIdAndUpdate(id, req.body, {
+      returnDocument: "after",
+    });
 
     res.json(updated);
   } catch (error) {

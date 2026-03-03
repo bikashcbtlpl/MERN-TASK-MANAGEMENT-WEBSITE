@@ -16,12 +16,20 @@ function ProtectedRoute({ children, requiredPermissions = [] }) {
         const serverUser = res.data.user || {};
         const perms = serverUser.permissions || [];
         const roleFromServer = serverUser.role || {};
-        const roleName = (typeof roleFromServer === "string") ? roleFromServer : (roleFromServer.name || null);
+        const roleName =
+          typeof roleFromServer === "string"
+            ? roleFromServer
+            : roleFromServer.name || null;
         const rolePermissions = Array.isArray(roleFromServer.permissions)
-          ? roleFromServer.permissions.map((p) => (typeof p === "string" ? p : p.name))
+          ? roleFromServer.permissions.map((p) =>
+              typeof p === "string" ? p : p.name,
+            )
           : perms;
 
-        const roleObj = { name: roleName, permissions: rolePermissions.map((p) => ({ name: p })) };
+        const roleObj = {
+          name: roleName,
+          permissions: rolePermissions.map((p) => ({ name: p })),
+        };
 
         const freshUser = {
           id: serverUser.id,
@@ -35,7 +43,7 @@ function ProtectedRoute({ children, requiredPermissions = [] }) {
         localStorage.setItem("user", JSON.stringify(freshUser));
 
         // update global auth context as well
-        if (auth && typeof auth.setUser === 'function') auth.setUser(freshUser);
+        if (auth && typeof auth.setUser === "function") auth.setUser(freshUser);
         setUser(freshUser);
       } catch (error) {
         localStorage.removeItem("user");
@@ -54,7 +62,7 @@ function ProtectedRoute({ children, requiredPermissions = [] }) {
 
   if (requiredPermissions.length > 0) {
     const hasAccess = requiredPermissions.some((perm) =>
-      user.permissions.includes(perm)
+      user.permissions.includes(perm),
     );
 
     if (!hasAccess) {

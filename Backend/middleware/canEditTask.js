@@ -10,7 +10,7 @@ module.exports = async (req, res, next) => {
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
     const perms = (user.role && user.role.permissions) || [];
-    const permNames = perms.map((p) => (typeof p === 'string' ? p : p.name));
+    const permNames = perms.map((p) => (typeof p === "string" ? p : p.name));
 
     if (permNames.includes("Edit Task")) return next();
 
@@ -21,7 +21,8 @@ module.exports = async (req, res, next) => {
     const task = await Task.findById(taskId).select("assignedTo");
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    if (task.assignedTo && String(task.assignedTo) === String(user._id)) return next();
+    if (task.assignedTo && String(task.assignedTo) === String(user._id))
+      return next();
 
     return res.status(403).json({ message: "Access Denied" });
   } catch (err) {

@@ -8,7 +8,6 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
-
     /* ===== IMAGES ===== */
     if (file.fieldname === "images") {
       return {
@@ -34,15 +33,7 @@ const storage = new CloudinaryStorage({
       return {
         folder: "tasks/files",
         resource_type: "raw",
-        allowed_formats: [
-          "pdf",
-          "doc",
-          "docx",
-          "xls",
-          "xlsx",
-          "ppt",
-          "pptx",
-        ],
+        allowed_formats: ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"],
         public_id: `file_${Date.now()}_${file.originalname}`,
       };
     }

@@ -9,7 +9,8 @@ exports.createIssue = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
 
     const existingTask = await Task.findById(task);
-    if (!existingTask) return res.status(404).json({ message: "Task not found" });
+    if (!existingTask)
+      return res.status(404).json({ message: "Task not found" });
 
     const newIssue = await Issue.create({
       task,
@@ -56,7 +57,9 @@ exports.getAllIssues = async (req, res) => {
 
 exports.updateIssue = async (req, res) => {
   try {
-    const updated = await Issue.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updated = await Issue.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
     if (!updated) return res.status(404).json({ message: "Issue not found" });
     req.app.get("io")?.emit("issueUpdated", { issue: updated });
     res.json(updated);
@@ -71,7 +74,9 @@ exports.resolveIssue = async (req, res) => {
     // Only allow Admin or Super Admin to resolve
     const roleName = req.user?.role?.name;
     if (!roleName || (roleName !== "Super Admin" && roleName !== "Admin")) {
-      return res.status(403).json({ message: "Only Admin or Super Admin can resolve issues" });
+      return res
+        .status(403)
+        .json({ message: "Only Admin or Super Admin can resolve issues" });
     }
 
     const issue = await Issue.findById(req.params.id);
@@ -80,7 +85,10 @@ exports.resolveIssue = async (req, res) => {
     issue.status = "Resolved";
     await issue.save();
 
-    const updated = await Issue.findById(issue._id).populate("reportedBy", "email name");
+    const updated = await Issue.findById(issue._id).populate(
+      "reportedBy",
+      "email name",
+    );
     req.app.get("io")?.emit("issueUpdated", { issue: updated });
     res.json(updated);
   } catch (err) {

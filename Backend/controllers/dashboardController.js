@@ -11,12 +11,10 @@ exports.getDashboardStats = async (req, res) => {
     let activeTasks = 0;
 
     const roleName = user.role?.name;
-    const isAdmin =
-      roleName === "Admin" || roleName === "Super Admin";
+    const isAdmin = roleName === "Admin" || roleName === "Super Admin";
 
     /* ================= ADMIN ================= */
     if (isAdmin) {
-
       totalUsers = await User.countDocuments();
 
       // ✅ Count ALL tasks (including cancelled)
@@ -31,11 +29,9 @@ exports.getDashboardStats = async (req, res) => {
       activeTasks = await Task.countDocuments({
         taskStatus: { $nin: ["Closed", "Cancelled"] },
       });
-    }
+    } else {
 
     /* ================= NORMAL USER ================= */
-    else {
-
       // ✅ Count ALL assigned tasks
       totalTasks = await Task.countDocuments({
         assignedTo: user._id,
@@ -60,7 +56,6 @@ exports.getDashboardStats = async (req, res) => {
       completedTasks,
       activeTasks,
     });
-
   } catch (error) {
     console.log("Dashboard Error:", error);
     res.status(500).json({

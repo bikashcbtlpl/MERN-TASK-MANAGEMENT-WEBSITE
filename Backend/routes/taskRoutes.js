@@ -20,7 +20,7 @@ router.post(
     { name: "videos", maxCount: 5 },
     { name: "attachments", maxCount: 10 },
   ]),
-  taskController.createTask
+  taskController.createTask,
 );
 
 /* =======================================================
@@ -29,13 +29,8 @@ router.post(
 router.get(
   "/",
   authMiddleware,
-  checkPermission([
-    "View Task",
-    "Create Task",
-    "Edit Task",
-    "Delete Task",
-  ]),
-  taskController.getTasks
+  checkPermission(["View Task", "Create Task", "Edit Task", "Delete Task"]),
+  taskController.getTasks,
 );
 
 /* =======================================================
@@ -45,7 +40,7 @@ router.get(
   "/my",
   authMiddleware,
   checkPermission(["View Task"]),
-  taskController.getMyTasks
+  taskController.getMyTasks,
 );
 
 /* =======================================================
@@ -55,7 +50,7 @@ router.get(
   "/:id",
   authMiddleware,
   checkPermission(["View Task"]),
-  taskController.getTaskById
+  taskController.getTaskById,
 );
 
 /* =======================================================
@@ -73,7 +68,7 @@ router.put(
     { name: "videos", maxCount: 5 },
     { name: "attachments", maxCount: 10 },
   ]),
-  taskController.updateTask
+  taskController.updateTask,
 );
 
 /* =======================================================
@@ -83,7 +78,7 @@ router.delete(
   "/:id",
   authMiddleware,
   checkPermission(["Delete Task"]),
-  taskController.deleteTask
+  taskController.deleteTask,
 );
 
 module.exports = router;

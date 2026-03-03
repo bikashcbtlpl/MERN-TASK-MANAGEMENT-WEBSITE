@@ -1,12 +1,10 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-
 function Sidebar() {
-  const { user,loading } = useAuth();
+  const { user, loading } = useAuth();
   const permissions = user?.permissions || [];
   if (loading) return null;
-
 
   const hasPermission = (permissionList) => {
     // Super Admin bypass
@@ -27,7 +25,6 @@ function Sidebar() {
       <div className="sidebar-logo">TASK MANAGEMENT</div>
 
       <div className="sidebar-nav">
-
         {/* Always Visible */}
         <NavLink to="/dashboard">Dashboard</NavLink>
 
@@ -37,9 +34,7 @@ function Sidebar() {
           "Create Project",
           "Edit Project",
           "Delete Project",
-        ]) && (
-          <NavLink to="/projects">Manage Projects</NavLink>
-        )}
+        ]) && <NavLink to="/projects">Manage Projects</NavLink>}
 
         {/* DOCUMENTS - visible to all authenticated users; access controlled on page */}
         <NavLink to="/documents">Documents</NavLink>
@@ -47,9 +42,7 @@ function Sidebar() {
         {/* TASK SECTION */}
 
         {/* If user can manage tasks */}
-        {canManageTask && (
-          <NavLink to="/tasks">Manage Task</NavLink>
-        )}
+        {canManageTask && <NavLink to="/tasks">Manage Task</NavLink>}
 
         {/* If user only has view permission, show My Task (not Manage Task) */}
         {!canManageTask && canViewTask && (
@@ -62,9 +55,7 @@ function Sidebar() {
           "Create Role",
           "Edit Role",
           "Delete Role",
-        ]) && (
-          <NavLink to="/roles">Manage Role</NavLink>
-        )}
+        ]) && <NavLink to="/roles">Manage Role</NavLink>}
 
         {/* PERMISSION */}
         {hasPermission([
@@ -72,9 +63,7 @@ function Sidebar() {
           "Create Permission",
           "Edit Permission",
           "Delete Permission",
-        ]) && (
-          <NavLink to="/permissions">Manage Permission</NavLink>
-        )}
+        ]) && <NavLink to="/permissions">Manage Permission</NavLink>}
 
         {/* USER */}
         {hasPermission([
@@ -82,12 +71,9 @@ function Sidebar() {
           "Create User",
           "Edit User",
           "Delete User",
-        ]) && (
-          <NavLink to="/users">Manage User</NavLink>
-        )}
+        ]) && <NavLink to="/users">Manage User</NavLink>}
 
         <NavLink to="/settings">Settings</NavLink>
-
       </div>
     </div>
   );

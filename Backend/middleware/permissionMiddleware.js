@@ -15,9 +15,7 @@ const checkPermission = (requiredPermissions = []) => {
         return next();
       }
 
-      const userPermissions = user.role.permissions.map(
-        (p) => p.name
-      );
+      const userPermissions = user.role.permissions.map((p) => p.name);
 
       // Ensure requiredPermissions is always array
       if (!Array.isArray(requiredPermissions)) {
@@ -25,7 +23,7 @@ const checkPermission = (requiredPermissions = []) => {
       }
 
       const hasAccess = requiredPermissions.some((perm) =>
-        userPermissions.includes(perm)
+        userPermissions.includes(perm),
       );
 
       if (!hasAccess) {
@@ -35,7 +33,6 @@ const checkPermission = (requiredPermissions = []) => {
       }
 
       next();
-
     } catch (error) {
       console.error("Permission Middleware Error:", error);
       res.status(500).json({

@@ -9,7 +9,7 @@ function ManageTask() {
 
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalTasks, setTotalTasks] = useState(0);
@@ -57,7 +57,7 @@ function ManageTask() {
         setLoading(false);
       }
     },
-    [search, taskStatus, isActive]
+    [search, taskStatus, isActive],
   );
 
   useEffect(() => {
@@ -68,7 +68,9 @@ function ManageTask() {
     const fetchProjects = async () => {
       try {
         const res = await axiosInstance.get("/projects");
-        setProjects(Array.isArray(res.data) ? res.data : (res.data.projects || []));
+        setProjects(
+          Array.isArray(res.data) ? res.data : res.data.projects || [],
+        );
       } catch (err) {
         // ignore errors silently
       }
@@ -181,7 +183,9 @@ function ManageTask() {
         </button>
       </div>
 
-      <p>Total Tasks: <strong>{totalTasks}</strong></p>
+      <p>
+        Total Tasks: <strong>{totalTasks}</strong>
+      </p>
 
       {loading ? (
         <div style={{ padding: "20px" }}>Loading tasks...</div>
@@ -204,8 +208,10 @@ function ManageTask() {
 
             <tbody>
               {tasks.map((task, index) => (
-                <tr key={task._id} onClick={() => navigate(`/tasks/${task._id}`)}>
-
+                <tr
+                  key={task._id}
+                  onClick={() => navigate(`/tasks/${task._id}`)}
+                >
                   <td>{(currentPage - 1) * 10 + index + 1}</td>
                   <td>{task.title}</td>
 
@@ -222,8 +228,10 @@ function ManageTask() {
                         <option value="true">Active</option>
                         <option value="false">Inactive</option>
                       </select>
+                    ) : task.isActive ? (
+                      "Active"
                     ) : (
-                      task.isActive ? "Active" : "Inactive"
+                      "Inactive"
                     )}
                   </td>
 
@@ -265,7 +273,9 @@ function ManageTask() {
                       >
                         <option value="">Unassigned</option>
                         {projects.map((p) => (
-                          <option key={p._id} value={p._id}>{p.name}</option>
+                          <option key={p._id} value={p._id}>
+                            {p.name}
+                          </option>
                         ))}
                       </select>
                     ) : (
@@ -274,7 +284,9 @@ function ManageTask() {
                   </td>
 
                   <td>
-                    📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0} | 📎 {task.attachments?.length || 0}
+                    📷 {task.images?.length || 0} | 🎥{" "}
+                    {task.videos?.length || 0} | 📎{" "}
+                    {task.attachments?.length || 0}
                   </td>
 
                   {(canEdit || canDelete) && (
@@ -298,7 +310,6 @@ function ManageTask() {
                       )}
                     </td>
                   )}
-
                 </tr>
               ))}
             </tbody>
@@ -306,9 +317,21 @@ function ManageTask() {
 
           {totalPages > 1 && (
             <div className="pagination">
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Prev</button>
-              <span>Page {currentPage} of {totalPages}</span>
-              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</button>
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+              >
+                Prev
+              </button>
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+              >
+                Next
+              </button>
             </div>
           )}
         </>

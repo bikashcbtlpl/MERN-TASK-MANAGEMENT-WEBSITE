@@ -3,13 +3,15 @@ import Select from "react-select";
 import axiosInstance from "../api/axiosInstance";
 
 const ProjectForm = ({ onSubmit, initialData }) => {
-  const [formData, setFormData] = useState(initialData || {
-    name: "",
-    description: "",
-    deadline: "",
-    status: "active",
-    team: [],
-  });
+  const [formData, setFormData] = useState(
+    initialData || {
+      name: "",
+      description: "",
+      deadline: "",
+      status: "active",
+      team: [],
+    },
+  );
   const [userOptions, setUserOptions] = useState([]);
   const [inputValue, setInputValue] = useState("");
 
@@ -22,13 +24,13 @@ const ProjectForm = ({ onSubmit, initialData }) => {
   };
 
   useEffect(() => {
-    axiosInstance.get("/users").then(res => {
+    axiosInstance.get("/users").then((res) => {
       setUserOptions(
-        res.data.map(user => ({
+        res.data.map((user) => ({
           label: user.name || getHandle(user),
           value: user._id,
           username: getHandle(user),
-        }))
+        })),
       );
     });
   }, []);
@@ -39,7 +41,7 @@ const ProjectForm = ({ onSubmit, initialData }) => {
       setFormData({
         ...initialData,
         team: Array.isArray(initialData.team)
-          ? initialData.team.map(u => ({
+          ? initialData.team.map((u) => ({
               label: u.name || getHandle(u),
               value: u._id,
               username: getHandle(u),
@@ -53,9 +55,11 @@ const ProjectForm = ({ onSubmit, initialData }) => {
   const filterUsers = (input) => {
     if (!input.startsWith("@")) return [];
     const search = input.slice(1).toLowerCase();
-    return userOptions.filter(u => {
+    return userOptions.filter((u) => {
       const uname = (u.username || "").toLowerCase();
-      return u.label.toLowerCase().startsWith(search) || uname.startsWith(search);
+      return (
+        u.label.toLowerCase().startsWith(search) || uname.startsWith(search)
+      );
     });
   };
 
@@ -94,7 +98,7 @@ const ProjectForm = ({ onSubmit, initialData }) => {
 
   return (
     <form
-      onSubmit={e => {
+      onSubmit={(e) => {
         e.preventDefault();
         onSubmit && onSubmit(formData);
       }}
@@ -105,20 +109,22 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         <input
           type="text"
           value={formData.name}
-          onChange={e => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           required
         />
       </div>
-      <div className="form-group" style={{position:'relative'}}>
+      <div className="form-group" style={{ position: "relative" }}>
         <label>Project Description</label>
         <textarea
           value={formData.description}
-          onChange={e => setFormData({ ...formData, description: e.target.value })}
-          onKeyUp={e => {
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
+          onKeyUp={(e) => {
             // Show mention dropdown if @ is typed
-            if (e.key === '@') setInputValue('@');
+            if (e.key === "@") setInputValue("@");
           }}
-          onInput={e => {
+          onInput={(e) => {
             // Track last word for @mention
             const val = e.target.value;
             const match = val.match(/@\w*$/);
@@ -128,20 +134,24 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         {/* Dropdown for @mention in description */}
         {inputValue.startsWith("@") && (
           <div className="mention-dropdown">
-                  {filterUsers(inputValue).map(user => (
+            {filterUsers(inputValue).map((user) => (
               <div
                 key={user.value}
                 className="mention-option"
                 onClick={() => {
                   // Replace @mention with username in description
-                  setFormData(f => ({
+                  setFormData((f) => ({
                     ...f,
-                        description: f.description.replace(/@\w*$/, `@${user.username} `)
+                    description: f.description.replace(
+                      /@\w*$/,
+                      `@${user.username} `,
+                    ),
                   }));
                   setInputValue("");
                 }}
               >
-                {user.label} <span style={{ color: '#888' }}>@{user.username}</span>
+                {user.label}{" "}
+                <span style={{ color: "#888" }}>@{user.username}</span>
               </div>
             ))}
           </div>
@@ -151,15 +161,21 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         <label>Project Deadline</label>
         <input
           type="date"
-          value={formData.deadline ? new Date(formData.deadline).toISOString().split("T")[0] : ""}
-          onChange={e => setFormData({ ...formData, deadline: e.target.value })}
+          value={
+            formData.deadline
+              ? new Date(formData.deadline).toISOString().split("T")[0]
+              : ""
+          }
+          onChange={(e) =>
+            setFormData({ ...formData, deadline: e.target.value })
+          }
         />
       </div>
       <div className="form-group">
         <label>Status</label>
         <select
           value={formData.status}
-          onChange={e => setFormData({ ...formData, status: e.target.value })}
+          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
         >
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
@@ -179,7 +195,7 @@ const ProjectForm = ({ onSubmit, initialData }) => {
           <input
             type="text"
             value={inputValue}
-            onChange={e => handleInputChange(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type @ to mention user"
             style={{ minWidth: 120 }}
@@ -187,13 +203,14 @@ const ProjectForm = ({ onSubmit, initialData }) => {
           {/* Dropdown for @mention */}
           {inputValue.startsWith("@") && (
             <div className="mention-dropdown">
-              {filterUsers(inputValue).map(user => (
+              {filterUsers(inputValue).map((user) => (
                 <div
                   key={user.value}
                   className="mention-option"
                   onClick={() => handleSelectUser(user)}
                 >
-                  {user.label} <span style={{ color: '#888' }}>@{user.username}</span>
+                  {user.label}{" "}
+                  <span style={{ color: "#888" }}>@{user.username}</span>
                 </div>
               ))}
             </div>

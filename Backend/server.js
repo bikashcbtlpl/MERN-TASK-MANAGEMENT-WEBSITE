@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -8,7 +7,6 @@ const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
 
-
 const app = express();
 
 /* ================= MIDDLEWARE ================= */
@@ -17,7 +15,7 @@ app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 
 app.use(morgan("dev"));
@@ -25,7 +23,6 @@ app.use(express.json());
 app.use(cookieParser());
 
 /* ================= ROUTES ================= */
-
 
 const roleRoutes = require("./routes/roleRoutes");
 app.use("/api/roles", roleRoutes);

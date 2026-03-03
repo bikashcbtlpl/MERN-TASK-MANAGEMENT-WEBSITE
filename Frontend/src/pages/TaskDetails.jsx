@@ -33,7 +33,7 @@ function TaskDetails() {
   const fetchUsers = async () => {
     try {
       const res = await axiosInstance.get("/users");
-      setUsers(Array.isArray(res.data) ? res.data : (res.data.users || []));
+      setUsers(Array.isArray(res.data) ? res.data : res.data.users || []);
     } catch (err) {
       console.log("Error fetching users for mentions", err);
     }
@@ -72,13 +72,17 @@ function TaskDetails() {
     }
   };
 
-  const canResolve = user?.role && (user.role.name === "Super Admin" || user.role.name === "Admin");
+  const canResolve =
+    user?.role &&
+    (user.role.name === "Super Admin" || user.role.name === "Admin");
 
   const resolveIssue = async (issueId) => {
     try {
       const res = await axiosInstance.patch(`/issues/${issueId}/resolve`);
       // update issue in list
-      setIssues((s) => s.map((it) => (it._id === res.data._id ? res.data : it)));
+      setIssues((s) =>
+        s.map((it) => (it._id === res.data._id ? res.data : it)),
+      );
     } catch (err) {
       console.error("Error resolving issue", err);
     }
@@ -125,7 +129,11 @@ function TaskDetails() {
               }
             }}
             onMouseLeave={() => setHoverUser(null)}
-            style={{ color: "#1a73e8", cursor: matchedUser ? "pointer" : "default", fontWeight: 600 }}
+            style={{
+              color: "#1a73e8",
+              cursor: matchedUser ? "pointer" : "default",
+              fontWeight: 600,
+            }}
           >
             {part}
           </span>
@@ -141,7 +149,6 @@ function TaskDetails() {
   return (
     <div className="task-page">
       <div className="task-card">
-
         {/* HEADER */}
         <div className="task-header">
           <div>
@@ -170,7 +177,6 @@ function TaskDetails() {
 
         {/* INFO GRID */}
         <div className="details-grid">
-
           <div className="detail-box">
             <label>Title</label>
             <p>{task.title}</p>
@@ -178,7 +184,9 @@ function TaskDetails() {
 
           <div className="detail-box">
             <label>Task Status</label>
-            <span className={`status-badge ${task.taskStatus?.toLowerCase().replace(" ", "-")}`}>
+            <span
+              className={`status-badge ${task.taskStatus?.toLowerCase().replace(" ", "-")}`}
+            >
               {task.taskStatus}
             </span>
           </div>
@@ -186,7 +194,9 @@ function TaskDetails() {
           {/* ✅ NEW: ACTIVE / INACTIVE STATUS */}
           <div className="detail-box">
             <label>Task Visibility</label>
-            <span className={`status-badge ${task.isActive ? "active" : "inactive"}`}>
+            <span
+              className={`status-badge ${task.isActive ? "active" : "inactive"}`}
+            >
               {task.isActive ? "Active" : "Inactive"}
             </span>
           </div>
@@ -212,13 +222,24 @@ function TaskDetails() {
                 }}
               >
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <div className="avatar-circle small" style={{ width: 36, height: 36, fontSize: 14 }}>
-                    {hoverUser.name ? hoverUser.name.charAt(0).toUpperCase() : (hoverUser.email?.charAt(0) || "U")} 
+                  <div
+                    className="avatar-circle small"
+                    style={{ width: 36, height: 36, fontSize: 14 }}
+                  >
+                    {hoverUser.name
+                      ? hoverUser.name.charAt(0).toUpperCase()
+                      : hoverUser.email?.charAt(0) || "U"}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700 }}>{hoverUser.name || hoverUser.email}</div>
-                    <div style={{ fontSize: 12, color: "#666" }}>{hoverUser.email}</div>
-                    <div style={{ fontSize: 12, color: "#666" }}>{hoverUser.role?.name}</div>
+                    <div style={{ fontWeight: 700 }}>
+                      {hoverUser.name || hoverUser.email}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#666" }}>
+                      {hoverUser.email}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#666" }}>
+                      {hoverUser.role?.name}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -227,12 +248,20 @@ function TaskDetails() {
 
           <div className="detail-box">
             <label>Start Date</label>
-            <p>{task.startDate ? new Date(task.startDate).toLocaleDateString() : "Not set"}</p>
+            <p>
+              {task.startDate
+                ? new Date(task.startDate).toLocaleDateString()
+                : "Not set"}
+            </p>
           </div>
 
           <div className="detail-box">
             <label>End Date</label>
-            <p>{task.endDate ? new Date(task.endDate).toLocaleDateString() : "Not set"}</p>
+            <p>
+              {task.endDate
+                ? new Date(task.endDate).toLocaleDateString()
+                : "Not set"}
+            </p>
           </div>
 
           <div className="detail-box">
@@ -288,7 +317,9 @@ function TaskDetails() {
 
             <ul className="attachment-list">
               {task.attachments.map((file, i) => {
-                const fileName = file ? decodeURIComponent(file.split("/").pop()) : "file";
+                const fileName = file
+                  ? decodeURIComponent(file.split("/").pop())
+                  : "file";
 
                 return (
                   <li key={i} className="attachment-item">
@@ -337,7 +368,9 @@ function TaskDetails() {
                 style={{ width: "100%", padding: 8, minHeight: 80 }}
               />
               <div style={{ marginTop: 8 }}>
-                <button className="primary-btn" type="submit">Report Issue</button>
+                <button className="primary-btn" type="submit">
+                  Report Issue
+                </button>
               </div>
             </form>
           </div>
@@ -348,18 +381,43 @@ function TaskDetails() {
             <ul className="attachment-list">
               {issues.map((iss) => (
                 <li key={iss._id} className="attachment-item">
-                  <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      width: "100%",
+                    }}
+                  >
                     <div>
                       <strong>{iss.title}</strong>
-                      <div style={{ fontSize: 13, color: "#444" }}>{iss.description}</div>
-                      <div style={{ fontSize: 12, color: "#666" }}>Reported by: {iss.reportedBy?.email || "Unknown"}</div>
+                      <div style={{ fontSize: 13, color: "#444" }}>
+                        {iss.description}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#666" }}>
+                        Reported by: {iss.reportedBy?.email || "Unknown"}
+                      </div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 12 }}>{new Date(iss.createdAt).toLocaleString()}</div>
-                      <div style={{ marginTop: 6, display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
+                      <div style={{ fontSize: 12 }}>
+                        {new Date(iss.createdAt).toLocaleString()}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 6,
+                          display: "flex",
+                          gap: 8,
+                          justifyContent: "flex-end",
+                          alignItems: "center",
+                        }}
+                      >
                         <span className="status-badge">{iss.status}</span>
                         {canResolve && iss.status !== "Resolved" && (
-                          <button className="secondary-btn" onClick={() => resolveIssue(iss._id)}>Resolve</button>
+                          <button
+                            className="secondary-btn"
+                            onClick={() => resolveIssue(iss._id)}
+                          >
+                            Resolve
+                          </button>
                         )}
                       </div>
                     </div>
@@ -369,7 +427,6 @@ function TaskDetails() {
             </ul>
           )}
         </div>
-
       </div>
     </div>
   );

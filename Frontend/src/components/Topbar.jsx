@@ -44,7 +44,8 @@ function Topbar() {
     };
 
     loadUser();
-    const handleStorage = () => setSelectedProject(localStorage.getItem("selectedProject") || "");
+    const handleStorage = () =>
+      setSelectedProject(localStorage.getItem("selectedProject") || "");
     window.addEventListener("storage", handleStorage);
 
     return () => window.removeEventListener("storage", handleStorage);
@@ -82,17 +83,13 @@ function Topbar() {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* ================= AVATAR INITIAL ================= */
@@ -105,62 +102,50 @@ function Topbar() {
 
   return (
     <div className="topbar">
-      <div className="page-title">
-        {formatPageTitle()}
-      </div>
+      <div className="page-title">{formatPageTitle()}</div>
 
       <div className="account-section" ref={dropdownRef}>
-        <div
-          className="account-name"
-          onClick={() => setOpen(!open)}
-        >
-            <div style={{display:'flex',alignItems:'center',gap:12}}>
-              {/* Project selector for team projects (moved left of account) */}
-              {projects.length > 0 && (
-                <select
-                  value={selectedProject}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedProject(val);
-                    localStorage.setItem("selectedProject", val);
-                    // fire storage event for other tabs
-                    window.dispatchEvent(new Event('storage'));
-                    // navigate to My Task so user sees filtered tasks
-                    navigate('/tasks');
-                  }}
-                  style={{ marginRight: 4, padding: 6, borderRadius: 4 }}
-                >
-                  <option value="">All Projects</option>
-                  {projects.map(p => (
-                    <option key={p._id} value={p._id}>{p.name}</option>
-                  ))}
-                </select>
-              )}
+        <div className="account-name" onClick={() => setOpen(!open)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Project selector for team projects (moved left of account) */}
+            {projects.length > 0 && (
+              <select
+                value={selectedProject}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedProject(val);
+                  localStorage.setItem("selectedProject", val);
+                  // fire storage event for other tabs
+                  window.dispatchEvent(new Event("storage"));
+                  // navigate to My Task so user sees filtered tasks
+                  navigate("/tasks");
+                }}
+                style={{ marginRight: 4, padding: 6, borderRadius: 4 }}
+              >
+                <option value="">All Projects</option>
+                {projects.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
-              <div className="avatar-circle">
-                {getInitial()}
-              </div>
+            <div className="avatar-circle">{getInitial()}</div>
 
-              <span>
-                {user?.name || user?.email?.split("@")[0] || "User"}
-              </span>
-            </div>
+            <span>{user?.name || user?.email?.split("@")[0] || "User"}</span>
+          </div>
         </div>
 
         {open && (
           <div className="profile-dropdown">
-            <div className="avatar-circle large">
-              {getInitial()}
-            </div>
+            <div className="avatar-circle large">{getInitial()}</div>
 
             <h4>{user?.name || user?.email}</h4>
             <p>{user?.role?.name || "No Role"}</p>
 
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-            >
+            <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
           </div>

@@ -48,13 +48,20 @@ function Documents() {
   }, [fetchDocuments, fetchUsers]);
 
   const openDocument = (doc) => {
-    const isOwner = doc.createdBy?._id === user?._id || doc.createdBy === user?._id;
-    const hasAccess = isOwner || (doc.access || []).some((a) => a === user?._id || a?._id === user?._id) || user?.role?.name === "Super Admin";
+    const isOwner =
+      doc.createdBy?._id === user?._id || doc.createdBy === user?._id;
+    const hasAccess =
+      isOwner ||
+      (doc.access || []).some((a) => a === user?._id || a?._id === user?._id) ||
+      user?.role?.name === "Super Admin";
     if (!hasAccess) {
       toast.info("You do not have access. You can request access.");
       return;
     }
-    const fileUrl = Array.isArray(doc.attachments) && doc.attachments.length ? doc.attachments[0] : null;
+    const fileUrl =
+      Array.isArray(doc.attachments) && doc.attachments.length
+        ? doc.attachments[0]
+        : null;
     if (fileUrl) window.open(fileUrl, "_blank");
     else toast.error("No file attached");
   };
@@ -99,7 +106,9 @@ function Documents() {
   const grantAccess = async (docId) => {
     if (!selectedGrantUser) return toast.error("Select a user to grant access");
     try {
-      await axiosInstance.post(`/documents/${docId}/grant`, { userId: selectedGrantUser });
+      await axiosInstance.post(`/documents/${docId}/grant`, {
+        userId: selectedGrantUser,
+      });
       toast.success("Access granted");
       setManagingAccessFor(null);
       setSelectedGrantUser("");
@@ -124,7 +133,13 @@ function Documents() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <h2>Documents</h2>
         <div>
           <button onClick={() => setShowModal(true)}>Create Document</button>
@@ -134,7 +149,9 @@ function Documents() {
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <table style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}>
+        <table
+          style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}
+        >
           <thead>
             <tr>
               <th style={{ textAlign: "left", padding: 6 }}>Name</th>
@@ -146,26 +163,55 @@ function Documents() {
           </thead>
           <tbody>
             {documents.map((doc) => {
-              const isOwner = doc.createdBy?._id === user?._id || doc.createdBy === user?._id;
-              const hasAccess = isOwner || (doc.access || []).some((a) => a === user?._id || a?._id === user?._id) || user?.role?.name === "Super Admin";
+              const isOwner =
+                doc.createdBy?._id === user?._id || doc.createdBy === user?._id;
+              const hasAccess =
+                isOwner ||
+                (doc.access || []).some(
+                  (a) => a === user?._id || a?._id === user?._id,
+                ) ||
+                user?.role?.name === "Super Admin";
               return (
                 <tr key={doc._id} style={{ borderTop: "1px solid #ddd" }}>
                   <td style={{ padding: 6 }}>{doc.name}</td>
                   <td style={{ padding: 6 }}>{doc.description}</td>
-                  <td style={{ padding: 6 }}>{doc.createdBy?.name || doc.createdBy}</td>
-                  <td style={{ padding: 6 }}>{(doc.access || []).map((a) => (a.name ? a.name : a)).join(", ")}</td>
+                  <td style={{ padding: 6 }}>
+                    {doc.createdBy?.name || doc.createdBy}
+                  </td>
+                  <td style={{ padding: 6 }}>
+                    {(doc.access || [])
+                      .map((a) => (a.name ? a.name : a))
+                      .join(", ")}
+                  </td>
                   <td style={{ padding: 6 }}>
                     <button onClick={() => openDocument(doc)}>Open</button>
-                    {!hasAccess && <button onClick={() => requestAccess(doc._id)}>Request Access</button>}
+                    {!hasAccess && (
+                      <button onClick={() => requestAccess(doc._id)}>
+                        Request Access
+                      </button>
+                    )}
                     {isOwner && (
                       <>
-                        <button onClick={() => setManagingAccessFor(managingAccessFor === doc._id ? null : doc._id)}>Manage Access</button>
-                        <button onClick={() => deleteDocument(doc._id)}>Delete</button>
+                        <button
+                          onClick={() =>
+                            setManagingAccessFor(
+                              managingAccessFor === doc._id ? null : doc._id,
+                            )
+                          }
+                        >
+                          Manage Access
+                        </button>
+                        <button onClick={() => deleteDocument(doc._id)}>
+                          Delete
+                        </button>
                       </>
                     )}
                     {managingAccessFor === doc._id && (
                       <div style={{ marginTop: 6 }}>
-                        <select value={selectedGrantUser} onChange={(e) => setSelectedGrantUser(e.target.value)}>
+                        <select
+                          value={selectedGrantUser}
+                          onChange={(e) => setSelectedGrantUser(e.target.value)}
+                        >
                           <option value="">Select user</option>
                           {users
                             .filter((u) => u._id !== user?._id)
@@ -175,7 +221,9 @@ function Documents() {
                               </option>
                             ))}
                         </select>
-                        <button onClick={() => grantAccess(doc._id)}>Grant</button>
+                        <button onClick={() => grantAccess(doc._id)}>
+                          Grant
+                        </button>
                       </div>
                     )}
                   </td>
@@ -187,8 +235,27 @@ function Documents() {
       )}
 
       {showModal && (
-        <div style={{ position: "fixed", left: 0, top: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "white", padding: 20, width: 600, borderRadius: 6 }}>
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: 20,
+              width: 600,
+              borderRadius: 6,
+            }}
+          >
             <h3>Create Document</h3>
             <form onSubmit={handleCreate}>
               <div style={{ marginBottom: 8 }}>
@@ -197,15 +264,30 @@ function Documents() {
               </div>
               <div style={{ marginBottom: 8 }}>
                 <label>Description</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
               <div style={{ marginBottom: 8 }}>
                 <label>Attach File</label>
-                <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+                <input
+                  type="file"
+                  onChange={(e) => setFile(e.target.files[0])}
+                />
               </div>
               <div style={{ marginBottom: 8 }}>
                 <label>Give Access (select multiple with Ctrl/Cmd)</label>
-                <select multiple value={accessList} onChange={(e) => setAccessList(Array.from(e.target.selectedOptions, (o) => o.value))} style={{ width: "100%", height: 120 }}>
+                <select
+                  multiple
+                  value={accessList}
+                  onChange={(e) =>
+                    setAccessList(
+                      Array.from(e.target.selectedOptions, (o) => o.value),
+                    )
+                  }
+                  style={{ width: "100%", height: 120 }}
+                >
                   {users.map((u) => (
                     <option key={u._id} value={u._id}>
                       {u.name} ({u.email})
@@ -213,8 +295,12 @@ function Documents() {
                   ))}
                 </select>
               </div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
+              <div
+                style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+              >
+                <button type="button" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
                 <button type="submit">Create</button>
               </div>
             </form>

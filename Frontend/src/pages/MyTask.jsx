@@ -35,28 +35,23 @@ function MyTask() {
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
 
-        const res = await axiosInstance.get(
-          `/tasks/my?${params.toString()}`
-        );
+        const res = await axiosInstance.get(`/tasks/my?${params.toString()}`);
 
         const activeTasks = (res.data.tasks || []).filter(
-          (t) => t.isActive !== false
+          (t) => t.isActive !== false,
         );
 
         setTasks(activeTasks);
         setTotalPages(res.data.totalPages || 1);
         setTotalTasks(activeTasks.length);
       } catch (error) {
-        console.log(
-          "Error fetching tasks:",
-          error.response?.data?.message
-        );
+        console.log("Error fetching tasks:", error.response?.data?.message);
       } finally {
         setInitialLoading(false);
         setRefreshing(false);
       }
     },
-    [search, taskStatus]
+    [search, taskStatus],
   );
 
   useEffect(() => {
@@ -66,7 +61,8 @@ function MyTask() {
   const currentUser = JSON.parse(localStorage.getItem("user"));
 
   const getCurrentUserId = () => currentUser?._id || currentUser?.id || null;
-  const getAssigneeId = (task) => task.assignedTo?._id || task.assignedTo?.id || null;
+  const getAssigneeId = (task) =>
+    task.assignedTo?._id || task.assignedTo?.id || null;
 
   const updateStatus = async (taskId, status) => {
     try {
@@ -96,14 +92,10 @@ function MyTask() {
   const formatDate = (date) =>
     date ? new Date(date).toLocaleDateString() : "-";
 
-  const completed = tasks.filter(
-    (t) => t.taskStatus === "Completed"
-  ).length;
+  const completed = tasks.filter((t) => t.taskStatus === "Completed").length;
 
   const active = tasks.filter(
-    (t) =>
-      t.taskStatus !== "Closed" &&
-      t.taskStatus !== "Cancelled"
+    (t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
   ).length;
 
   if (initialLoading) return <div>Loading...</div>;
@@ -112,9 +104,7 @@ function MyTask() {
     <div className="manage-role-container">
       <div>
         {refreshing && (
-          <span style={{ fontSize: "13px", color: "#777" }}>
-            Updating...
-          </span>
+          <span style={{ fontSize: "13px", color: "#777" }}>Updating...</span>
         )}
       </div>
 
@@ -158,7 +148,9 @@ function MyTask() {
       </div>
 
       <div className="task-summary" style={{ marginBottom: "15px" }}>
-        <span>Total: <strong>{totalTasks}</strong></span>
+        <span>
+          Total: <strong>{totalTasks}</strong>
+        </span>
         <span style={{ marginLeft: "15px" }}>
           Active: <strong>{active}</strong>
         </span>
@@ -192,7 +184,9 @@ function MyTask() {
 
                 {/* ✅ FIXED STATUS COLOR (editable for assignee or users with Edit Task) */}
                 <td>
-                  {currentUser && (getCurrentUserId() === getAssigneeId(task) || currentUser.permissions?.includes("Edit Task")) ? (
+                  {currentUser &&
+                  (getCurrentUserId() === getAssigneeId(task) ||
+                    currentUser.permissions?.includes("Edit Task")) ? (
                     <select
                       value={task.taskStatus}
                       onClick={(e) => e.stopPropagation()}
@@ -221,7 +215,8 @@ function MyTask() {
                 <td>{formatDate(task.endDate)}</td>
 
                 <td>
-                  📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0} | 📎 {task.attachments?.length || 0}
+                  📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0}{" "}
+                  | 📎 {task.attachments?.length || 0}
                 </td>
               </tr>
             ))

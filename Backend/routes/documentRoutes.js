@@ -13,11 +13,15 @@ router.post(
   "/",
   authMiddleware,
   upload.fields([{ name: "attachments", maxCount: 1 }]),
-  documentController.createDocument
+  documentController.createDocument,
 );
 
 // Request access
-router.post("/:id/request-access", authMiddleware, documentController.requestAccess);
+router.post(
+  "/:id/request-access",
+  authMiddleware,
+  documentController.requestAccess,
+);
 
 // Grant access (only owner or super admin)
 router.post("/:id/grant", authMiddleware, documentController.grantAccess);

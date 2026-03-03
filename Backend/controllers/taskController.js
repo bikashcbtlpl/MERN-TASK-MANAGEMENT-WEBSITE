@@ -13,7 +13,7 @@ const runUploadWorker = (filePath, resourceType = "auto") => {
       path.join(__dirname, "../workers/cloudinaryWorker.js"),
       {
         workerData: { filePath, resourceType },
-      }
+      },
     );
 
     worker.on("message", (data) => {
@@ -33,9 +33,7 @@ const runUploadWorker = (filePath, resourceType = "auto") => {
 ===================================================== */
 const extractFiles = async (files, field) => {
   if (!files || !files[field]) return [];
-  const uploads = files[field].map((file) =>
-    runUploadWorker(file.path)
-  );
+  const uploads = files[field].map((file) => runUploadWorker(file.path));
   return Promise.all(uploads);
 };
 
@@ -44,7 +42,6 @@ const extractFiles = async (files, field) => {
 ===================================================== */
 exports.createTask = async (req, res) => {
   try {
-
     let {
       title,
       description,
@@ -97,7 +94,9 @@ exports.createTask = async (req, res) => {
     if (project) {
       const Project = require("../models/Project");
       try {
-        await Project.findByIdAndUpdate(project, { $addToSet: { tasks: newTask._id } });
+        await Project.findByIdAndUpdate(project, {
+          $addToSet: { tasks: newTask._id },
+        });
       } catch (e) {
         console.log("Warning: could not add task to project tasks array", e);
       }
@@ -134,12 +133,12 @@ exports.updateTask = async (req, res) => {
       userPermissions.includes("View Task") &&
       !userPermissions.includes("Edit Task");
 
-    const isAssignedUser = task.assignedTo && String(task.assignedTo) === String(user._id);
+    const isAssignedUser =
+      task.assignedTo && String(task.assignedTo) === String(user._id);
 
     // If the user only has view permission and is not assigned to the task, deny edit
     if (isOnlyViewer && !isAssignedUser)
       return res.status(403).json({ message: "Not allowed to edit task" });
-
 
     let {
       taskStatus = task.taskStatus,
@@ -181,9 +180,17 @@ exports.updateTask = async (req, res) => {
     };
 
     // Include other updatable fields if present in req.body
-    const otherFields = ["title", "description", "startDate", "endDate", "notes", "isActive"];
+    const otherFields = [
+      "title",
+      "description",
+      "startDate",
+      "endDate",
+      "notes",
+      "isActive",
+    ];
     otherFields.forEach((f) => {
-      if (Object.prototype.hasOwnProperty.call(req.body, f)) updateData[f] = req.body[f];
+      if (Object.prototype.hasOwnProperty.call(req.body, f))
+        updateData[f] = req.body[f];
     });
 
     // If user is only a viewer but is the assigned user, restrict updates to taskStatus only
@@ -194,7 +201,7 @@ exports.updateTask = async (req, res) => {
     const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     // If project changed, make sure to update project's tasks arrays
@@ -203,12 +210,19 @@ exports.updateTask = async (req, res) => {
       const oldProjectId = task.project ? String(task.project) : null;
       const newProjectId = project || null;
 
-      if (oldProjectId && (!newProjectId || String(oldProjectId) !== String(newProjectId))) {
-        await Project.findByIdAndUpdate(oldProjectId, { $pull: { tasks: updatedTask._id } }).catch(() => {});
+      if (
+        oldProjectId &&
+        (!newProjectId || String(oldProjectId) !== String(newProjectId))
+      ) {
+        await Project.findByIdAndUpdate(oldProjectId, {
+          $pull: { tasks: updatedTask._id },
+        }).catch(() => {});
       }
 
       if (newProjectId) {
-        await Project.findByIdAndUpdate(newProjectId, { $addToSet: { tasks: updatedTask._id } }).catch(() => {});
+        await Project.findByIdAndUpdate(newProjectId, {
+          $addToSet: { tasks: updatedTask._id },
+        }).catch(() => {});
       }
     } catch (e) {
       console.log("Warning updating project task lists:", e);
@@ -310,7 +324,9 @@ exports.getTaskById = async (req, res) => {
     if (!task) return res.status(404).json({ message: "Task not found" });
 
     // Include related issues for this task
-    const issues = await Issue.find({ task: task._id }).populate("reportedBy", "email name").sort({ createdAt: -1 });
+    const issues = await Issue.find({ task: task._id })
+      .populate("reportedBy", "email name")
+      .sort({ createdAt: -1 });
 
     const taskObj = task.toObject();
     taskObj.issues = issues;
@@ -344,9 +360,11 @@ exports.getMyTasks = async (req, res) => {
     if (projectFilter) {
       const proj = await Project.findById(projectFilter).select("team");
       if (!proj) return res.status(404).json({ message: "Project not found" });
-      const isTeamMember = proj.team.some(t => String(t) === String(userId));
-      const isSuperAdmin = req.user.role && req.user.role.name === "Super Admin";
-      if (!isTeamMember && !isSuperAdmin) return res.status(403).json({ message: "Access denied" });
+      const isTeamMember = proj.team.some((t) => String(t) === String(userId));
+      const isSuperAdmin =
+        req.user.role && req.user.role.name === "Super Admin";
+      if (!isTeamMember && !isSuperAdmin)
+        return res.status(403).json({ message: "Access denied" });
       // Show tasks for that project
       var filter = { project: projectFilter };
     } else {

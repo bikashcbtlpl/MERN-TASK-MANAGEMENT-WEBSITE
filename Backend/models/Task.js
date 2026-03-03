@@ -18,7 +18,15 @@ const taskSchema = new mongoose.Schema(
     // ================= TASK STATUS =================
     taskStatus: {
       type: String,
-      enum: ["Open", "In Progress", "Pending", "On Hold", "Closed", "Completed", "Cancelled"],
+      enum: [
+        "Open",
+        "In Progress",
+        "Pending",
+        "On Hold",
+        "Closed",
+        "Completed",
+        "Cancelled",
+      ],
       default: "Open",
     },
 
@@ -64,7 +72,7 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* =====================================================

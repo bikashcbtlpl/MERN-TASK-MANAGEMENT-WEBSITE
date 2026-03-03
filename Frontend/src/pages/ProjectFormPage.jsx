@@ -11,7 +11,7 @@ const ProjectFormPage = ({ mode }) => {
 
   useEffect(() => {
     if (mode === "edit" && id) {
-      axiosInstance.get(`/projects/${id}`).then(res => {
+      axiosInstance.get(`/projects/${id}`).then((res) => {
         setInitialData(res.data);
         setLoading(false);
       });
@@ -23,17 +23,19 @@ const ProjectFormPage = ({ mode }) => {
       if (mode === "edit") {
         await axiosInstance.put(`/projects/${id}`, {
           ...data,
-          team: data.team.map(u => u.value),
+          team: data.team.map((u) => u.value),
         });
       } else {
         await axiosInstance.post("/projects", {
           ...data,
-          team: data.team.map(u => u.value),
+          team: data.team.map((u) => u.value),
         });
       }
       navigate("/projects");
     } catch (err) {
-      alert("Error saving project: " + (err.response?.data?.error || err.message));
+      alert(
+        "Error saving project: " + (err.response?.data?.error || err.message),
+      );
     }
   };
 

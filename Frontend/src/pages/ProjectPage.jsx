@@ -1,4 +1,3 @@
-
 import React from "react";
 import ProjectForm from "./ProjectForm";
 import axiosInstance from "../api/axiosInstance";
@@ -9,13 +8,15 @@ const ProjectPage = () => {
       // Convert team to array of user IDs
       const payload = {
         ...data,
-        team: data.team.map(u => u.value),
+        team: data.team.map((u) => u.value),
       };
       await axiosInstance.post("/projects", payload);
       alert("Project Created Successfully!");
       // Optionally, redirect or refresh project list
     } catch (err) {
-      alert("Error creating project: " + (err.response?.data?.error || err.message));
+      alert(
+        "Error creating project: " + (err.response?.data?.error || err.message),
+      );
     }
   };
 

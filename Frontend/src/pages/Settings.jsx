@@ -84,7 +84,6 @@ function Settings() {
 
   return (
     <div className="settings-container">
-
       {/* ================= PROFILE ================= */}
       <div className="settings-card">
         <h3>Profile Settings</h3>
@@ -93,9 +92,7 @@ function Settings() {
           <label>Name</label>
           <input
             value={profile.name}
-            onChange={(e) =>
-              setProfile({ ...profile, name: e.target.value })
-            }
+            onChange={(e) => setProfile({ ...profile, name: e.target.value })}
           />
         </div>
 

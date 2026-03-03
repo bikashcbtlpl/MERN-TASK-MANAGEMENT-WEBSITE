@@ -6,10 +6,7 @@ exports.createRole = async (req, res) => {
     const { name } = req.body;
 
     // 🚨 Only Super Admin can create Super Admin role
-    if (
-      name === "Super Admin" &&
-      req.user.role.name !== "Super Admin"
-    ) {
+    if (name === "Super Admin" && req.user.role.name !== "Super Admin") {
       return res.status(403).json({
         message: "Only Super Admin can create Super Admin role",
       });
@@ -27,12 +24,10 @@ exports.createRole = async (req, res) => {
     const role = await Role.create(req.body);
 
     res.status(201).json(role);
-
   } catch (error) {
     res.status(500).json({ message: "Error creating role" });
   }
 };
-
 
 /* ================= GET ALL ROLES ================= */
 exports.getRoles = async (req, res) => {
@@ -43,7 +38,6 @@ exports.getRoles = async (req, res) => {
     res.status(500).json({ message: "Error fetching roles" });
   }
 };
-
 
 /* ================= GET ROLE BY NAME ================= */
 exports.getRoleByName = async (req, res) => {
@@ -57,12 +51,10 @@ exports.getRoleByName = async (req, res) => {
     }
 
     res.json(role);
-
   } catch (error) {
     res.status(500).json({ message: "Error fetching role" });
   }
 };
-
 
 /* ================= UPDATE ROLE BY NAME ================= */
 exports.updateRoleByName = async (req, res) => {
@@ -90,17 +82,14 @@ exports.updateRoleByName = async (req, res) => {
     const updatedRole = await Role.findOneAndUpdate(
       { name: req.params.roleName },
       req.body,
-      { new: true }
+      { new: true },
     );
 
     res.json(updatedRole);
-
   } catch (error) {
     res.status(500).json({ message: "Error updating role" });
   }
 };
-
-
 
 /* ================= UPDATE ROLE BY ID ================= */
 exports.updateRole = async (req, res) => {
@@ -121,19 +110,15 @@ exports.updateRole = async (req, res) => {
       });
     }
 
-    const role = await Role.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const role = await Role.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
 
     res.json(role);
-
   } catch (error) {
     res.status(500).json({ message: "Error updating role" });
   }
 };
-
 
 /* ================= DELETE ROLE ================= */
 exports.deleteRole = async (req, res) => {
@@ -159,9 +144,7 @@ exports.deleteRole = async (req, res) => {
     await Role.findByIdAndDelete(req.params.id);
 
     res.json({ message: "Role deleted" });
-
   } catch (error) {
     res.status(500).json({ message: "Error deleting role" });
   }
 };
-

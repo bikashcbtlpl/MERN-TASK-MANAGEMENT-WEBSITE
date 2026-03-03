@@ -23,11 +23,17 @@ function Dashboard() {
           if (selectedProject) params.project = selectedProject;
 
           const myRes = await axiosInstance.get("/tasks/my", { params });
-          const myTasks = (myRes.data.tasks || []).filter((t) => t.isActive !== false);
+          const myTasks = (myRes.data.tasks || []).filter(
+            (t) => t.isActive !== false,
+          );
 
           const total = myTasks.length;
-          const completed = myTasks.filter((t) => t.taskStatus === "Completed").length;
-          const active = myTasks.filter((t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled").length;
+          const completed = myTasks.filter(
+            (t) => t.taskStatus === "Completed",
+          ).length;
+          const active = myTasks.filter(
+            (t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
+          ).length;
 
           setStats({
             totalUsers: res.data.totalUsers || 0,
@@ -67,15 +73,16 @@ function Dashboard() {
   }, [fetchStats]);
 
   // ================= LOADING STATES =================
-  if (loading) return <div style={{ padding: "20px" }}>Loading dashboard...</div>;
+  if (loading)
+    return <div style={{ padding: "20px" }}>Loading dashboard...</div>;
   if (!stats) return <div style={{ padding: "20px" }}>No dashboard data</div>;
 
   return (
     <div className="dashboard-container">
       <div className="card-container">
-
         {/* Admin only */}
-        {(user?.role?.name === "Super Admin" || user?.role?.name === "Admin") && (
+        {(user?.role?.name === "Super Admin" ||
+          user?.role?.name === "Admin") && (
           <div className="dashboard-card">
             <h3>Total Users</h3>
             <p>{stats.totalUsers}</p>
@@ -84,21 +91,31 @@ function Dashboard() {
 
         {/* Tasks: show global labels for admins, user-specific labels otherwise */}
         <div className="dashboard-card">
-          <h3>{(user?.role?.name === "Super Admin" || user?.role?.name === "Admin") ? 'Total Tasks' : 'Your Tasks'}</h3>
+          <h3>
+            {user?.role?.name === "Super Admin" || user?.role?.name === "Admin"
+              ? "Total Tasks"
+              : "Your Tasks"}
+          </h3>
           <p>{stats.totalTasks}</p>
         </div>
 
         <div className="dashboard-card">
-          <h3>{(user?.role?.name === "Super Admin" || user?.role?.name === "Admin") ? 'Completed Tasks' : 'Your Completed Tasks'}</h3>
+          <h3>
+            {user?.role?.name === "Super Admin" || user?.role?.name === "Admin"
+              ? "Completed Tasks"
+              : "Your Completed Tasks"}
+          </h3>
           <p>{stats.completedTasks}</p>
         </div>
 
         <div className="dashboard-card">
-          <h3>{(user?.role?.name === "Super Admin" || user?.role?.name === "Admin") ? 'Active Tasks' : 'Your Active Tasks'}</h3>
+          <h3>
+            {user?.role?.name === "Super Admin" || user?.role?.name === "Admin"
+              ? "Active Tasks"
+              : "Your Active Tasks"}
+          </h3>
           <p>{stats.activeTasks}</p>
         </div>
-
-      
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ function ManageUser() {
   const [editingUser, setEditingUser] = useState(null);
 
   const [formData, setFormData] = useState({
-    name: "",          // ✅ NEW
+    name: "", // ✅ NEW
     email: "",
     role: "",
     status: "Active",
@@ -35,7 +35,7 @@ function ManageUser() {
 
     if (loggedInUser?.role !== "Super Admin") {
       const filteredUsers = res.data.filter(
-        (u) => u.role?.name !== "Super Admin"
+        (u) => u.role?.name !== "Super Admin",
       );
       setUsers(filteredUsers);
     } else {
@@ -50,7 +50,7 @@ function ManageUser() {
 
     if (loggedInUser?.role !== "Super Admin") {
       const filteredRoles = res.data.filter(
-        (role) => role.name !== "Super Admin"
+        (role) => role.name !== "Super Admin",
       );
       setRoles(filteredRoles);
     } else {
@@ -62,7 +62,7 @@ function ManageUser() {
     if (!canCreate) return;
     setEditingUser(null);
     setFormData({
-      name: "",      // ✅ NEW
+      name: "", // ✅ NEW
       email: "",
       role: "",
       status: "Active",
@@ -75,7 +75,7 @@ function ManageUser() {
 
     setEditingUser(user);
     setFormData({
-      name: user.name || "",     // ✅ NEW
+      name: user.name || "", // ✅ NEW
       email: user.email,
       role: user.role?._id || "",
       status: user.status,
@@ -152,11 +152,13 @@ function ManageUser() {
                   {user.status}
                 </span>
               </td>
-
               {(canEdit || canDelete) && (
                 <td>
-                  {!(user.role?.name === "Super Admin" &&
-                    JSON.parse(localStorage.getItem("user"))?.role !== "Super Admin") && (
+                  {!(
+                    user.role?.name === "Super Admin" &&
+                    JSON.parse(localStorage.getItem("user"))?.role !==
+                      "Super Admin"
+                  ) && (
                     <>
                       <button
                         className="edit-role-btn"
@@ -187,7 +189,6 @@ function ManageUser() {
             <h3>{editingUser ? "Edit User" : "Add User"}</h3>
 
             <form onSubmit={handleSubmit}>
-
               {/* ✅ NEW NAME FIELD */}
               <div className="form-group">
                 <label>Name</label>
@@ -258,7 +259,6 @@ function ManageUser() {
                   Cancel
                 </button>
               </div>
-
             </form>
           </div>
         </div>

@@ -2,13 +2,17 @@ require("dotenv").config();
 const Queue = require("bull");
 const Redis = require("ioredis");
 
-const redis = new Redis();
+const redis = {
+  ...(process.env.REDIS_HOST && { host: process.env.REDIS_HOST.trim() }),
+  ...(process.env.REDIS_PORT && {
+    port: Number(process.env.REDIS_PORT.trim()),
+  }),
+};
 
-const emailQueue = new Queue("emailQueue", {
-  redis: {
-    host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT),
-  },
-});
+new Redis(redis)
+  .on("error", (e) => console.error("[redis] error:", e))
+  .on("connect", () => console.log("[redis] connected"));
 
-module.exports = emailQueue;
+module.exports = new Queue("emailQueue", { redis }).on("error", (e) =>
+  console.error("[queue] error:", e),
+);

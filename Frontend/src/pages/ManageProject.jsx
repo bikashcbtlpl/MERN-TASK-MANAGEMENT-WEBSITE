@@ -14,10 +14,15 @@ const ManageProject = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, setUser } = useAuth();
 
-  const perms = (user?.role?.permissions || []).map((p) => (typeof p === 'string' ? p : (p && p.name) || ''));
-  const canCreate = user?.role?.name === "Super Admin" || perms.includes("Create Project");
-  const canEdit = user?.role?.name === "Super Admin" || perms.includes("Edit Project");
-  const canDelete = user?.role?.name === "Super Admin" || perms.includes("Delete Project");
+  const perms = (user?.role?.permissions || []).map((p) =>
+    typeof p === "string" ? p : (p && p.name) || "",
+  );
+  const canCreate =
+    user?.role?.name === "Super Admin" || perms.includes("Create Project");
+  const canEdit =
+    user?.role?.name === "Super Admin" || perms.includes("Edit Project");
+  const canDelete =
+    user?.role?.name === "Super Admin" || perms.includes("Delete Project");
 
   const fetchProjects = async (page = 1) => {
     try {
@@ -53,7 +58,7 @@ const ManageProject = () => {
   // Listen for changes to localStorage user (permissions may change elsewhere)
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'user') {
+      if (e.key === "user") {
         try {
           const newUser = e.newValue ? JSON.parse(e.newValue) : null;
           if (newUser) setUser(newUser);
@@ -63,8 +68,8 @@ const ManageProject = () => {
       }
     };
 
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
   }, [setUser]);
 
   useEffect(() => {
@@ -90,18 +95,27 @@ const ManageProject = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <div
+        className="page-header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <h2>Manage Projects</h2>
-        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <input
             type="text"
             placeholder="Search projects..."
             value={query}
-            onChange={e => setQuery(e.target.value)}
-            style={{padding:8,borderRadius:4,border:'1px solid #ddd'}}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ padding: 8, borderRadius: 4, border: "1px solid #ddd" }}
           />
           {canCreate && (
-            <button className="primary-btn" onClick={handleCreate}>Create Project</button>
+            <button className="primary-btn" onClick={handleCreate}>
+              Create Project
+            </button>
           )}
         </div>
       </div>
@@ -109,44 +123,85 @@ const ManageProject = () => {
         <div>Loading...</div>
       ) : (
         <>
-        <table className="role-table" style={{marginTop:20}}>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Description</th>
-              <th>Deadline</th>
-              <th>Status</th>
-              <th>Team</th>
-              {(canEdit || canDelete) && <th>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map(project => (
-              <tr key={project._id}>
-                <td>{project.name}</td>
-                <td>{project.description}</td>
-                <td>{project.deadline ? new Date(project.deadline).toLocaleDateString() : "-"}</td>
-                <td>{project.status}</td>
-                <td>{(project.team||[]).map(u => (u.name || u.email || '')).join(", ")}</td>
-                {(canEdit || canDelete) && (
-                  <td>
-                    {canEdit && <button className="edit-role-btn" onClick={()=>handleEdit(project)}>Edit</button>}
-                    {canDelete && <button className="delete-role-btn" onClick={()=>handleDelete(project._id)}>Delete</button>}
-                  </td>
-                )}
+          <table className="role-table" style={{ marginTop: 20 }}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>Team</th>
+                {(canEdit || canDelete) && <th>Actions</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <tr key={project._id}>
+                  <td>{project.name}</td>
+                  <td>{project.description}</td>
+                  <td>
+                    {project.deadline
+                      ? new Date(project.deadline).toLocaleDateString()
+                      : "-"}
+                  </td>
+                  <td>{project.status}</td>
+                  <td>
+                    {(project.team || [])
+                      .map((u) => u.name || u.email || "")
+                      .join(", ")}
+                  </td>
+                  {(canEdit || canDelete) && (
+                    <td>
+                      {canEdit && (
+                        <button
+                          className="edit-role-btn"
+                          onClick={() => handleEdit(project)}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          className="delete-role-btn"
+                          onClick={() => handleDelete(project._id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button disabled={currentPage === 1} onClick={() => fetchProjects(currentPage - 1)}>Prev</button>
-            <span>Page {currentPage} of {totalPages} — Total: {totalProjects}</span>
-            <button disabled={currentPage === totalPages} onClick={() => fetchProjects(currentPage + 1)}>Next</button>
-          </div>
-        )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div
+              style={{
+                marginTop: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <button
+                disabled={currentPage === 1}
+                onClick={() => fetchProjects(currentPage - 1)}
+              >
+                Prev
+              </button>
+              <span>
+                Page {currentPage} of {totalPages} — Total: {totalProjects}
+              </span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => fetchProjects(currentPage + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -50,7 +50,7 @@ exports.login = async (req, res) => {
         userId: user._id,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     // 6️⃣ Set HTTP-only cookie
@@ -74,7 +74,6 @@ exports.login = async (req, res) => {
         sessionTimeout: 30,
       },
     });
-
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({
@@ -110,7 +109,6 @@ exports.verify = async (req, res) => {
         permissions: user.role.permissions.map((p) => p.name),
       },
     });
-
   } catch (error) {
     res.status(401).json({
       message: "Unauthorized",

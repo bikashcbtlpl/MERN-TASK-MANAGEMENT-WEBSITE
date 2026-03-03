@@ -40,23 +40,21 @@ function App() {
 
   return (
     <BrowserRouter>
-
       {/* GLOBAL TOAST CONTAINER */}
       <ToastContainer
         position="top-right"
-        autoClose={3000}        
+        autoClose={3000}
         hideProgressBar={false}
         newestOnTop
         closeOnClick
         pauseOnHover
         pauseOnFocusLoss
         draggable
-        limit={3}                 
+        limit={3}
         theme="colored"
       />
 
       <Routes>
-
         {/* Default Redirect */}
         <Route path="/" element={<Navigate to="/login" />} />
 
@@ -72,12 +70,16 @@ function App() {
             </ProtectedRoute>
           }
         >
-
-
           {/* ================= PROJECTS ================= */}
           <Route path="projects" element={<ManageProject />} />
-          <Route path="projects/create" element={<ProjectFormPage mode="create" />} />
-          <Route path="projects/edit/:id" element={<ProjectFormPage mode="edit" />} />
+          <Route
+            path="projects/create"
+            element={<ProjectFormPage mode="create" />}
+          />
+          <Route
+            path="projects/edit/:id"
+            element={<ProjectFormPage mode="edit" />}
+          />
 
           {/* ================= DASHBOARD ================= */}
           <Route path="dashboard" element={<Dashboard />} />
@@ -212,7 +214,6 @@ function App() {
 
           {/* ================= SETTINGS ================= */}
           <Route path="settings" element={<Settings />} />
-
         </Route>
       </Routes>
     </BrowserRouter>

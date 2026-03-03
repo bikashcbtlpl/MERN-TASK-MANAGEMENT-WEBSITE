@@ -4,10 +4,7 @@ const path = require("path");
 const runCloudinaryWorker = (files) => {
   return new Promise((resolve, reject) => {
     try {
-      const workerPath = path.join(
-        __dirname,
-        "../workers/cloudinaryWorker.js"
-      );
+      const workerPath = path.join(__dirname, "../workers/cloudinaryWorker.js");
 
       const worker = new Worker(workerPath, {
         workerData: files || {},
@@ -17,9 +14,7 @@ const runCloudinaryWorker = (files) => {
         if (data?.success) {
           resolve(data);
         } else {
-          reject(
-            new Error(data?.error || "Cloudinary worker failed")
-          );
+          reject(new Error(data?.error || "Cloudinary worker failed"));
         }
       });
 
@@ -29,12 +24,9 @@ const runCloudinaryWorker = (files) => {
 
       worker.on("exit", (code) => {
         if (code !== 0) {
-          reject(
-            new Error(`Worker stopped unexpectedly with code ${code}`)
-          );
+          reject(new Error(`Worker stopped unexpectedly with code ${code}`));
         }
       });
-
     } catch (error) {
       reject(error);
     }

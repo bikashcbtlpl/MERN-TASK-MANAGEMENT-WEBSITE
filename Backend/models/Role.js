@@ -19,7 +19,7 @@ const roleSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Role", roleSchema);

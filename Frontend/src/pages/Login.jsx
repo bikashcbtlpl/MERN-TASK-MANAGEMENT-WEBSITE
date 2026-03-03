@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; 
+import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
 import { toast } from "react-toastify";
 
@@ -27,17 +27,11 @@ function Login() {
     e.preventDefault();
 
     try {
-      const response = await axiosInstance.post(
-        "/auth/login",
-        formData
-      );
+      const response = await axiosInstance.post("/auth/login", formData);
 
       setUser(response.data.user);
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify(response.data.user)
-      );
+      localStorage.setItem("user", JSON.stringify(response.data.user));
 
       localStorage.setItem("loginTime", Date.now());
 
@@ -45,10 +39,8 @@ function Login() {
       toast.success("Login successful");
 
       navigate("/dashboard");
-
     } catch (error) {
-      const message =
-        error.response?.data?.message || "Login failed";
+      const message = error.response?.data?.message || "Login failed";
 
       setError(message);
 

@@ -8,8 +8,12 @@ const runUploadWorker = (filePath, resourceType = "auto") => {
     const worker = new Worker(
       path.join(__dirname, "../workers/cloudinaryWorker.js"),
       {
-        workerData: { images: [], videos: [], attachments: [{ path: filePath }] },
-      }
+        workerData: {
+          images: [],
+          videos: [],
+          attachments: [{ path: filePath }],
+        },
+      },
     );
 
     worker.on("message", (data) => {
@@ -33,7 +37,9 @@ const extractFiles = async (files, field) => {
 exports.listDocuments = async (req, res) => {
   try {
     // populate createdBy and role so frontend can sort/display Super Admin first
-    const docs = await Document.find().populate({ path: "createdBy", populate: { path: "role" } }).sort({ createdAt: -1 });
+    const docs = await Document.find()
+      .populate({ path: "createdBy", populate: { path: "role" } })
+      .sort({ createdAt: -1 });
     res.json(docs);
   } catch (err) {
     console.error(err);
@@ -70,7 +76,10 @@ exports.requestAccess = async (req, res) => {
 
     // add requester to accessRequests if not already present
     const uid = req.user._id;
-    if (!doc.accessRequests.some((u) => String(u) === String(uid)) && !doc.access.some((u) => String(u) === String(uid))) {
+    if (
+      !doc.accessRequests.some((u) => String(u) === String(uid)) &&
+      !doc.access.some((u) => String(u) === String(uid))
+    ) {
       doc.accessRequests.push(uid);
       await doc.save();
     }
@@ -90,14 +99,18 @@ exports.grantAccess = async (req, res) => {
     // only creator or super admin can grant
     const isOwner = String(doc.createdBy) === String(req.user._id);
     const isSuper = req.user.role && req.user.role.name === "Super Admin";
-    if (!isOwner && !isSuper) return res.status(403).json({ message: "Not allowed" });
+    if (!isOwner && !isSuper)
+      return res.status(403).json({ message: "Not allowed" });
 
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ message: "userId required" });
 
-    if (!doc.access.some((u) => String(u) === String(userId))) doc.access.push(userId);
+    if (!doc.access.some((u) => String(u) === String(userId)))
+      doc.access.push(userId);
     // remove from requests
-    doc.accessRequests = doc.accessRequests.filter((u) => String(u) !== String(userId));
+    doc.accessRequests = doc.accessRequests.filter(
+      (u) => String(u) !== String(userId),
+    );
     await doc.save();
 
     res.json({ message: "Access granted" });
@@ -114,7 +127,8 @@ exports.deleteDocument = async (req, res) => {
 
     const isOwner = String(doc.createdBy) === String(req.user._id);
     const isSuper = req.user.role && req.user.role.name === "Super Admin";
-    if (!isOwner && !isSuper) return res.status(403).json({ message: "Not allowed" });
+    if (!isOwner && !isSuper)
+      return res.status(403).json({ message: "Not allowed" });
 
     await Document.findByIdAndDelete(req.params.id);
     res.json({ message: "Document deleted" });

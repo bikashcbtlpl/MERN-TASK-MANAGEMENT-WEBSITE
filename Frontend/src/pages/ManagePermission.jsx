@@ -56,7 +56,7 @@ function ManagePermission() {
     if (editingPermission) {
       await axiosInstance.put(
         `/permissions/${editingPermission._id}`,
-        formData
+        formData,
       );
     } else {
       await axiosInstance.post("/permissions", formData);
@@ -146,9 +146,7 @@ function ManagePermission() {
         <div className="modal-overlay">
           <div className="modal">
             <h3>
-              {editingPermission
-                ? "Edit Permission"
-                : "Create Permission"}
+              {editingPermission ? "Edit Permission" : "Create Permission"}
             </h3>
 
             <form onSubmit={handleSubmit}>

@@ -4,7 +4,6 @@ const bcrypt = require("bcryptjs");
 const generatePassword = require("../utils/generatePassword");
 const sendEmail = require("../utils/sendEmail");
 
-
 // ================= GET USERS =================
 exports.getUsers = async (req, res) => {
   try {
@@ -25,14 +24,12 @@ exports.getCurrentUser = async (req, res) => {
       name: user.name, // ✅ added
       email: user.email,
       role: user.role.name,
-      permissions: user.role.permissions.map(p => p.name),
+      permissions: user.role.permissions.map((p) => p.name),
     });
-
   } catch (error) {
     res.status(500).json({ message: "Error fetching user" });
   }
 };
-
 
 // ================= CREATE USER =================
 exports.createUser = async (req, res) => {
@@ -68,17 +65,15 @@ exports.createUser = async (req, res) => {
 Email: ${email}
 Password: ${plainPassword}
 
-Login at: http://localhost:5173`
+Login at: http://localhost:5173`,
     });
 
     res.status(201).json(newUser);
-
   } catch (error) {
     console.log("Create User Error:", error);
     res.status(500).json({ message: "Error creating user" });
   }
 };
-
 
 // ================= UPDATE USER =================
 exports.updateUser = async (req, res) => {
@@ -103,17 +98,15 @@ exports.updateUser = async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      req.body,   // ✅ name will be updated automatically here
-      { new: true }
+      req.body, // ✅ name will be updated automatically here
+      { new: true },
     );
 
     res.json(updatedUser);
-
   } catch (error) {
     res.status(500).json({ message: "Error updating user" });
   }
 };
-
 
 // ================= DELETE USER =================
 exports.deleteUser = async (req, res) => {
@@ -139,7 +132,6 @@ exports.deleteUser = async (req, res) => {
     await User.findByIdAndDelete(req.params.id);
 
     res.json({ message: "User deleted successfully" });
-
   } catch (error) {
     res.status(500).json({ message: "Error deleting user" });
   }

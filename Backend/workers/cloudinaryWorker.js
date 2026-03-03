@@ -30,7 +30,6 @@ const processUploads = async () => {
       videos,
       attachments,
     });
-
   } catch (error) {
     parentPort.postMessage({
       success: false,

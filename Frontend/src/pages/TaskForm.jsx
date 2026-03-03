@@ -23,8 +23,16 @@ function TaskForm() {
   });
 
   const [dateError, setDateError] = useState("");
-  const [existingFiles, setExistingFiles] = useState({ images: [], videos: [], attachments: [] });
-  const [files, setFiles] = useState({ images: [], videos: [], attachments: [] });
+  const [existingFiles, setExistingFiles] = useState({
+    images: [],
+    videos: [],
+    attachments: [],
+  });
+  const [files, setFiles] = useState({
+    images: [],
+    videos: [],
+    attachments: [],
+  });
 
   const validateDates = (start, end) => {
     if (start && end && new Date(end) < new Date(start)) {
@@ -84,7 +92,11 @@ function TaskForm() {
         isActive: t.isActive ?? true,
       }));
 
-      setExistingFiles({ images: t.images || [], videos: t.videos || [], attachments: t.attachments || [] });
+      setExistingFiles({
+        images: t.images || [],
+        videos: t.videos || [],
+        attachments: t.attachments || [],
+      });
     } catch (err) {
       console.error("Error fetching task", err);
     }
@@ -121,9 +133,18 @@ function TaskForm() {
         if (v !== undefined && v !== null) payload.append(k, v);
       });
 
-      payload.append("existingImages", JSON.stringify(existingFiles.images || []));
-      payload.append("existingVideos", JSON.stringify(existingFiles.videos || []));
-      payload.append("existingAttachments", JSON.stringify(existingFiles.attachments || []));
+      payload.append(
+        "existingImages",
+        JSON.stringify(existingFiles.images || []),
+      );
+      payload.append(
+        "existingVideos",
+        JSON.stringify(existingFiles.videos || []),
+      );
+      payload.append(
+        "existingAttachments",
+        JSON.stringify(existingFiles.attachments || []),
+      );
 
       files.images.forEach((f) => payload.append("images", f));
       files.videos.forEach((f) => payload.append("videos", f));
@@ -144,7 +165,10 @@ function TaskForm() {
 
   if (loading) return <div className="loading-page">Loading...</div>;
 
-  const projectOptions = [{ value: "", label: "No Project" }, ...projects.map((p) => ({ value: p._id, label: p.name }))];
+  const projectOptions = [
+    { value: "", label: "No Project" },
+    ...projects.map((p) => ({ value: p._id, label: p.name })),
+  ];
 
   return (
     <div className="task-page">
@@ -159,12 +183,24 @@ function TaskForm() {
 
             <div className="form-group">
               <label>Title</label>
-              <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                required
+              />
             </div>
 
             <div className="form-group">
               <label>Task Status</label>
-              <select value={formData.taskStatus} onChange={(e) => setFormData({ ...formData, taskStatus: e.target.value })}>
+              <select
+                value={formData.taskStatus}
+                onChange={(e) =>
+                  setFormData({ ...formData, taskStatus: e.target.value })
+                }
+              >
                 <option>Open</option>
                 <option>In Progress</option>
                 <option>Pending</option>
@@ -177,7 +213,12 @@ function TaskForm() {
 
             <div className="form-group">
               <label>Project</label>
-              <select value={formData.project || ""} onChange={(e) => setFormData({ ...formData, project: e.target.value })}>
+              <select
+                value={formData.project || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, project: e.target.value })
+                }
+              >
                 {projectOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -189,14 +230,25 @@ function TaskForm() {
             {isEditMode && (
               <div className="form-group">
                 <label>Task Visibility</label>
-                <select value={formData.isActive ? "Active" : "Inactive"} onChange={(e) => setFormData({ ...formData, isActive: e.target.value === "Active" })}>
+                <select
+                  value={formData.isActive ? "Active" : "Inactive"}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      isActive: e.target.value === "Active",
+                    })
+                  }
+                >
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
             )}
 
-            <div className="form-group full-width" style={{ position: "relative" }}>
+            <div
+              className="form-group full-width"
+              style={{ position: "relative" }}
+            >
               <label>Description</label>
               <textarea
                 rows="4"
@@ -215,18 +267,30 @@ function TaskForm() {
                     .filter((u) => {
                       const search = mentionInput.slice(1).toLowerCase();
                       const handle = getHandle(u).toLowerCase();
-                      return (u.name && u.name.toLowerCase().startsWith(search)) || handle.startsWith(search);
+                      return (
+                        (u.name && u.name.toLowerCase().startsWith(search)) ||
+                        handle.startsWith(search)
+                      );
                     })
                     .map((user) => (
                       <div
                         key={user._id}
                         className="mention-option"
                         onClick={() => {
-                          setFormData((f) => ({ ...f, description: f.description.replace(/@\w*$/, `@${getHandle(user)} `) }));
+                          setFormData((f) => ({
+                            ...f,
+                            description: f.description.replace(
+                              /@\w*$/,
+                              `@${getHandle(user)} `,
+                            ),
+                          }));
                           setMentionInput("");
                         }}
                       >
-                        {user.name} <span style={{ color: "#888" }}>@{getHandle(user)}</span>
+                        {user.name}{" "}
+                        <span style={{ color: "#888" }}>
+                          @{getHandle(user)}
+                        </span>
                       </div>
                     ))}
                 </div>
@@ -240,13 +304,33 @@ function TaskForm() {
 
             <div className="form-group">
               <label>Start Date</label>
-              <input type="date" value={formData.startDate} onChange={(e) => { setFormData({ ...formData, startDate: e.target.value }); validateDates(e.target.value, formData.endDate); }} />
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => {
+                  setFormData({ ...formData, startDate: e.target.value });
+                  validateDates(e.target.value, formData.endDate);
+                }}
+              />
             </div>
 
             <div className="form-group">
               <label>End Date</label>
-              <input type="date" value={formData.endDate} onChange={(e) => { setFormData({ ...formData, endDate: e.target.value }); validateDates(formData.startDate, e.target.value); }} />
-              {dateError && <small style={{ color: "red", display: "block", marginTop: "4px" }}>{dateError}</small>}
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => {
+                  setFormData({ ...formData, endDate: e.target.value });
+                  validateDates(formData.startDate, e.target.value);
+                }}
+              />
+              {dateError && (
+                <small
+                  style={{ color: "red", display: "block", marginTop: "4px" }}
+                >
+                  {dateError}
+                </small>
+              )}
             </div>
           </div>
 
@@ -256,39 +340,71 @@ function TaskForm() {
 
             {isEditMode && (
               <div className="existing-files">
-                {["images", "videos", "attachments"].map((field) => existingFiles[field]?.length > 0 && (
-                  <div key={field} className="existing-group">
-                    <label>{field.toUpperCase()}</label>
-                    {existingFiles[field].map((f, i) => (
-                      <div key={i} className="existing-item">
-                        <span>{f ? f.split("/").pop() : ""}</span>
-                        <button type="button" className="delete-btn" onClick={() => removeExistingFile(field, i)}>✕</button>
+                {["images", "videos", "attachments"].map(
+                  (field) =>
+                    existingFiles[field]?.length > 0 && (
+                      <div key={field} className="existing-group">
+                        <label>{field.toUpperCase()}</label>
+                        {existingFiles[field].map((f, i) => (
+                          <div key={i} className="existing-item">
+                            <span>{f ? f.split("/").pop() : ""}</span>
+                            <button
+                              type="button"
+                              className="delete-btn"
+                              onClick={() => removeExistingFile(field, i)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ))}
+                    ),
+                )}
               </div>
             )}
 
             <div className="form-group">
               <label>Upload Images</label>
-              <input type="file" multiple accept="image/*" onChange={(e) => handleFileChange(e, "images")} />
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, "images")}
+              />
             </div>
 
             <div className="form-group">
               <label>Upload Videos</label>
-              <input type="file" multiple accept="video/*" onChange={(e) => handleFileChange(e, "videos")} />
+              <input
+                type="file"
+                multiple
+                accept="video/*"
+                onChange={(e) => handleFileChange(e, "videos")}
+              />
             </div>
 
             <div className="form-group">
               <label>Upload Attachments</label>
-              <input type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={(e) => handleFileChange(e, "attachments")} />
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                onChange={(e) => handleFileChange(e, "attachments")}
+              />
             </div>
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="primary-btn">{isEditMode ? "Update Task" : "Create Task"}</button>
-            <button type="button" className="secondary-btn" onClick={() => navigate("/tasks")}>Cancel</button>
+            <button type="submit" className="primary-btn">
+              {isEditMode ? "Update Task" : "Create Task"}
+            </button>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => navigate("/tasks")}
+            >
+              Cancel
+            </button>
           </div>
         </form>
       </div>
