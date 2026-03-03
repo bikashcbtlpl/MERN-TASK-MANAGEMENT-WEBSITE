@@ -1,30 +1,43 @@
 const Role = require("../models/Role");
+const User = require("../models/User");
 
 /* ================= CREATE ROLE ================= */
 exports.createRole = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, permissions, status } = req.body;
 
-    // 🚨 Only Super Admin can create Super Admin role
-    if (name === "Super Admin" && req.user.role.name !== "Super Admin") {
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Role name is required" });
+    }
+
+    // Only Super Admin can create Super Admin role
+    if (
+      name.trim().toLowerCase() === "super admin" &&
+      req.user.role?.name !== "Super Admin"
+    ) {
       return res.status(403).json({
-        message: "Only Super Admin can create Super Admin role",
+        message: "Only Super Admin can create a Super Admin role",
       });
     }
 
-    // Prevent duplicate role
+    // Prevent duplicate role (case-insensitive)
     const existingRole = await Role.findOne({
-      name: { $regex: `^${name}$`, $options: "i" },
-    });
+      name: { $regex: `^${name.trim()}$`, $options: "i" },
+    }).lean();
 
     if (existingRole) {
-      return res.status(400).json({ message: "Role already exists" });
+      return res.status(400).json({ message: "A role with this name already exists" });
     }
 
-    const role = await Role.create(req.body);
+    const role = await Role.create({
+      name: name.trim(),
+      permissions: permissions || [],
+      status: status || "Active",
+    });
 
     res.status(201).json(role);
   } catch (error) {
+    console.error("Create Role Error:", error);
     res.status(500).json({ message: "Error creating role" });
   }
 };
@@ -32,9 +45,10 @@ exports.createRole = async (req, res) => {
 /* ================= GET ALL ROLES ================= */
 exports.getRoles = async (req, res) => {
   try {
-    const roles = await Role.find().populate("permissions");
+    const roles = await Role.find().populate("permissions").lean();
     res.json(roles);
   } catch (error) {
+    console.error("Get Roles Error:", error);
     res.status(500).json({ message: "Error fetching roles" });
   }
 };
@@ -43,8 +57,10 @@ exports.getRoles = async (req, res) => {
 exports.getRoleByName = async (req, res) => {
   try {
     const role = await Role.findOne({
-      name: req.params.roleName,
-    }).populate("permissions");
+      name: { $regex: `^${req.params.roleName}$`, $options: "i" },
+    })
+      .populate("permissions")
+      .lean();
 
     if (!role) {
       return res.status(404).json({ message: "Role not found" });
@@ -52,6 +68,7 @@ exports.getRoleByName = async (req, res) => {
 
     res.json(role);
   } catch (error) {
+    console.error("Get Role By Name Error:", error);
     res.status(500).json({ message: "Error fetching role" });
   }
 };
@@ -62,31 +79,37 @@ exports.updateRoleByName = async (req, res) => {
     const loggedInUser = req.user;
 
     const roleToUpdate = await Role.findOne({
-      name: req.params.roleName,
-    });
+      name: { $regex: `^${req.params.roleName}$`, $options: "i" },
+    }).lean();
 
     if (!roleToUpdate) {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    // 🔐 If role is Super Admin → only Super Admin can edit
+    // Only Super Admin can edit Super Admin role
     if (
       roleToUpdate.name === "Super Admin" &&
-      loggedInUser.role.name !== "Super Admin"
+      loggedInUser.role?.name !== "Super Admin"
     ) {
       return res.status(403).json({
-        message: "Only Super Admin can modify this role",
+        message: "Only Super Admin can modify the Super Admin role",
       });
     }
 
-    const updatedRole = await Role.findOneAndUpdate(
-      { name: req.params.roleName },
-      req.body,
-      { new: true },
-    );
+    // Whitelist fields
+    const { permissions, status } = req.body;
+    const updateData = {};
+    if (permissions !== undefined) updateData.permissions = permissions;
+    if (status !== undefined) updateData.status = status;
+
+    const updatedRole = await Role.findByIdAndUpdate(roleToUpdate._id, updateData, {
+      new: true,
+      runValidators: true,
+    }).populate("permissions");
 
     res.json(updatedRole);
   } catch (error) {
+    console.error("Update Role By Name Error:", error);
     res.status(500).json({ message: "Error updating role" });
   }
 };
@@ -94,28 +117,51 @@ exports.updateRoleByName = async (req, res) => {
 /* ================= UPDATE ROLE BY ID ================= */
 exports.updateRole = async (req, res) => {
   try {
-    const existingRole = await Role.findById(req.params.id);
+    const existingRole = await Role.findById(req.params.id).lean();
 
     if (!existingRole) {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    // 🚨 Only Super Admin can edit Super Admin role
+    // Only Super Admin can edit Super Admin role
     if (
       existingRole.name === "Super Admin" &&
-      req.user.role.name !== "Super Admin"
+      req.user.role?.name !== "Super Admin"
     ) {
       return res.status(403).json({
-        message: "Only Super Admin can update this role",
+        message: "Only Super Admin can update the Super Admin role",
       });
     }
 
-    const role = await Role.findByIdAndUpdate(req.params.id, req.body, {
+    // Whitelist update fields
+    const { name, permissions, status } = req.body;
+    const updateData = {};
+
+    if (name !== undefined) {
+      // Prevent renaming to 'Super Admin' by non-super-admin
+      if (
+        name.trim().toLowerCase() === "super admin" &&
+        req.user.role?.name !== "Super Admin"
+      ) {
+        return res.status(403).json({ message: "Cannot rename role to Super Admin" });
+      }
+      updateData.name = name.trim();
+    }
+
+    if (permissions !== undefined) updateData.permissions = permissions;
+    if (status !== undefined) updateData.status = status;
+
+    const role = await Role.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
-    });
+      runValidators: true,
+    }).populate("permissions");
 
     res.json(role);
   } catch (error) {
+    console.error("Update Role Error:", error);
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "A role with this name already exists" });
+    }
     res.status(500).json({ message: "Error updating role" });
   }
 };
@@ -125,26 +171,35 @@ exports.deleteRole = async (req, res) => {
   try {
     const loggedInUser = req.user;
 
-    const role = await Role.findById(req.params.id);
+    const role = await Role.findById(req.params.id).lean();
 
     if (!role) {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    // 🔐 Protect Super Admin role
+    // Protect Super Admin role
     if (
       role.name === "Super Admin" &&
-      loggedInUser.role.name !== "Super Admin"
+      loggedInUser.role?.name !== "Super Admin"
     ) {
       return res.status(403).json({
-        message: "Only Super Admin can delete this role",
+        message: "Only Super Admin can delete the Super Admin role",
+      });
+    }
+
+    // Prevent deleting a role that is currently assigned to users
+    const usersWithRole = await User.countDocuments({ role: role._id });
+    if (usersWithRole > 0) {
+      return res.status(400).json({
+        message: `Cannot delete role: ${usersWithRole} user(s) currently have this role. Reassign them first.`,
       });
     }
 
     await Role.findByIdAndDelete(req.params.id);
 
-    res.json({ message: "Role deleted" });
+    res.json({ message: "Role deleted successfully" });
   } catch (error) {
+    console.error("Delete Role Error:", error);
     res.status(500).json({ message: "Error deleting role" });
   }
 };

@@ -2,12 +2,18 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import socket from "../socket";
+import {
+  Pagination,
+  LoadingSpinner,
+  TaskStatusSelect,
+  TASK_STATUSES,
+  StatusBadge,
+} from "../components/common";
 
 function MyTask() {
   const navigate = useNavigate();
 
   const [tasks, setTasks] = useState([]);
-
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -22,21 +28,16 @@ function MyTask() {
     async (page = 1, silent = false) => {
       try {
         if (silent) setRefreshing(true);
-        else setInitialLoading(false);
+        else setInitialLoading(true);
 
-        const params = new URLSearchParams({
-          page,
-          limit: 10,
-        });
-
-        const selectedProject = localStorage.getItem("selectedProject") || "";
+        const params = new URLSearchParams({ page, limit: 10 });
+        const selectedProject =
+          localStorage.getItem("selectedProject") || "";
         if (selectedProject) params.append("project", selectedProject);
-
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
 
         const res = await axiosInstance.get(`/tasks/my?${params.toString()}`);
-
         const activeTasks = (res.data.tasks || []).filter(
           (t) => t.isActive !== false,
         );
@@ -59,7 +60,6 @@ function MyTask() {
   }, [fetchMyTasks, currentPage]);
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
-
   const getCurrentUserId = () => currentUser?._id || currentUser?.id || null;
   const getAssigneeId = (task) =>
     task.assignedTo?._id || task.assignedTo?.id || null;
@@ -76,7 +76,6 @@ function MyTask() {
     }
   };
 
-  // Listen for project selection changes in Topbar (localStorage)
   useEffect(() => {
     const handler = () => fetchMyTasks(1, true);
     window.addEventListener("storage", handler);
@@ -93,12 +92,11 @@ function MyTask() {
     date ? new Date(date).toLocaleDateString() : "-";
 
   const completed = tasks.filter((t) => t.taskStatus === "Completed").length;
-
   const active = tasks.filter(
     (t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
   ).length;
 
-  if (initialLoading) return <div>Loading...</div>;
+  if (initialLoading) return <LoadingSpinner message="Loading your tasks..." />;
 
   return (
     <div className="manage-role-container">
@@ -108,6 +106,7 @@ function MyTask() {
         )}
       </div>
 
+      {/* FILTERS */}
       <div className="task-filters">
         <input
           type="text"
@@ -127,13 +126,9 @@ function MyTask() {
           }}
         >
           <option value="">All Task Status</option>
-          <option value="Open">Open</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Pending">Pending</option>
-          <option value="On Hold">On Hold</option>
-          <option value="Closed">Closed</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
+          {TASK_STATUSES.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
         </select>
 
         <button
@@ -170,7 +165,6 @@ function MyTask() {
             <th>Files</th>
           </tr>
         </thead>
-
         <tbody>
           {tasks.length ? (
             tasks.map((task, index) => (
@@ -182,32 +176,19 @@ function MyTask() {
                 <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{task.title}</td>
 
-                {/* ✅ FIXED STATUS COLOR (editable for assignee or users with Edit Task) */}
                 <td>
                   {currentUser &&
-                  (getCurrentUserId() === getAssigneeId(task) ||
-                    currentUser.permissions?.includes("Edit Task")) ? (
-                    <select
+                    (getCurrentUserId() === getAssigneeId(task) ||
+                      currentUser.permissions?.includes("Edit Task")) ? (
+                    <TaskStatusSelect
                       value={task.taskStatus}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => updateStatus(task._id, e.target.value)}
-                    >
-                      <option>Open</option>
-                      <option>In Progress</option>
-                      <option>Pending</option>
-                      <option>On Hold</option>
-                      <option>Closed</option>
-                      <option>Completed</option>
-                      <option>Cancelled</option>
-                    </select>
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        updateStatus(task._id, e.target.value);
+                      }}
+                    />
                   ) : (
-                    <span
-                      className={`status-badge status-${task.taskStatus
-                        ?.toLowerCase()
-                        .replace(" ", "-")}`}
-                    >
-                      {task.taskStatus}
-                    </span>
+                    <StatusBadge status={task.taskStatus} type="task" />
                   )}
                 </td>
 
@@ -215,14 +196,15 @@ function MyTask() {
                 <td>{formatDate(task.endDate)}</td>
 
                 <td>
-                  📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0}{" "}
-                  | 📎 {task.attachments?.length || 0}
+                  📷 {task.images?.length || 0} | 🎥{" "}
+                  {task.videos?.length || 0} | 📎{" "}
+                  {task.attachments?.length || 0}
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="7" style={{ textAlign: "center" }}>
+              <td colSpan="6" style={{ textAlign: "center" }}>
                 No tasks assigned
               </td>
             </tr>
@@ -230,27 +212,11 @@ function MyTask() {
         </tbody>
       </table>
 
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            Prev
-          </button>
-
-          <span className="page-info">
-            Page {currentPage} of {totalPages}
-          </span>
-
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

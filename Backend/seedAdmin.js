@@ -8,45 +8,53 @@ const Role = require("./models/Role");
 async function seedAdmin() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB Connected");
+    console.log("✅ MongoDB Connected");
 
-    // 1️⃣ Check if Admin role exists
-    let adminRole = await Role.findOne({ name: "Super Admin" });
+    // 1. Ensure Super Admin role exists
+    let superAdminRole = await Role.findOne({ name: "Super Admin" });
 
-    if (!adminRole) {
-      adminRole = await Role.create({
+    if (!superAdminRole) {
+      superAdminRole = await Role.create({
         name: "Super Admin",
         status: "Active",
         permissions: [],
       });
-      console.log("Super Admin role created");
+      console.log("✅ Super Admin role created");
+    } else {
+      console.log("ℹ️  Super Admin role already exists");
     }
 
-    // 2️⃣ Check if admin user exists
-    const existingAdmin = await User.findOne({
-      email: "admin@example.com",
-    });
+    // 2. Check if admin user exists
+    const existingAdmin = await User.findOne({ email: "admin@example.com" });
 
     if (existingAdmin) {
-      console.log("Admin already exists");
-      process.exit();
+      console.log("ℹ️  Admin user already exists — skipping");
+      await mongoose.connection.close();
+      process.exit(0);
     }
 
-    // 3️⃣ Hash password
-    const hashedPassword = await bcrypt.hash("123456", 10);
+    // 3. Hash password (use a strong default password)
+    const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || "Admin@123456";
+    const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
-    // 4️⃣ Create admin user
+    // 4. Create admin user
     await User.create({
+      name: "Super Admin",
       email: "admin@example.com",
       password: hashedPassword,
-      role: adminRole._id,
+      role: superAdminRole._id,
       status: "Active",
     });
 
-    console.log("Admin user created successfully");
-    process.exit();
+    console.log("✅ Admin user created successfully");
+    console.log("   Email: admin@example.com");
+    console.log(`   Password: ${defaultPassword}`);
+    console.log("   ⚠️  Please change the password immediately after first login!");
+
+    await mongoose.connection.close();
+    process.exit(0);
   } catch (error) {
-    console.log(error);
+    console.error("Seed Admin Error:", error);
     process.exit(1);
   }
 }

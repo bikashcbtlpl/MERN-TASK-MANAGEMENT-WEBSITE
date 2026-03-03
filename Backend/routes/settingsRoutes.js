@@ -3,20 +3,20 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const checkPermission = require("../middleware/permissionMiddleware");
-
+const superAdminOnly = require("../middleware/superAdminOnly");
 const settingsController = require("../controllers/settingsController");
 
 /* ================= GET SETTINGS ================= */
 router.get("/", authMiddleware, settingsController.getSettings);
 
-/* ================= PROFILE UPDATE (ALL USERS) ================= */
+/* ================= PROFILE UPDATE (ALL AUTHENTICATED USERS) ================= */
 router.put("/profile", authMiddleware, settingsController.updateProfile);
 
 /* ================= EMAIL SETTINGS (SUPER ADMIN ONLY) ================= */
 router.put(
   "/email",
   authMiddleware,
-  checkPermission("Edit Permission"), // or create special permission
+  superAdminOnly,
   settingsController.updateEmailSettings,
 );
 
@@ -24,7 +24,7 @@ router.put(
 router.put(
   "/security",
   authMiddleware,
-  checkPermission("Edit Permission"), // or create special permission
+  superAdminOnly,
   settingsController.updateSecuritySettings,
 );
 

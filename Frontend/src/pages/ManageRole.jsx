@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
+import {
+  PageHeader,
+  StatusBadge,
+  ActionButtons,
+} from "../components/common";
+import usePermissions from "../hooks/usePermissions";
 
 function ManageRole() {
   const [roles, setRoles] = useState([]);
   const navigate = useNavigate();
 
-  // 🔥 RBAC
-  const loggedUser = JSON.parse(localStorage.getItem("user"));
-  const userPermissions = loggedUser?.permissions || [];
+  const { canCreate, canEdit, canDelete, isSuperAdmin } =
+    usePermissions("Role");
 
-  const canCreate = userPermissions.includes("Create Role");
-  const canEdit = userPermissions.includes("Edit Role");
-  const canDelete = userPermissions.includes("Delete Role");
+  // Keep using localStorage for the Super Admin guard check
+  const loggedInUser = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     fetchRoles();
@@ -21,15 +25,8 @@ function ManageRole() {
   const fetchRoles = async () => {
     try {
       const response = await axiosInstance.get("/roles");
-
-      const loggedInUser = JSON.parse(localStorage.getItem("user"));
-
-      // If NOT Super Admin → hide Super Admin role
       if (loggedInUser?.role !== "Super Admin") {
-        const filteredRoles = response.data.filter(
-          (role) => role.name !== "Super Admin",
-        );
-        setRoles(filteredRoles);
+        setRoles(response.data.filter((r) => r.name !== "Super Admin"));
       } else {
         setRoles(response.data);
       }
@@ -40,7 +37,6 @@ function ManageRole() {
 
   const handleDelete = async (id) => {
     if (!canDelete) return;
-
     try {
       await axiosInstance.delete(`/roles/${id}`);
       fetchRoles();
@@ -49,20 +45,16 @@ function ManageRole() {
     }
   };
 
+  const isSuperAdminRow = (role) =>
+    role.name === "Super Admin" && loggedInUser?.role !== "Super Admin";
+
   return (
     <div className="manage-role-container">
-      <div className="manage-role-header">
-        <h2>Manage Role</h2>
-
-        {canCreate && (
-          <button
-            className="create-role-btn"
-            onClick={() => navigate("/roles/create")}
-          >
-            + Create Role
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Manage Roles"
+        btnLabel={canCreate ? "+ Create Role" : undefined}
+        onBtnClick={() => navigate("/roles/create")}
+      />
 
       <p>
         Total Roles: <strong>{roles.length}</strong>
@@ -78,52 +70,22 @@ function ManageRole() {
             {(canEdit || canDelete) && <th>Actions</th>}
           </tr>
         </thead>
-
         <tbody>
           {roles.map((role, index) => (
             <tr key={role._id}>
               <td>{index + 1}</td>
-
               <td>{role.name}</td>
-
               <td>
-                <span
-                  className={
-                    role.status === "Active"
-                      ? "role-status active"
-                      : "role-status inactive"
-                  }
-                >
-                  {role.status}
-                </span>
+                <StatusBadge status={role.status} />
               </td>
-
               <td>{role.permissions?.map((p) => p.name).join(", ")}</td>
-
               {(canEdit || canDelete) && (
-                <td>
-                  {!(
-                    role.name === "Super Admin" &&
-                    JSON.parse(localStorage.getItem("user"))?.role !==
-                      "Super Admin"
-                  ) && (
-                    <>
-                      <button
-                        className="edit-role-btn"
-                        onClick={() => navigate(`/roles/edit/${role.name}`)}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        className="delete-role-btn"
-                        onClick={() => handleDelete(role._id)}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </td>
+                <ActionButtons
+                  canEdit={canEdit && !isSuperAdminRow(role)}
+                  canDelete={canDelete && !isSuperAdminRow(role)}
+                  onEdit={() => navigate(`/roles/edit/${role.name}`)}
+                  onDelete={() => handleDelete(role._id)}
+                />
               )}
             </tr>
           ))}

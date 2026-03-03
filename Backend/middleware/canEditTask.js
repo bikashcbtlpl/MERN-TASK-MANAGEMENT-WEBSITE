@@ -3,14 +3,22 @@ const Task = require("../models/Task");
 /**
  * Middleware that allows proceeding if the user has 'Edit Task' permission
  * OR is the assigned user for the task being updated.
+ * Super Admin also bypasses this check.
  */
 module.exports = async (req, res, next) => {
   try {
     const user = req.user;
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
+    // Super Admin has full access
+    if (user.role && user.role.name === "Super Admin") {
+      return next();
+    }
+
     const perms = (user.role && user.role.permissions) || [];
-    const permNames = perms.map((p) => (typeof p === "string" ? p : p.name));
+    const permNames = perms
+      .filter((p) => p && p.status !== "Inactive")
+      .map((p) => (typeof p === "string" ? p : p.name));
 
     if (permNames.includes("Edit Task")) return next();
 
@@ -18,13 +26,14 @@ module.exports = async (req, res, next) => {
     const taskId = req.params.id;
     if (!taskId) return res.status(400).json({ message: "Task id required" });
 
-    const task = await Task.findById(taskId).select("assignedTo");
+    const task = await Task.findById(taskId).select("assignedTo").lean();
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    if (task.assignedTo && String(task.assignedTo) === String(user._id))
+    if (task.assignedTo && String(task.assignedTo) === String(user._id)) {
       return next();
+    }
 
-    return res.status(403).json({ message: "Access Denied" });
+    return res.status(403).json({ message: "Access Denied - You cannot edit this task" });
   } catch (err) {
     console.error("canEditTask middleware error:", err);
     return res.status(500).json({ message: "Server error" });

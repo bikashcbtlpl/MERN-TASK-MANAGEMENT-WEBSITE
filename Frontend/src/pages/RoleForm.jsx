@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
+import { LoadingSpinner, FormField } from "../components/common";
 
 function RoleForm() {
   const navigate = useNavigate();
@@ -140,7 +141,7 @@ function RoleForm() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner message="Loading role form..." />;
 
   /* ================= UI ================= */
 
@@ -150,8 +151,7 @@ function RoleForm() {
         <h2>{isEdit ? `Edit Role` : "Create Role"}</h2>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Role Name</label>
+          <FormField label="Role Name">
             <input
               type="text"
               value={formData.name}
@@ -163,10 +163,9 @@ function RoleForm() {
               }
               required
             />
-          </div>
+          </FormField>
 
-          <div className="form-group">
-            <label>Status</label>
+          <FormField label="Status">
             <select
               value={formData.status}
               onChange={(e) =>
@@ -179,7 +178,7 @@ function RoleForm() {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-          </div>
+          </FormField>
 
           {/* ================= MATRIX ================= */}
 

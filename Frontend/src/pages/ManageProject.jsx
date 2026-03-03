@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosInstance";
-import ProjectForm from "./ProjectForm";
 import { useNavigate } from "react-router-dom";
+import {
+  PageHeader,
+  Pagination,
+  ActionButtons,
+  LoadingSpinner,
+} from "../components/common";
+import usePermissions from "../hooks/usePermissions";
 import { useAuth } from "../context/AuthContext";
 
 const ManageProject = () => {
@@ -12,17 +18,9 @@ const ManageProject = () => {
   const [totalProjects, setTotalProjects] = useState(0);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { user, loading: authLoading, setUser } = useAuth();
+  const { loading: authLoading, setUser } = useAuth();
 
-  const perms = (user?.role?.permissions || []).map((p) =>
-    typeof p === "string" ? p : (p && p.name) || "",
-  );
-  const canCreate =
-    user?.role?.name === "Super Admin" || perms.includes("Create Project");
-  const canEdit =
-    user?.role?.name === "Super Admin" || perms.includes("Edit Project");
-  const canDelete =
-    user?.role?.name === "Super Admin" || perms.includes("Delete Project");
+  const { canCreate, canEdit, canDelete } = usePermissions("Project");
 
   const fetchProjects = async (page = 1) => {
     try {
@@ -51,11 +49,9 @@ const ManageProject = () => {
   };
 
   useEffect(() => {
-    // Wait until auth finished so backend sees correct user and UI permissions are accurate
     if (!authLoading) fetchProjects(1);
   }, [authLoading]);
 
-  // Listen for changes to localStorage user (permissions may change elsewhere)
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "user") {
@@ -67,60 +63,28 @@ const ManageProject = () => {
         }
       }
     };
-
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, [setUser]);
 
   useEffect(() => {
-    // Trigger new search when query changes
-    // reset to first page
     if (!authLoading) fetchProjects(1);
   }, [query]);
 
-  const handleCreate = () => {
-    navigate("/projects/create");
-  };
-
-  const handleEdit = (project) => {
-    navigate(`/projects/edit/${project._id}`);
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this project?")) {
-      await axiosInstance.delete(`/projects/${id}`);
-      fetchProjects();
-    }
-  };
-
   return (
     <div className="page-container">
-      <div
-        className="page-header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h2>Manage Projects</h2>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <input
-            type="text"
-            placeholder="Search projects..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            style={{ padding: 8, borderRadius: 4, border: "1px solid #ddd" }}
-          />
-          {canCreate && (
-            <button className="primary-btn" onClick={handleCreate}>
-              Create Project
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader title="Manage Projects" btnLabel={canCreate ? "Create Project" : undefined} onBtnClick={() => navigate("/projects/create")}>
+        <input
+          type="text"
+          placeholder="Search projects..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={{ padding: 8, borderRadius: 4, border: "1px solid #ddd" }}
+        />
+      </PageHeader>
+
       {loading ? (
-        <div>Loading...</div>
+        <LoadingSpinner message="Loading projects..." />
       ) : (
         <>
           <table className="role-table" style={{ marginTop: 20 }}>
@@ -151,57 +115,33 @@ const ManageProject = () => {
                       .join(", ")}
                   </td>
                   {(canEdit || canDelete) && (
-                    <td>
-                      {canEdit && (
-                        <button
-                          className="edit-role-btn"
-                          onClick={() => handleEdit(project)}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          className="delete-role-btn"
-                          onClick={() => handleDelete(project._id)}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
+                    <ActionButtons
+                      canEdit={canEdit}
+                      canDelete={canDelete}
+                      onEdit={() => navigate(`/projects/edit/${project._id}`)}
+                      onDelete={async () => {
+                        if (
+                          window.confirm(
+                            "Are you sure you want to delete this project?",
+                          )
+                        ) {
+                          await axiosInstance.delete(`/projects/${project._id}`);
+                          fetchProjects();
+                        }
+                      }}
+                    />
                   )}
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div
-              style={{
-                marginTop: 12,
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <button
-                disabled={currentPage === 1}
-                onClick={() => fetchProjects(currentPage - 1)}
-              >
-                Prev
-              </button>
-              <span>
-                Page {currentPage} of {totalPages} — Total: {totalProjects}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => fetchProjects(currentPage + 1)}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalProjects}
+            onPageChange={(page) => fetchProjects(page)}
+          />
         </>
       )}
     </div>

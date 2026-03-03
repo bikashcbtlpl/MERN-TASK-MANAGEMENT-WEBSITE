@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import axiosInstance from "../api/axiosInstance";
+import { FormField } from "../components/common";
 
 const ProjectForm = ({ onSubmit, initialData }) => {
   const [formData, setFormData] = useState(
@@ -42,10 +43,10 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         ...initialData,
         team: Array.isArray(initialData.team)
           ? initialData.team.map((u) => ({
-              label: u.name || getHandle(u),
-              value: u._id,
-              username: getHandle(u),
-            }))
+            label: u.name || getHandle(u),
+            value: u._id,
+            username: getHandle(u),
+          }))
           : [],
       });
     }
@@ -104,17 +105,15 @@ const ProjectForm = ({ onSubmit, initialData }) => {
       }}
       className="project-form"
     >
-      <div className="form-group">
-        <label>Project Name</label>
+      <FormField label="Project Name">
         <input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           required
         />
-      </div>
-      <div className="form-group" style={{ position: "relative" }}>
-        <label>Project Description</label>
+      </FormField>
+      <FormField label="Project Description" style={{ position: "relative" }}>
         <textarea
           value={formData.description}
           onChange={(e) =>
@@ -156,9 +155,8 @@ const ProjectForm = ({ onSubmit, initialData }) => {
             ))}
           </div>
         )}
-      </div>
-      <div className="form-group">
-        <label>Project Deadline</label>
+      </FormField>
+      <FormField label="Project Deadline">
         <input
           type="date"
           value={
@@ -170,9 +168,8 @@ const ProjectForm = ({ onSubmit, initialData }) => {
             setFormData({ ...formData, deadline: e.target.value })
           }
         />
-      </div>
-      <div className="form-group">
-        <label>Status</label>
+      </FormField>
+      <FormField label="Status">
         <select
           value={formData.status}
           onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -180,7 +177,7 @@ const ProjectForm = ({ onSubmit, initialData }) => {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-      </div>
+      </FormField>
       <div className="form-group">
         <label>Team Assigned</label>
         <div className="team-tags">

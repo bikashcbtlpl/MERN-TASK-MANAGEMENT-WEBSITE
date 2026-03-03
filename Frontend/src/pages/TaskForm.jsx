@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
+import { FormField, LoadingSpinner, TaskStatusSelect } from "../components/common";
 
 function TaskForm() {
   const navigate = useNavigate();
@@ -163,7 +164,7 @@ function TaskForm() {
     }
   };
 
-  if (loading) return <div className="loading-page">Loading...</div>;
+  if (loading) return <LoadingSpinner message="Loading task form..." />;
 
   const projectOptions = [
     { value: "", label: "No Project" },
@@ -181,8 +182,7 @@ function TaskForm() {
           <div className="form-section">
             <h3>Basic Information</h3>
 
-            <div className="form-group">
-              <label>Title</label>
+            <FormField label="Title">
               <input
                 type="text"
                 value={formData.title}
@@ -191,28 +191,18 @@ function TaskForm() {
                 }
                 required
               />
-            </div>
+            </FormField>
 
-            <div className="form-group">
-              <label>Task Status</label>
-              <select
+            <FormField label="Task Status">
+              <TaskStatusSelect
                 value={formData.taskStatus}
                 onChange={(e) =>
                   setFormData({ ...formData, taskStatus: e.target.value })
                 }
-              >
-                <option>Open</option>
-                <option>In Progress</option>
-                <option>Pending</option>
-                <option>On Hold</option>
-                <option>Closed</option>
-                <option>Completed</option>
-                <option>Cancelled</option>
-              </select>
-            </div>
+              />
+            </FormField>
 
-            <div className="form-group">
-              <label>Project</label>
+            <FormField label="Project">
               <select
                 value={formData.project || ""}
                 onChange={(e) =>
@@ -225,7 +215,7 @@ function TaskForm() {
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
 
             {isEditMode && (
               <div className="form-group">

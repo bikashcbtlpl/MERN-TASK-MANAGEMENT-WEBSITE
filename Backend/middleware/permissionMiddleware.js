@@ -1,34 +1,47 @@
+/**
+ * Permission Middleware
+ * Usage: checkPermission(["Create Task", "Edit Task"])
+ * Passes if the user has ANY of the given permissions, or is Super Admin.
+ */
 const checkPermission = (requiredPermissions = []) => {
+  // Normalise to array once at middleware creation time
+  const permissions = Array.isArray(requiredPermissions)
+    ? requiredPermissions
+    : [requiredPermissions];
+
   return (req, res, next) => {
     try {
-      // req.user is already full user from authMiddleware
       const user = req.user;
 
       if (!user || !user.role) {
         return res.status(403).json({
-          message: "Access Denied",
+          message: "Access Denied - No role assigned",
         });
       }
 
-      // 🔥 Super Admin bypass
+      // Super Admin bypass — full access
       if (user.role.name === "Super Admin") {
         return next();
       }
 
-      const userPermissions = user.role.permissions.map((p) => p.name);
-
-      // Ensure requiredPermissions is always array
-      if (!Array.isArray(requiredPermissions)) {
-        requiredPermissions = [requiredPermissions];
+      // Inactive role check
+      if (user.role.status === "Inactive") {
+        return res.status(403).json({
+          message: "Access Denied - Your role is inactive",
+        });
       }
 
-      const hasAccess = requiredPermissions.some((perm) =>
+      const userPermissions = (user.role.permissions || [])
+        .filter((p) => p && p.status !== "Inactive")
+        .map((p) => p.name);
+
+      const hasAccess = permissions.some((perm) =>
         userPermissions.includes(perm),
       );
 
       if (!hasAccess) {
         return res.status(403).json({
-          message: "Access Denied",
+          message: "Access Denied - Insufficient permissions",
         });
       }
 

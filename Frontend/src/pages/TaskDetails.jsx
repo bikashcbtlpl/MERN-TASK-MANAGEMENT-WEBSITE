@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
+import { LoadingSpinner } from "../components/common";
+import usePermissions from "../hooks/usePermissions";
+import { useAuth } from "../context/AuthContext";
 
 function TaskDetails() {
   const { id } = useParams();
@@ -15,9 +18,10 @@ function TaskDetails() {
   const [hoverUser, setHoverUser] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
 
-  const user = JSON.parse(localStorage.getItem("user"));
-  const permissions = user?.permissions || [];
-  const canEdit = permissions.includes("Edit Task");
+  const { canEdit, isSuperAdmin } = usePermissions("Task");
+  const { user } = useAuth();
+  // Super Admin or Admin can resolve issues
+  const canResolve = isSuperAdmin || user?.role?.name === "Admin";
 
   const fetchTask = async () => {
     try {
@@ -72,9 +76,7 @@ function TaskDetails() {
     }
   };
 
-  const canResolve =
-    user?.role &&
-    (user.role.name === "Super Admin" || user.role.name === "Admin");
+
 
   const resolveIssue = async (issueId) => {
     try {
@@ -143,8 +145,8 @@ function TaskDetails() {
     });
   };
 
-  if (loading) return <div className="loading-page">Loading...</div>;
-  if (!task) return <div>Task not found</div>;
+  if (loading) return <LoadingSpinner message="Loading task..." />;
+  if (!task) return <LoadingSpinner message="Task not found" />;
 
   return (
     <div className="task-page">

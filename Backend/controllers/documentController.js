@@ -1,61 +1,72 @@
 const Document = require("../models/Document");
-const User = require("../models/User");
-const path = require("path");
-const { Worker } = require("worker_threads");
+const runCloudinaryWorker = require("../utils/runCloudinaryWorker");
 
-const runUploadWorker = (filePath, resourceType = "auto") => {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(
-      path.join(__dirname, "../workers/cloudinaryWorker.js"),
-      {
-        workerData: {
-          images: [],
-          videos: [],
-          attachments: [{ path: filePath }],
-        },
-      },
-    );
+/* =====================================================
+   UPLOAD DOCUMENT ATTACHMENTS VIA CLOUDINARY WORKER
+===================================================== */
+const processDocumentFiles = async (files = {}) => {
+  const attachments = (files.attachments || []).map((f) => ({ path: f.path }));
 
-    worker.on("message", (data) => {
-      if (data.success) resolve(data.attachments[0]);
-      else reject(data.error);
-    });
+  if (!attachments.length) return [];
 
-    worker.on("error", reject);
-    worker.on("exit", (code) => {
-      if (code !== 0) reject("Worker stopped unexpectedly");
-    });
-  });
+  const result = await runCloudinaryWorker({ images: [], videos: [], attachments });
+  return result.attachments || [];
 };
 
-const extractFiles = async (files, field) => {
-  if (!files || !files[field]) return [];
-  const uploads = files[field].map((file) => runUploadWorker(file.path));
-  return Promise.all(uploads);
-};
-
+/* =====================================================
+   LIST DOCUMENTS
+===================================================== */
 exports.listDocuments = async (req, res) => {
   try {
-    // populate createdBy and role so frontend can sort/display Super Admin first
-    const docs = await Document.find()
-      .populate({ path: "createdBy", populate: { path: "role" } })
-      .sort({ createdAt: -1 });
+    const user = req.user;
+    const isSuperAdmin = user.role?.name === "Super Admin";
+
+    let filter = {};
+
+    // Non-super-admin can only see documents they created or have access to
+    if (!isSuperAdmin) {
+      filter.$or = [
+        { createdBy: user._id },
+        { access: user._id },
+      ];
+    }
+
+    const docs = await Document.find(filter)
+      .populate({ path: "createdBy", select: "name email role", populate: { path: "role", select: "name" } })
+      .sort({ createdAt: -1 })
+      .lean();
+
     res.json(docs);
   } catch (err) {
-    console.error(err);
+    console.error("List Documents Error:", err);
     res.status(500).json({ message: "Error listing documents" });
   }
 };
 
+/* =====================================================
+   CREATE DOCUMENT
+===================================================== */
 exports.createDocument = async (req, res) => {
   try {
     const { name, description, access } = req.body;
-    const accessArr = access ? JSON.parse(access) : [];
 
-    const attachments = await extractFiles(req.files, "attachments");
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Document name is required" });
+    }
+
+    let accessArr = [];
+    if (access) {
+      try {
+        accessArr = JSON.parse(access);
+      } catch {
+        return res.status(400).json({ message: "Invalid access field format" });
+      }
+    }
+
+    const attachments = await processDocumentFiles(req.files || {});
 
     const doc = await Document.create({
-      name,
+      name: name.trim(),
       description,
       attachments,
       access: accessArr,
@@ -64,76 +75,94 @@ exports.createDocument = async (req, res) => {
 
     res.status(201).json(doc);
   } catch (err) {
-    console.error(err);
+    console.error("Create Document Error:", err);
     res.status(500).json({ message: "Error creating document" });
   }
 };
 
+/* =====================================================
+   REQUEST ACCESS
+===================================================== */
 exports.requestAccess = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
-    // add requester to accessRequests if not already present
     const uid = req.user._id;
-    if (
-      !doc.accessRequests.some((u) => String(u) === String(uid)) &&
-      !doc.access.some((u) => String(u) === String(uid))
-    ) {
-      doc.accessRequests.push(uid);
-      await doc.save();
+
+    // Already has access
+    if (doc.access.some((u) => String(u) === String(uid))) {
+      return res.json({ message: "You already have access to this document" });
     }
 
-    res.json({ message: "Access request submitted" });
+    // Already requested
+    if (doc.accessRequests.some((u) => String(u) === String(uid))) {
+      return res.json({ message: "Access request already submitted" });
+    }
+
+    doc.accessRequests.push(uid);
+    await doc.save();
+
+    res.json({ message: "Access request submitted successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Request Access Error:", err);
     res.status(500).json({ message: "Error requesting access" });
   }
 };
 
+/* =====================================================
+   GRANT ACCESS
+===================================================== */
 exports.grantAccess = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
-    // only creator or super admin can grant
+    // Only creator or super admin can grant access
     const isOwner = String(doc.createdBy) === String(req.user._id);
-    const isSuper = req.user.role && req.user.role.name === "Super Admin";
-    if (!isOwner && !isSuper)
-      return res.status(403).json({ message: "Not allowed" });
+    const isSuper = req.user.role?.name === "Super Admin";
+    if (!isOwner && !isSuper) {
+      return res.status(403).json({ message: "Not allowed - Only document owner or Super Admin can grant access" });
+    }
 
     const { userId } = req.body;
-    if (!userId) return res.status(400).json({ message: "userId required" });
+    if (!userId) return res.status(400).json({ message: "userId is required" });
 
-    if (!doc.access.some((u) => String(u) === String(userId)))
+    if (!doc.access.some((u) => String(u) === String(userId))) {
       doc.access.push(userId);
-    // remove from requests
+    }
+
+    // Remove from pending requests
     doc.accessRequests = doc.accessRequests.filter(
       (u) => String(u) !== String(userId),
     );
     await doc.save();
 
-    res.json({ message: "Access granted" });
+    res.json({ message: "Access granted successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Grant Access Error:", err);
     res.status(500).json({ message: "Error granting access" });
   }
 };
 
+/* =====================================================
+   DELETE DOCUMENT
+===================================================== */
 exports.deleteDocument = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
     const isOwner = String(doc.createdBy) === String(req.user._id);
-    const isSuper = req.user.role && req.user.role.name === "Super Admin";
-    if (!isOwner && !isSuper)
-      return res.status(403).json({ message: "Not allowed" });
+    const isSuper = req.user.role?.name === "Super Admin";
+    if (!isOwner && !isSuper) {
+      return res.status(403).json({ message: "Not allowed - Only document owner or Super Admin can delete" });
+    }
 
     await Document.findByIdAndDelete(req.params.id);
-    res.json({ message: "Document deleted" });
+    res.json({ message: "Document deleted successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Delete Document Error:", err);
     res.status(500).json({ message: "Error deleting document" });
   }
 };

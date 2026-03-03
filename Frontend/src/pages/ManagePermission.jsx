@@ -1,23 +1,21 @@
 import { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
+import {
+  PageHeader,
+  Modal,
+  FormField,
+  StatusBadge,
+  ActionButtons,
+} from "../components/common";
+import usePermissions from "../hooks/usePermissions";
 
 function ManagePermission() {
   const [permissions, setPermissions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPermission, setEditingPermission] = useState(null);
+  const [formData, setFormData] = useState({ name: "", status: "Active" });
 
-  const [formData, setFormData] = useState({
-    name: "",
-    status: "Active",
-  });
-
-  // 🔥 RBAC
-  const loggedUser = JSON.parse(localStorage.getItem("user"));
-  const userPermissions = loggedUser?.permissions || [];
-
-  const canCreate = userPermissions.includes("Create Permission");
-  const canEdit = userPermissions.includes("Edit Permission");
-  const canDelete = userPermissions.includes("Delete Permission");
+  const { canCreate, canEdit, canDelete } = usePermissions("Permission");
 
   useEffect(() => {
     fetchPermissions();
@@ -30,7 +28,6 @@ function ManagePermission() {
 
   const openCreateModal = () => {
     if (!canCreate) return;
-
     setEditingPermission(null);
     setFormData({ name: "", status: "Active" });
     setIsModalOpen(true);
@@ -38,18 +35,13 @@ function ManagePermission() {
 
   const openEditModal = (permission) => {
     if (!canEdit) return;
-
     setEditingPermission(permission);
-    setFormData({
-      name: permission.name,
-      status: permission.status,
-    });
+    setFormData({ name: permission.name, status: permission.status });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (editingPermission && !canEdit) return;
     if (!editingPermission && !canCreate) return;
 
@@ -68,22 +60,17 @@ function ManagePermission() {
 
   const handleDelete = async (id) => {
     if (!canDelete) return;
-
     await axiosInstance.delete(`/permissions/${id}`);
     fetchPermissions();
   };
 
   return (
     <div className="manage-role-container">
-      <div className="manage-role-header">
-        <h2>Manage Permission</h2>
-
-        {canCreate && (
-          <button className="create-role-btn" onClick={openCreateModal}>
-            + Create Permission
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Manage Permissions"
+        btnLabel={canCreate ? "+ Create Permission" : undefined}
+        onBtnClick={openCreateModal}
+      />
 
       <p>
         Total Permissions: <strong>{permissions.length}</strong>
@@ -98,100 +85,70 @@ function ManagePermission() {
             {(canEdit || canDelete) && <th>Actions</th>}
           </tr>
         </thead>
-
         <tbody>
           {permissions.map((p, index) => (
             <tr key={p._id}>
               <td>{index + 1}</td>
               <td>{p.name}</td>
               <td>
-                <span
-                  className={
-                    p.status === "Active"
-                      ? "role-status active"
-                      : "role-status inactive"
-                  }
-                >
-                  {p.status}
-                </span>
+                <StatusBadge status={p.status} />
               </td>
-
               {(canEdit || canDelete) && (
-                <td>
-                  {canEdit && (
-                    <button
-                      className="edit-role-btn"
-                      onClick={() => openEditModal(p)}
-                    >
-                      Edit
-                    </button>
-                  )}
-
-                  {canDelete && (
-                    <button
-                      className="delete-role-btn"
-                      onClick={() => handleDelete(p._id)}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </td>
+                <ActionButtons
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                  onEdit={() => openEditModal(p)}
+                  onDelete={() => handleDelete(p._id)}
+                />
               )}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>
-              {editingPermission ? "Edit Permission" : "Create Permission"}
-            </h3>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingPermission ? "Edit Permission" : "Create Permission"}
+      >
+        <form onSubmit={handleSubmit}>
+          <FormField label="Name">
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              required
+            />
+          </FormField>
 
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
+          <FormField label="Status">
+            <select
+              value={formData.status}
+              onChange={(e) =>
+                setFormData({ ...formData, status: e.target.value })
+              }
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </FormField>
 
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
-                  }
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-
-              <div className="modal-buttons">
-                <button type="submit" className="save-btn">
-                  {editingPermission ? "Update" : "Create"}
-                </button>
-
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+          <div className="modal-buttons">
+            <button type="submit" className="save-btn">
+              {editingPermission ? "Update" : "Create"}
+            </button>
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancel
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 }

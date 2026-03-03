@@ -2,67 +2,70 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// ================= LOGIN =================
+/* ================= LOGIN ================= */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1️⃣ Validate input
+    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
-    // 2️⃣ Find user + populate role & permissions
-    const user = await User.findOne({ email }).populate({
+    // Find user + populate role & permissions
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).populate({
       path: "role",
       populate: {
         path: "permissions",
       },
     });
 
+    // Use generic message to prevent email enumeration
     if (!user) {
-      return res.status(400).json({
+      return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    // 3️⃣ Check user status
+    // Check user status
     if (user.status !== "Active") {
       return res.status(403).json({
-        message: "User account is inactive",
+        message: "Your account is inactive. Please contact an administrator.",
       });
     }
 
-    // 4️⃣ Compare password
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
-      return res.status(400).json({
+      return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    // 5️⃣ Generate JWT
+    // Ensure role is properly linked
+    if (!user.role) {
+      return res.status(500).json({ message: "User role not configured. Contact administrator." });
+    }
+
+    // Generate JWT
     const token = jwt.sign(
-      {
-        userId: user._id,
-      },
+      { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
 
-    // 6️⃣ Set HTTP-only cookie
+    // Set HTTP-only cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // auto secure in prod
-      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       path: "/",
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
-    // 7️⃣ Send user data (NO sensitive fields)
+    // Return user data (no sensitive fields)
     res.status(200).json({
       message: "Login successful",
       user: {
@@ -70,8 +73,7 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role.name,
-        permissions: user.role.permissions.map((p) => p.name),
-        sessionTimeout: 30,
+        permissions: (user.role.permissions || []).map((p) => p.name),
       },
     });
   } catch (error) {
@@ -82,12 +84,12 @@ exports.login = async (req, res) => {
   }
 };
 
-// ================= LOGOUT =================
+/* ================= LOGOUT ================= */
 exports.logout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
     path: "/",
   });
 
@@ -96,9 +98,14 @@ exports.logout = (req, res) => {
   });
 };
 
+/* ================= VERIFY TOKEN ================= */
 exports.verify = async (req, res) => {
   try {
     const user = req.user; // from authMiddleware
+
+    if (!user.role) {
+      return res.status(500).json({ message: "User role not configured" });
+    }
 
     res.status(200).json({
       user: {
@@ -106,10 +113,11 @@ exports.verify = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role.name,
-        permissions: user.role.permissions.map((p) => p.name),
+        permissions: (user.role.permissions || []).map((p) => p.name),
       },
     });
   } catch (error) {
+    console.error("Verify Error:", error);
     res.status(401).json({
       message: "Unauthorized",
     });

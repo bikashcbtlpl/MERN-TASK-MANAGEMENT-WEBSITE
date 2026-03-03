@@ -3,6 +3,15 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import socket from "../socket";
 import { toast } from "react-toastify";
+import {
+  PageHeader,
+  Pagination,
+  ActionButtons,
+  LoadingSpinner,
+  TaskStatusSelect,
+  TASK_STATUSES,
+} from "../components/common";
+import usePermissions from "../hooks/usePermissions";
 
 function ManageTask() {
   const navigate = useNavigate();
@@ -19,31 +28,18 @@ function ManageTask() {
   const [taskStatus, setTaskStatus] = useState("");
   const [isActive, setIsActive] = useState("");
 
-  const user = JSON.parse(localStorage.getItem("user"));
-  const permissions = user?.permissions || [];
+  const { canCreate, canEdit, canDelete, canView } = usePermissions("Task");
 
-  const canView = permissions.includes("View Task");
-  const canCreate = permissions.includes("Create Task");
-  const canEdit = permissions.includes("Edit Task");
-  const canDelete = permissions.includes("Delete Task");
-
-  /* FETCH TASKS */
   const fetchTasks = useCallback(
     async (page = 1) => {
       try {
         setLoading(true);
-
-        const params = new URLSearchParams({
-          page,
-          limit: 10,
-        });
-
+        const params = new URLSearchParams({ page, limit: 10 });
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
         if (isActive !== "") params.append("isActive", isActive);
 
         const res = await axiosInstance.get(`/tasks?${params.toString()}`);
-
         setTasks(res.data.tasks || []);
         setTotalPages(res.data.totalPages || 1);
         setTotalTasks(res.data.totalTasks || 0);
@@ -64,18 +60,14 @@ function ManageTask() {
     if (canView || canCreate || canEdit || canDelete) {
       fetchTasks(currentPage);
     }
-    // fetch projects for quick-assign dropdown
     const fetchProjects = async () => {
       try {
         const res = await axiosInstance.get("/projects");
         setProjects(
           Array.isArray(res.data) ? res.data : res.data.projects || [],
         );
-      } catch (err) {
-        // ignore errors silently
-      }
+      } catch (err) {/* ignore */ }
     };
-
     fetchProjects();
   }, [currentPage, fetchTasks]);
 
@@ -85,7 +77,6 @@ function ManageTask() {
     return () => socket.off("taskUpdated", handler);
   }, [currentPage, fetchTasks]);
 
-  /* INLINE UPDATE */
   const updateTaskField = async (id, data) => {
     try {
       await axiosInstance.put(`/tasks/${id}`, data);
@@ -98,7 +89,6 @@ function ManageTask() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
-
     try {
       await axiosInstance.delete(`/tasks/${id}`);
       toast.success("Task deleted successfully");
@@ -108,27 +98,16 @@ function ManageTask() {
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return "-";
-    return new Date(date).toLocaleDateString();
-  };
-
-  /* Tasks are assigned via Project team; show project instead */
+  const formatDate = (date) =>
+    date ? new Date(date).toLocaleDateString() : "-";
 
   return (
     <div className="manage-role-container">
-      <div className="manage-role-header">
-        <h2>Manage Task</h2>
-
-        {canCreate && (
-          <button
-            className="create-role-btn"
-            onClick={() => navigate("/tasks/create")}
-          >
-            + Create Task
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Manage Tasks"
+        btnLabel={canCreate ? "+ Create Task" : undefined}
+        onBtnClick={() => navigate("/tasks/create")}
+      />
 
       {/* FILTERS */}
       <div className="task-filters">
@@ -142,6 +121,7 @@ function ManageTask() {
           }}
         />
 
+        {/* Reuse TASK_STATUSES constant for the filter dropdown */}
         <select
           value={taskStatus}
           onChange={(e) => {
@@ -150,13 +130,9 @@ function ManageTask() {
           }}
         >
           <option value="">All Task Status</option>
-          <option value="Open">Open</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Pending">Pending</option>
-          <option value="On Hold">On Hold</option>
-          <option value="Closed">Closed</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
+          {TASK_STATUSES.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
         </select>
 
         <select
@@ -188,7 +164,7 @@ function ManageTask() {
       </p>
 
       {loading ? (
-        <div style={{ padding: "20px" }}>Loading tasks...</div>
+        <LoadingSpinner message="Loading tasks..." />
       ) : (
         <>
           <table className="role-table">
@@ -205,7 +181,6 @@ function ManageTask() {
                 {(canEdit || canDelete) && <th>Actions</th>}
               </tr>
             </thead>
-
             <tbody>
               {tasks.map((task, index) => (
                 <tr
@@ -237,22 +212,14 @@ function ManageTask() {
 
                   <td onClick={(e) => e.stopPropagation()}>
                     {canEdit ? (
-                      <select
+                      <TaskStatusSelect
                         value={task.taskStatus}
                         onChange={(e) =>
                           updateTaskField(task._id, {
                             taskStatus: e.target.value,
                           })
                         }
-                      >
-                        <option>Open</option>
-                        <option>In Progress</option>
-                        <option>Pending</option>
-                        <option>On Hold</option>
-                        <option>Closed</option>
-                        <option>Completed</option>
-                        <option>Cancelled</option>
-                      </select>
+                      />
                     ) : (
                       task.taskStatus
                     )}
@@ -290,50 +257,23 @@ function ManageTask() {
                   </td>
 
                   {(canEdit || canDelete) && (
-                    <td onClick={(e) => e.stopPropagation()}>
-                      {canEdit && (
-                        <button
-                          className="edit-role-btn"
-                          onClick={() => navigate(`/tasks/edit/${task._id}`)}
-                        >
-                          Edit
-                        </button>
-                      )}
-
-                      {canDelete && (
-                        <button
-                          className="delete-role-btn"
-                          onClick={() => handleDelete(task._id)}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
+                    <ActionButtons
+                      canEdit={canEdit}
+                      canDelete={canDelete}
+                      onEdit={() => navigate(`/tasks/edit/${task._id}`)}
+                      onDelete={() => handleDelete(task._id)}
+                    />
                   )}
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-              >
-                Prev
-              </button>
-              <span>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </>
       )}
     </div>

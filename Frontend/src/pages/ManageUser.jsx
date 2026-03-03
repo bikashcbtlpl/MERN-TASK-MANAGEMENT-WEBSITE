@@ -1,27 +1,28 @@
 import { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
+import {
+  PageHeader,
+  Modal,
+  FormField,
+  StatusBadge,
+  ActionButtons,
+} from "../components/common";
+import usePermissions from "../hooks/usePermissions";
 
 function ManageUser() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-
   const [formData, setFormData] = useState({
-    name: "", // ✅ NEW
+    name: "",
     email: "",
     role: "",
     status: "Active",
   });
 
-  // 🔥 RBAC
-  const loggedUser = JSON.parse(localStorage.getItem("user"));
-  const permissions = loggedUser?.permissions || [];
-
-  const canCreate = permissions.includes("Create User");
-  const canEdit = permissions.includes("Edit User");
-  const canDelete = permissions.includes("Delete User");
+  const { canCreate, canEdit, canDelete } = usePermissions("User");
+  const loggedInUser = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     fetchUsers();
@@ -30,14 +31,8 @@ function ManageUser() {
 
   const fetchUsers = async () => {
     const res = await axiosInstance.get("/users");
-
-    const loggedInUser = JSON.parse(localStorage.getItem("user"));
-
     if (loggedInUser?.role !== "Super Admin") {
-      const filteredUsers = res.data.filter(
-        (u) => u.role?.name !== "Super Admin",
-      );
-      setUsers(filteredUsers);
+      setUsers(res.data.filter((u) => u.role?.name !== "Super Admin"));
     } else {
       setUsers(res.data);
     }
@@ -45,14 +40,8 @@ function ManageUser() {
 
   const fetchRoles = async () => {
     const res = await axiosInstance.get("/roles");
-
-    const loggedInUser = JSON.parse(localStorage.getItem("user"));
-
     if (loggedInUser?.role !== "Super Admin") {
-      const filteredRoles = res.data.filter(
-        (role) => role.name !== "Super Admin",
-      );
-      setRoles(filteredRoles);
+      setRoles(res.data.filter((role) => role.name !== "Super Admin"));
     } else {
       setRoles(res.data);
     }
@@ -61,21 +50,15 @@ function ManageUser() {
   const openCreateModal = () => {
     if (!canCreate) return;
     setEditingUser(null);
-    setFormData({
-      name: "", // ✅ NEW
-      email: "",
-      role: "",
-      status: "Active",
-    });
+    setFormData({ name: "", email: "", role: "", status: "Active" });
     setIsModalOpen(true);
   };
 
   const openEditModal = (user) => {
     if (!canEdit) return;
-
     setEditingUser(user);
     setFormData({
-      name: user.name || "", // ✅ NEW
+      name: user.name || "",
       email: user.email,
       role: user.role?._id || "",
       status: user.status,
@@ -85,7 +68,6 @@ function ManageUser() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (editingUser && !canEdit) return;
     if (!editingUser && !canCreate) return;
 
@@ -101,22 +83,21 @@ function ManageUser() {
 
   const handleDelete = async (id) => {
     if (!canDelete) return;
-
     await axiosInstance.delete(`/users/${id}`);
     fetchUsers();
   };
 
+  const isSuperAdminRow = (user) =>
+    user.role?.name === "Super Admin" &&
+    loggedInUser?.role !== "Super Admin";
+
   return (
     <div className="manage-role-container">
-      <div className="manage-role-header">
-        <h2>Manage User</h2>
-
-        {canCreate && (
-          <button className="create-role-btn" onClick={openCreateModal}>
-            + Add User
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Manage Users"
+        btnLabel={canCreate ? "+ Add User" : undefined}
+        onBtnClick={openCreateModal}
+      />
 
       <p>
         Total Users: <strong>{users.length}</strong>
@@ -126,143 +107,108 @@ function ManageUser() {
         <thead>
           <tr>
             <th>#</th>
-            <th>Name</th> {/* ✅ NEW */}
+            <th>Name</th>
             <th>Email</th>
             <th>Role</th>
             <th>Status</th>
             {(canEdit || canDelete) && <th>Actions</th>}
           </tr>
         </thead>
-
         <tbody>
           {users.map((user, index) => (
             <tr key={user._id}>
               <td>{index + 1}</td>
-              <td>{user.name || "-"}</td> {/* ✅ NEW */}
+              <td>{user.name || "-"}</td>
               <td>{user.email}</td>
               <td>{user.role?.name}</td>
               <td>
-                <span
-                  className={
-                    user.status === "Active"
-                      ? "role-status active"
-                      : "role-status inactive"
-                  }
-                >
-                  {user.status}
-                </span>
+                <StatusBadge status={user.status} />
               </td>
               {(canEdit || canDelete) && (
-                <td>
-                  {!(
-                    user.role?.name === "Super Admin" &&
-                    JSON.parse(localStorage.getItem("user"))?.role !==
-                      "Super Admin"
-                  ) && (
-                    <>
-                      <button
-                        className="edit-role-btn"
-                        onClick={() => openEditModal(user)}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        className="delete-role-btn"
-                        onClick={() => handleDelete(user._id)}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </td>
+                <ActionButtons
+                  canEdit={canEdit && !isSuperAdminRow(user)}
+                  canDelete={canDelete && !isSuperAdminRow(user)}
+                  onEdit={() => openEditModal(user)}
+                  onDelete={() => handleDelete(user._id)}
+                />
               )}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* MODAL */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>{editingUser ? "Edit User" : "Add User"}</h3>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingUser ? "Edit User" : "Add User"}
+      >
+        <form onSubmit={handleSubmit}>
+          <FormField label="Name">
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              placeholder="Enter name (optional)"
+            />
+          </FormField>
 
-            <form onSubmit={handleSubmit}>
-              {/* ✅ NEW NAME FIELD */}
-              <div className="form-group">
-                <label>Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="Enter name (optional)"
-                />
-              </div>
+          <FormField label="Email">
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              required
+              disabled={!!editingUser}
+            />
+          </FormField>
 
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                  disabled={editingUser}
-                />
-              </div>
+          <FormField label="Role">
+            <select
+              value={formData.role}
+              onChange={(e) =>
+                setFormData({ ...formData, role: e.target.value })
+              }
+              required
+            >
+              <option value="">Select Role</option>
+              {roles.map((role) => (
+                <option key={role._id} value={role._id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
 
-              <div className="form-group">
-                <label>Role</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">Select Role</option>
-                  {roles.map((role) => (
-                    <option key={role._id} value={role._id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <FormField label="Status">
+            <select
+              value={formData.status}
+              onChange={(e) =>
+                setFormData({ ...formData, status: e.target.value })
+              }
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </FormField>
 
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
-                  }
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-
-              <div className="modal-buttons">
-                <button type="submit" className="save-btn">
-                  {editingUser ? "Update" : "Add"}
-                </button>
-
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+          <div className="modal-buttons">
+            <button type="submit" className="save-btn">
+              {editingUser ? "Update" : "Add"}
+            </button>
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancel
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 }
