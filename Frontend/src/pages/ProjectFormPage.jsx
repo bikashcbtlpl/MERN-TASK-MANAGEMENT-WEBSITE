@@ -2,19 +2,33 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ProjectForm from "./ProjectForm";
 import axiosInstance from "../api/axiosInstance";
+import { toast } from "react-toastify";
+import { LoadingSpinner } from "../components/common";
 
 const ProjectFormPage = ({ mode }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [initialData, setInitialData] = useState(null);
   const [loading, setLoading] = useState(mode === "edit");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (mode === "edit" && id) {
-      axiosInstance.get(`/projects/${id}`).then((res) => {
-        setInitialData(res.data);
-        setLoading(false);
-      });
+      setLoading(true);
+      axiosInstance
+        .get(`/projects/${id}`)
+        .then((res) => {
+          setInitialData(res.data);
+        })
+        .catch((err) => {
+          console.error("Failed to load project:", err);
+          const msg = err.response?.data?.message || "Failed to load project";
+          toast.error(msg);
+          setError(msg);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
   }, [mode, id]);
 
@@ -23,28 +37,62 @@ const ProjectFormPage = ({ mode }) => {
       if (mode === "edit") {
         await axiosInstance.put(`/projects/${id}`, {
           ...data,
-          team: data.team.map((u) => u.value),
+          team: data.team.map((u) => u.value ?? u),
         });
+        toast.success("Project updated successfully");
       } else {
         await axiosInstance.post("/projects", {
           ...data,
-          team: data.team.map((u) => u.value),
+          team: data.team.map((u) => u.value ?? u),
         });
+        toast.success("Project created successfully");
       }
       navigate("/projects");
     } catch (err) {
-      alert(
-        "Error saving project: " + (err.response?.data?.error || err.message),
-      );
+      const msg = err.response?.data?.message || err.message || "Error saving project";
+      toast.error(msg);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner message={mode === "edit" ? "Loading project..." : "Please wait..."} />;
+
+  if (error) {
+    return (
+      <div className="page-container" style={{ textAlign: "center", paddingTop: 60 }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+        <p style={{ color: "#ef4444", fontWeight: 600 }}>{error}</p>
+        <button
+          onClick={() => navigate("/projects")}
+          style={{
+            marginTop: 16, padding: "8px 20px", borderRadius: 6,
+            background: "#4f46e5", color: "#fff", border: "none",
+            cursor: "pointer", fontWeight: 600,
+          }}
+        >
+          ← Back to Projects
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
-      <h2>{mode === "edit" ? "Edit Project" : "Create Project"}</h2>
-      <ProjectForm onSubmit={handleSubmit} initialData={initialData} />
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <button
+          type="button"
+          onClick={() => navigate("/projects")}
+          style={{
+            background: "none", border: "none",
+            color: "#64748b", cursor: "pointer",
+            fontSize: 20, padding: 0, lineHeight: 1,
+          }}
+          title="Back to projects"
+        >
+          ←
+        </button>
+        <h2 style={{ margin: 0 }}>{mode === "edit" ? "Edit Project" : "Create Project"}</h2>
+      </div>
+      <ProjectForm onSubmit={handleSubmit} initialData={initialData} mode={mode} />
     </div>
   );
 };

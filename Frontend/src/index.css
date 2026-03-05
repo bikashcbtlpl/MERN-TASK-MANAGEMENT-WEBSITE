@@ -495,42 +495,17 @@
   animation: fadeIn 0.2s;
 }
 
-/* Manage Access modal layout */
-.manage-access-root {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 20px;
-  align-items: flex-start;
+/* Manage Access modal — styles now inlined in ManageAccessModal.jsx */
+.muted {
+  color: #666;
 }
-.manage-access-column {
-  background: #fafbfc;
-  border: 1px solid #e7eaf0;
-  border-radius: 10px;
-  padding: 14px;
-  flex: 1;
-  min-width: 240px;
-}
-.manage-access-list { display: flex; flex-direction: column; gap: 10px; }
-.manage-access-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid #eceff4;
-  border-radius: 8px;
-  background: #fff;
-}
-.manage-access-user { display:flex; flex-direction:column; }
-.manage-access-actions { display:flex; gap:8px; align-items:center; }
-.muted { color: #666; }
-.small { font-size: 12px; }
-.full-width { width: 100%; }
 
-@media (max-width: 900px) {
-  .manage-access-root {
-    grid-template-columns: 1fr;
-  }
+.small {
+  font-size: 12px;
+}
+
+.full-width {
+  width: 100%;
 }
 
 .modal-buttons {
@@ -1457,5 +1432,45 @@ select.field-input {
 .page-header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+}
+
+/* ================= HEADER SEARCH BAR ================= */
+.header-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.header-search-wrapper .search-icon {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.header-search {
+  height: 36px;
+  padding: 0 12px 0 34px;
+  font-size: 14px;
+  color: #1e293b;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  width: 220px;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.header-search:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+  width: 260px;
+}
+
+.header-search::placeholder {
+  color: #94a3b8;
 }

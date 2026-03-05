@@ -15,9 +15,27 @@ const { Server } = require("socket.io");
 const app = express();
 
 /* ================= ALLOWED ORIGINS ================= */
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+const configuredOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
   : ["http://localhost:5173"];
+
+const allowedOrigins = Array.from(
+  new Set(
+    configuredOrigins.flatMap((origin) => {
+      try {
+        const parsed = new URL(origin);
+        // In local dev, frontend is often opened via localhost or 127.0.0.1 interchangeably.
+        if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+          const otherHost = parsed.hostname === "localhost" ? "127.0.0.1" : "localhost";
+          return [origin, `${parsed.protocol}//${otherHost}${parsed.port ? `:${parsed.port}` : ""}`];
+        }
+      } catch {
+        // Keep invalid entries untouched; they will simply fail matching in CORS check.
+      }
+      return [origin];
+    }),
+  ),
+);
 
 /* ================= MIDDLEWARE ================= */
 app.use(

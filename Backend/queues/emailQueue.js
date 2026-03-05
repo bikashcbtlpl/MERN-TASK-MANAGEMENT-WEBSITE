@@ -1,70 +1,85 @@
 require("dotenv").config();
-const Queue = require("bull");
 
-const redisHost = (process.env.REDIS_HOST || "localhost").trim();
-const redisPort = Number((process.env.REDIS_PORT || "6379").trim());
+/* =====================================================
+   📧 EMAIL QUEUE
+   Uses Bull (Redis-backed) when REDIS_ENABLED=true.
+   Falls back silently to a no-op when Redis is off.
+===================================================== */
 
-// Bull-compatible redis connection options
-const redisOptions = {
-  host: redisHost,
-  port: redisPort,
-  // Retry connection but cap retries so we don't spin forever
-  retryStrategy(times) {
-    if (times > 5) {
-      // Stop retrying after 5 attempts — email is non-critical
-      return null;
-    }
-    return Math.min(times * 1000, 5000);
+// Safe no-op stub — never throws, never rejects
+const noopQueue = {
+  add: (data) => {
+    // Silently drop — email queue is disabled
+    return Promise.resolve(null);
   },
-  // Allow commands to be enqueued while Redis is unavailable.
-  // Use lazyConnect so the client doesn't attempt an immediate TCP connect
-  // (which throws when Redis is not running). With `enableOfflineQueue` true
-  // Bull will store jobs locally until Redis becomes available.
-  enableOfflineQueue: true,
-  connectTimeout: 10000,
-  lazyConnect: true,
+  process: () => { },
+  on: () => { },
+  close: () => Promise.resolve(),
 };
 
-let emailQueue;
+const REDIS_ENABLED = process.env.REDIS_ENABLED === "true";
 
-try {
-  emailQueue = new Queue("emailQueue", {
-    redis: redisOptions,
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
-      },
-      removeOnComplete: 100,
-      removeOnFail: 50,
+if (!REDIS_ENABLED) {
+  console.warn("[emailQueue] Redis disabled (REDIS_ENABLED != true) — emails will be skipped.");
+  module.exports = noopQueue;
+} else {
+  // Only load Bull when explicitly enabled
+  const Queue = require("bull");
+
+  const redisHost = (process.env.REDIS_HOST || "127.0.0.1").trim();
+  const redisPort = Number((process.env.REDIS_PORT || "6379").trim());
+
+  const redisOptions = {
+    host: redisHost,
+    port: redisPort,
+    retryStrategy(times) {
+      if (times > 3) return null; // stop reconnecting after 3 tries
+      return Math.min(times * 1000, 3000);
     },
-  });
-
-  emailQueue.on("error", (err) => {
-    // Non-fatal: email queue errors should not crash the server
-    if (err.code !== "ECONNREFUSED") {
-      console.error("[emailQueue] Error:", err.message);
-    }
-  });
-
-  emailQueue.on("failed", (job, err) => {
-    console.error(`[emailQueue] Job ${job?.id} failed: ${err.message}`);
-  });
-
-  emailQueue.on("completed", (job) => {
-    console.log(`[emailQueue] Job ${job?.id} completed successfully`);
-  });
-} catch (err) {
-  console.warn("[emailQueue] Could not initialize email queue:", err.message);
-  // Provide a no-op queue so the app doesn't crash
-  emailQueue = {
-    add: async (data) => {
-      console.warn("[emailQueue] Queue unavailable. Email not sent:", data?.to);
-    },
-    process: () => { },
-    on: () => { },
+    enableOfflineQueue: false,
+    connectTimeout: 5000,
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
   };
-}
 
-module.exports = emailQueue;
+  let emailQueue;
+
+  try {
+    emailQueue = new Queue("emailQueue", {
+      redis: redisOptions,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+      settings: { stalledInterval: 0 },
+    });
+
+    // Suppress ECONNREFUSED so it never crashes the server
+    emailQueue.client.on("error", (err) => {
+      if (err.code !== "ECONNREFUSED") {
+        console.error("[emailQueue] Redis client error:", err.message);
+      }
+    });
+
+    emailQueue.on("error", (err) => {
+      if (err.code !== "ECONNREFUSED") {
+        console.error("[emailQueue] Queue error:", err.message);
+      }
+    });
+
+    emailQueue.on("failed", (job, err) => {
+      console.error(`[emailQueue] Job ${job?.id} failed: ${err.message}`);
+    });
+
+    emailQueue.on("completed", (job) => {
+      console.log(`[emailQueue] Job ${job?.id} completed`);
+    });
+  } catch (err) {
+    console.warn("[emailQueue] Init failed, using no-op:", err.message);
+    emailQueue = noopQueue;
+  }
+
+  module.exports = emailQueue;
+}

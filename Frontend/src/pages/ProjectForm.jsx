@@ -3,7 +3,7 @@ import Select from "react-select";
 import axiosInstance from "../api/axiosInstance";
 import { FormField, Button, Input } from "../components/common";
 
-const ProjectForm = ({ onSubmit, initialData }) => {
+const ProjectForm = ({ onSubmit, initialData, mode = "create" }) => {
   const [formData, setFormData] = useState(
     initialData || {
       name: "",
@@ -217,7 +217,9 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         </div>
       </div>
       <div style={{ marginTop: '16px' }}>
-        <Button variant="primary" type="submit">Create Project</Button>
+        <Button variant="primary" type="submit">
+          {mode === "edit" ? "Update Project" : "Create Project"}
+        </Button>
       </div>
     </form>
   );

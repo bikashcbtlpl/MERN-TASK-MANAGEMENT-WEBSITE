@@ -34,19 +34,10 @@ const processDocumentFiles = async (files = {}) => {
 ===================================================== */
 exports.listDocuments = async (req, res) => {
   try {
-    const user = req.user;
-    const isSuperAdmin = user.role?.name === "Super Admin";
-
+    // All authenticated users can see all documents.
+    // Access control for opening/editing/deleting is enforced per-action.
+    // Showing all docs allows users to discover documents and request access.
     let filter = {};
-
-    // Non-super-admin can only see documents they created or have access to
-    if (!isSuperAdmin) {
-      filter.$or = [
-        { createdBy: user._id },
-        { access: user._id },
-        { "access.user": user._id },
-      ];
-    }
 
     let docs = await Document.find(filter)
       .populate({ path: "createdBy", select: "name email role", populate: { path: "role", select: "name" } })
@@ -101,7 +92,7 @@ exports.listDocuments = async (req, res) => {
 ===================================================== */
 exports.createDocument = async (req, res) => {
   try {
-    const { name, description, access } = req.body;
+    const { name, description, content, access } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ message: "Document name is required" });
@@ -128,6 +119,7 @@ exports.createDocument = async (req, res) => {
     const doc = await Document.create({
       name: name.trim(),
       description,
+      content,
       attachments,
       access: normalizedAccess,
       createdBy: req.user._id,
@@ -276,27 +268,35 @@ exports.updateDocument = async (req, res) => {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
-    // Only creator or super admin can update
-    const isOwner = String(doc.createdBy) === String(req.user._id);
+    const userId = String(req.user._id);
+    const isOwner = String(doc.createdBy) === userId;
     const isSuper = req.user.role?.name === "Super Admin";
-    if (!isOwner && !isSuper) {
-      return res.status(403).json({ message: "Not allowed - Only document owner or Super Admin can update" });
+
+    // Check if user has 'edit' access to this document
+    const accessEntry = doc.access.find((a) => getAccessUserId(a) === userId);
+    const hasEditAccess = accessEntry &&
+      (typeof accessEntry === "object" ? accessEntry.accessType === "edit" : false);
+
+    // Must be owner, super admin, or have edit access
+    if (!isOwner && !isSuper && !hasEditAccess) {
+      return res.status(403).json({ message: "Not allowed — you need edit access to update this document" });
     }
 
-    const { name, description, access } = req.body;
+    const { name, description, content, access } = req.body;
 
     if (name !== undefined) {
       if (!name || !name.trim()) return res.status(400).json({ message: "Document name cannot be empty" });
       doc.name = name.trim();
     }
     if (description !== undefined) doc.description = description;
+    if (content !== undefined) doc.content = content;
 
-    if (access !== undefined) {
+    // Only owner or Super Admin can change the access list
+    if (access !== undefined && (isOwner || isSuper)) {
       let accessArr = [];
       try {
         accessArr = JSON.parse(access);
       } catch (e) {
-        // if it's already an array or object, attempt to use as-is
         if (Array.isArray(access)) accessArr = access;
         else return res.status(400).json({ message: "Invalid access field format" });
       }
@@ -308,6 +308,14 @@ exports.updateDocument = async (req, res) => {
       }).filter(Boolean);
 
       doc.access = normalizedAccess;
+    }
+
+    // Process new attachments if any files were uploaded
+    if (req.files && Object.keys(req.files).length > 0) {
+      const newAttachments = await processDocumentFiles(req.files);
+      if (newAttachments.length > 0) {
+        doc.attachments = [...(doc.attachments || []), ...newAttachments];
+      }
     }
 
     await doc.save();
