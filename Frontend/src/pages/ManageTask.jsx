@@ -10,6 +10,8 @@ import {
   LoadingSpinner,
   TaskStatusSelect,
   TASK_STATUSES,
+  Button,
+  Input,
 } from "../components/common";
 import usePermissions from "../hooks/usePermissions";
 
@@ -111,8 +113,8 @@ function ManageTask() {
 
       {/* FILTERS */}
       <div className="task-filters">
-        <input
-          type="text"
+        <Input
+          fullWidth={false}
           placeholder="Search title or description..."
           value={search}
           onChange={(e) => {
@@ -122,7 +124,9 @@ function ManageTask() {
         />
 
         {/* Reuse TASK_STATUSES constant for the filter dropdown */}
-        <select
+        <Input
+          as="select"
+          fullWidth={false}
           value={taskStatus}
           onChange={(e) => {
             setCurrentPage(1);
@@ -133,9 +137,11 @@ function ManageTask() {
           {TASK_STATUSES.map((s) => (
             <option key={s}>{s}</option>
           ))}
-        </select>
+        </Input>
 
-        <select
+        <Input
+          as="select"
+          fullWidth={false}
           value={isActive}
           onChange={(e) => {
             setCurrentPage(1);
@@ -145,9 +151,10 @@ function ManageTask() {
           <option value="">All</option>
           <option value="true">Active</option>
           <option value="false">Inactive</option>
-        </select>
+        </Input>
 
-        <button
+        <Button
+          variant="primary"
           onClick={() => {
             setSearch("");
             setTaskStatus("");
@@ -156,7 +163,7 @@ function ManageTask() {
           }}
         >
           Reset
-        </button>
+        </Button>
       </div>
 
       <p>

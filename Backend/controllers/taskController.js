@@ -99,8 +99,23 @@ exports.createTask = async (req, res) => {
       }).catch((e) => console.warn("Warning: could not add task to project tasks array", e));
     }
 
-    // Send email notification to assigned user
-    if (assignedTo) {
+    // Send email notification to project team when a task is assigned to a project
+    if (project) {
+      const Project = require("../models/Project");
+      const assignedProject = await Project.findById(project).populate("team", "email").lean();
+      if (assignedProject && assignedProject.team && assignedProject.team.length > 0) {
+        for (const member of assignedProject.team) {
+          if (member.email) {
+            await emailQueue.add({
+              to: member.email,
+              subject: "New Task Assigned to Project",
+              text: `A new task has been assigned to the project "${assignedProject.name}":\n\nTitle: ${newTask.title}\nStatus: ${newTask.taskStatus}\n\nPlease login to view the details.`,
+            });
+          }
+        }
+      }
+    } else if (assignedTo) {
+      // Fallback: Notify individual if task is not in a project but assigned to them
       const assignedUser = await User.findById(assignedTo).lean();
       if (assignedUser?.email) {
         await emailQueue.add({
@@ -236,8 +251,23 @@ exports.updateTask = async (req, res) => {
       }
     }
 
-    // Email notification if task was reassigned
-    if (assignedTo && String(assignedTo) !== String(task.assignedTo)) {
+    // Email notification if task was added to a new project
+    if (newProjectId && oldProjectId !== newProjectId) {
+      const Project = require("../models/Project");
+      const assignedProject = await Project.findById(newProjectId).populate("team", "email").lean();
+      if (assignedProject && assignedProject.team && assignedProject.team.length > 0) {
+        for (const member of assignedProject.team) {
+          if (member.email) {
+            await emailQueue.add({
+              to: member.email,
+              subject: "Task Added to Project",
+              text: `A task has been added to the project "${assignedProject.name}":\n\nTitle: ${updatedTask.title}\nStatus: ${updatedTask.taskStatus}\n\nPlease login to view the details.`,
+            });
+          }
+        }
+      }
+    } else if (!newProjectId && assignedTo && String(assignedTo) !== String(task.assignedTo)) {
+      // Email individual if task is not in a project but got reassigned
       const reassignedUser = await User.findById(assignedTo).lean();
       if (reassignedUser?.email) {
         await emailQueue.add({

@@ -8,6 +8,8 @@ import {
   TaskStatusSelect,
   TASK_STATUSES,
   StatusBadge,
+  Button,
+  Input,
 } from "../components/common";
 
 function MyTask() {
@@ -108,8 +110,8 @@ function MyTask() {
 
       {/* FILTERS */}
       <div className="task-filters">
-        <input
-          type="text"
+        <Input
+          fullWidth={false}
           placeholder="Search tasks..."
           value={search}
           onChange={(e) => {
@@ -118,7 +120,9 @@ function MyTask() {
           }}
         />
 
-        <select
+        <Input
+          as="select"
+          fullWidth={false}
           value={taskStatus}
           onChange={(e) => {
             setTaskStatus(e.target.value);
@@ -129,9 +133,10 @@ function MyTask() {
           {TASK_STATUSES.map((s) => (
             <option key={s}>{s}</option>
           ))}
-        </select>
+        </Input>
 
-        <button
+        <Button
+          variant="primary"
           onClick={() => {
             setSearch("");
             setTaskStatus("");
@@ -139,7 +144,7 @@ function MyTask() {
           }}
         >
           Reset
-        </button>
+        </Button>
       </div>
 
       <div className="task-summary" style={{ marginBottom: "15px" }}>

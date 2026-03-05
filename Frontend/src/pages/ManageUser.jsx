@@ -6,6 +6,8 @@ import {
   FormField,
   StatusBadge,
   ActionButtons,
+  Button,
+  Input,
 } from "../components/common";
 import usePermissions from "../hooks/usePermissions";
 
@@ -91,16 +93,36 @@ function ManageUser() {
     user.role?.name === "Super Admin" &&
     loggedInUser?.role !== "Super Admin";
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredUsers = users.filter((u) => {
+    const term = searchQuery.toLowerCase();
+    return (
+      (u.name || "").toLowerCase().includes(term) ||
+      (u.email || "").toLowerCase().includes(term)
+    );
+  });
+
   return (
     <div className="manage-role-container">
       <PageHeader
         title="Manage Users"
         btnLabel={canCreate ? "+ Add User" : undefined}
         onBtnClick={openCreateModal}
-      />
+      >
+        <div style={{ marginRight: "16px" }}>
+          <Input
+            fullWidth={false}
+            type="text"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </PageHeader>
 
       <p>
-        Total Users: <strong>{users.length}</strong>
+        Total Users: <strong>{filteredUsers.length}</strong>
       </p>
 
       <table className="role-table">
@@ -115,7 +137,7 @@ function ManageUser() {
           </tr>
         </thead>
         <tbody>
-          {users.map((user, index) => (
+          {filteredUsers.map((user, index) => (
             <tr key={user._id}>
               <td>{index + 1}</td>
               <td>{user.name || "-"}</td>
@@ -144,7 +166,7 @@ function ManageUser() {
       >
         <form onSubmit={handleSubmit}>
           <FormField label="Name">
-            <input
+            <Input
               type="text"
               value={formData.name}
               onChange={(e) =>
@@ -155,7 +177,7 @@ function ManageUser() {
           </FormField>
 
           <FormField label="Email">
-            <input
+            <Input
               type="email"
               value={formData.email}
               onChange={(e) =>
@@ -167,7 +189,8 @@ function ManageUser() {
           </FormField>
 
           <FormField label="Role">
-            <select
+            <Input
+              as="select"
               value={formData.role}
               onChange={(e) =>
                 setFormData({ ...formData, role: e.target.value })
@@ -180,11 +203,12 @@ function ManageUser() {
                   {role.name}
                 </option>
               ))}
-            </select>
+            </Input>
           </FormField>
 
           <FormField label="Status">
-            <select
+            <Input
+              as="select"
               value={formData.status}
               onChange={(e) =>
                 setFormData({ ...formData, status: e.target.value })
@@ -192,20 +216,20 @@ function ManageUser() {
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
-            </select>
+            </Input>
           </FormField>
 
           <div className="modal-buttons">
-            <button type="submit" className="save-btn">
+            <Button variant="primary" type="submit">
               {editingUser ? "Update" : "Add"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               type="button"
-              className="cancel-btn"
               onClick={() => setIsModalOpen(false)}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

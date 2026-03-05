@@ -48,16 +48,32 @@ function ManageRole() {
   const isSuperAdminRow = (role) =>
     role.name === "Super Admin" && loggedInUser?.role !== "Super Admin";
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredRoles = roles.filter((role) =>
+    role.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="manage-role-container">
       <PageHeader
         title="Manage Roles"
         btnLabel={canCreate ? "+ Create Role" : undefined}
         onBtnClick={() => navigate("/roles/create")}
-      />
+      >
+        <div style={{ marginRight: "16px" }}>
+          <input
+            type="text"
+            placeholder="Search roles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ padding: 8, borderRadius: 4, border: "1px solid #ddd" }}
+          />
+        </div>
+      </PageHeader>
 
       <p>
-        Total Roles: <strong>{roles.length}</strong>
+        Total Roles: <strong>{filteredRoles.length}</strong>
       </p>
 
       <table className="role-table">
@@ -71,7 +87,7 @@ function ManageRole() {
           </tr>
         </thead>
         <tbody>
-          {roles.map((role, index) => (
+          {filteredRoles.map((role, index) => (
             <tr key={role._id}>
               <td>{index + 1}</td>
               <td>{role.name}</td>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
-import { FormField, LoadingSpinner, TaskStatusSelect } from "../components/common";
+import { FormField, LoadingSpinner, TaskStatusSelect, Button } from "../components/common";
 
 function TaskForm() {
   const navigate = useNavigate();
@@ -385,16 +385,16 @@ function TaskForm() {
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="primary-btn">
+            <Button type="submit" variant="primary">
               {isEditMode ? "Update Task" : "Create Task"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="secondary-btn"
+              variant="secondary"
               onClick={() => navigate("/tasks")}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>

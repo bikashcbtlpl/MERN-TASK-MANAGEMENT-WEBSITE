@@ -1,3 +1,5 @@
+import Button from "./Button";
+
 /**
  * PageHeader — reusable page title bar with an optional primary action button.
  *
@@ -8,14 +10,14 @@
  *   children   {node}     – extra content placed to the right of the button (e.g. search)
  */
 const PageHeader = ({ title, btnLabel, onBtnClick, children }) => (
-    <div className="manage-role-header">
-        <h2>{title}</h2>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+    <div className="page-header">
+        <h2 className="page-header-title">{title}</h2>
+        <div className="page-header-actions">
             {children}
             {btnLabel && onBtnClick && (
-                <button className="create-role-btn" onClick={onBtnClick}>
+                <Button variant="primary" size="md" onClick={onBtnClick}>
                     {btnLabel}
-                </button>
+                </Button>
             )}
         </div>
     </div>

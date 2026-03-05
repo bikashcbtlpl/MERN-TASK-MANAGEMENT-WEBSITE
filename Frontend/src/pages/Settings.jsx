@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
-import { FormField } from "../components/common";
+import { FormField, Button } from "../components/common";
 
 function Settings() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -82,9 +82,9 @@ function Settings() {
           />
         </FormField>
 
-        <button className="save-btn" onClick={handleProfileSave}>
+        <Button variant="primary" onClick={handleProfileSave}>
           Save Profile
-        </button>
+        </Button>
       </div>
 
       {/* EMAIL (SUPER ADMIN ONLY) */}
@@ -119,9 +119,9 @@ function Settings() {
             />
           </FormField>
 
-          <button className="save-btn" onClick={handleEmailSave}>
+          <Button variant="primary" onClick={handleEmailSave}>
             Save Email Settings
-          </button>
+          </Button>
         </div>
       )}
 
@@ -150,9 +150,9 @@ function Settings() {
             />
           </FormField>
 
-          <button className="save-btn" onClick={handleSecuritySave}>
+          <Button variant="primary" onClick={handleSecuritySave}>
             Save Security Settings
-          </button>
+          </Button>
         </div>
       )}
     </div>

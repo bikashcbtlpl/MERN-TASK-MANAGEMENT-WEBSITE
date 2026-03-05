@@ -1,5 +1,7 @@
 const Project = require("../models/Project");
 const Task = require("../models/Task");
+const User = require("../models/User");
+const emailQueue = require("../queues/emailQueue");
 
 /* ================= CREATE PROJECT ================= */
 exports.createProject = async (req, res) => {
@@ -17,6 +19,19 @@ exports.createProject = async (req, res) => {
       status: status || "active",
       team: team || [],
     });
+
+    if (team && team.length > 0) {
+      const users = await User.find({ _id: { $in: team } }).select("email").lean();
+      for (const u of users) {
+        if (u.email) {
+          await emailQueue.add({
+            to: u.email,
+            subject: "Added to New Project",
+            text: `You have been added to a new project: ${project.name}.\n\nPlease login to view the details.`,
+          });
+        }
+      }
+    }
 
     res.status(201).json(project);
   } catch (err) {
@@ -108,6 +123,9 @@ exports.updateProject = async (req, res) => {
       return res.status(400).json({ message: "Project name cannot be empty" });
     }
 
+    const oldProject = await Project.findById(req.params.id).lean();
+    if (!oldProject) return res.status(404).json({ message: "Project not found" });
+
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
     if (description !== undefined) updateData.description = description;
@@ -121,7 +139,24 @@ exports.updateProject = async (req, res) => {
       { new: true, runValidators: true },
     ).lean();
 
-    if (!project) return res.status(404).json({ message: "Project not found" });
+    if (team !== undefined) {
+      const oldTeamStr = (oldProject.team || []).map(String);
+      const newTeamStr = (team || []).map(String);
+      const newlyAdded = newTeamStr.filter((id) => !oldTeamStr.includes(id));
+
+      if (newlyAdded.length > 0) {
+        const newUsers = await User.find({ _id: { $in: newlyAdded } }).select("email").lean();
+        for (const u of newUsers) {
+          if (u.email) {
+            await emailQueue.add({
+              to: u.email,
+              subject: "Added to Project",
+              text: `You have been added to the project: ${project.name}.\n\nPlease login to view the details.`,
+            });
+          }
+        }
+      }
+    }
 
     res.json(project);
   } catch (err) {

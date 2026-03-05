@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
+import { Button, Input, PageHeader } from "../components/common";
 
 function Documents() {
   const { user } = useAuth();
@@ -131,20 +132,33 @@ function Documents() {
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredDocuments = documents.filter((doc) => {
+    const term = searchQuery.toLowerCase();
+    return (
+      (doc.name || "").toLowerCase().includes(term) ||
+      (doc.description || "").toLowerCase().includes(term)
+    );
+  });
+
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
+      <PageHeader
+        title="Documents"
+        btnLabel="Create Document"
+        onBtnClick={() => setShowModal(true)}
       >
-        <h2>Documents</h2>
-        <div>
-          <button onClick={() => setShowModal(true)}>Create Document</button>
+        <div style={{ marginRight: "16px" }}>
+          <Input
+            fullWidth={false}
+            type="text"
+            placeholder="Search documents..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <div>Loading...</div>
@@ -162,7 +176,7 @@ function Documents() {
             </tr>
           </thead>
           <tbody>
-            {documents.map((doc) => {
+            {filteredDocuments.map((doc) => {
               const isOwner =
                 doc.createdBy?._id === user?._id || doc.createdBy === user?._id;
               const hasAccess =
@@ -183,16 +197,18 @@ function Documents() {
                       .map((a) => (a.name ? a.name : a))
                       .join(", ")}
                   </td>
-                  <td style={{ padding: 6 }}>
-                    <button onClick={() => openDocument(doc)}>Open</button>
+                  <td style={{ padding: 6, display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                    <Button variant="primary" size="sm" onClick={() => openDocument(doc)}>Open</Button>
                     {!hasAccess && (
-                      <button onClick={() => requestAccess(doc._id)}>
+                      <Button variant="secondary" size="sm" onClick={() => requestAccess(doc._id)}>
                         Request Access
-                      </button>
+                      </Button>
                     )}
                     {isOwner && (
                       <>
-                        <button
+                        <Button
+                          variant="warning"
+                          size="sm"
                           onClick={() =>
                             setManagingAccessFor(
                               managingAccessFor === doc._id ? null : doc._id,
@@ -200,17 +216,18 @@ function Documents() {
                           }
                         >
                           Manage Access
-                        </button>
-                        <button onClick={() => deleteDocument(doc._id)}>
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => deleteDocument(doc._id)}>
                           Delete
-                        </button>
+                        </Button>
                       </>
                     )}
                     {managingAccessFor === doc._id && (
-                      <div style={{ marginTop: 6 }}>
+                      <div style={{ marginTop: 6, display: "flex", gap: "8px", alignItems: "center" }}>
                         <select
                           value={selectedGrantUser}
                           onChange={(e) => setSelectedGrantUser(e.target.value)}
+                          style={{ padding: "4px 8px", borderRadius: "4px", border: "1px solid #ccc" }}
                         >
                           <option value="">Select user</option>
                           {users
@@ -221,9 +238,9 @@ function Documents() {
                               </option>
                             ))}
                         </select>
-                        <button onClick={() => grantAccess(doc._id)}>
+                        <Button variant="primary" size="sm" onClick={() => grantAccess(doc._id)}>
                           Grant
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </td>
@@ -258,21 +275,17 @@ function Documents() {
           >
             <h3>Create Document</h3>
             <form onSubmit={handleCreate}>
-              <div style={{ marginBottom: 8 }}>
-                <label>Name</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} />
+              <div style={{ marginBottom: 12 }}>
+                <Input label="Name" fullWidth value={name} onChange={(e) => setName(e.target.value)} />
               </div>
-              <div style={{ marginBottom: 8 }}>
-                <label>Description</label>
-                <textarea
+              <div style={{ marginBottom: 12 }}>
+                <Input as="textarea" label="Description" fullWidth
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
-              <div style={{ marginBottom: 8 }}>
-                <label>Attach File</label>
-                <input
-                  type="file"
+              <div style={{ marginBottom: 12 }}>
+                <Input type="file" label="Attach File" fullWidth
                   onChange={(e) => setFile(e.target.files[0])}
                 />
               </div>
@@ -296,12 +309,12 @@ function Documents() {
                 </select>
               </div>
               <div
-                style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+                style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}
               >
-                <button type="button" onClick={() => setShowModal(false)}>
+                <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>
                   Cancel
-                </button>
-                <button type="submit">Create</button>
+                </Button>
+                <Button variant="primary" type="submit">Create</Button>
               </div>
             </form>
           </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
-import { LoadingSpinner, FormField } from "../components/common";
+import { LoadingSpinner, FormField, Button } from "../components/common";
 
 function RoleForm() {
   const navigate = useNavigate();
@@ -233,17 +233,17 @@ function RoleForm() {
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="save-btn">
+            <Button variant="primary" type="submit">
               {isEdit ? "Update Role" : "Create Role"}
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="secondary"
               type="button"
-              className="cancel-btn"
               onClick={() => navigate("/roles")}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>

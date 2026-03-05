@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
 import { toast } from "react-toastify";
-import { FormField } from "../components/common";
+import { FormField, Button } from "../components/common";
 
 function Login() {
   const navigate = useNavigate();
@@ -69,9 +69,9 @@ function Login() {
 
           {error && <p className="error-text">{error}</p>}
 
-          <button type="submit" className="login-btn">
+          <Button variant="primary" type="submit" fullWidth>
             Login
-          </button>
+          </Button>
         </form>
       </div>
     </div>

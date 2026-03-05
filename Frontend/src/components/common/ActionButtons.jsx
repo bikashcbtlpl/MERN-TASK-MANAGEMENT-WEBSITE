@@ -1,3 +1,5 @@
+import Button from "./Button";
+
 /**
  * ActionButtons — Edit and/or Delete button pair used in every Manage table.
  *
@@ -20,17 +22,19 @@ const ActionButtons = ({
     if (!canEdit && !canDelete) return null;
 
     return (
-        <td onClick={(e) => e.stopPropagation()}>
-            {canEdit && onEdit && (
-                <button className="edit-role-btn" onClick={onEdit}>
-                    {editLabel}
-                </button>
-            )}
-            {canDelete && onDelete && (
-                <button className="delete-role-btn" onClick={onDelete}>
-                    {deleteLabel}
-                </button>
-            )}
+        <td onClick={(e) => e.stopPropagation()} className="action-cell">
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                {canEdit && onEdit && (
+                    <Button variant="warning" size="sm" onClick={onEdit}>
+                        {editLabel}
+                    </Button>
+                )}
+                {canDelete && onDelete && (
+                    <Button variant="danger" size="sm" onClick={onDelete}>
+                        {deleteLabel}
+                    </Button>
+                )}
+            </div>
         </td>
     );
 };

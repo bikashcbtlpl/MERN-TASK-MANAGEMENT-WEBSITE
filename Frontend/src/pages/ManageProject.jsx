@@ -6,6 +6,7 @@ import {
   Pagination,
   ActionButtons,
   LoadingSpinner,
+  StatusBadge,
 } from "../components/common";
 import usePermissions from "../hooks/usePermissions";
 import { useAuth } from "../context/AuthContext";
@@ -74,13 +75,15 @@ const ManageProject = () => {
   return (
     <div className="page-container">
       <PageHeader title="Manage Projects" btnLabel={canCreate ? "Create Project" : undefined} onBtnClick={() => navigate("/projects/create")}>
-        <input
-          type="text"
-          placeholder="Search projects..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{ padding: 8, borderRadius: 4, border: "1px solid #ddd" }}
-        />
+        <div style={{ marginRight: "16px" }}>
+          <input
+            type="text"
+            placeholder="Search projects..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ padding: 8, borderRadius: 4, border: "1px solid #ddd" }}
+          />
+        </div>
       </PageHeader>
 
       {loading ? (
@@ -108,7 +111,11 @@ const ManageProject = () => {
                       ? new Date(project.deadline).toLocaleDateString()
                       : "-"}
                   </td>
-                  <td>{project.status}</td>
+                  <td>
+                    <StatusBadge
+                      status={project.status === "active" ? "Active" : "Inactive"}
+                    />
+                  </td>
                   <td>
                     {(project.team || [])
                       .map((u) => u.name || u.email || "")

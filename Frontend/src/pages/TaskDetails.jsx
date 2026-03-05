@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
-import { LoadingSpinner } from "../components/common";
+import { LoadingSpinner, Button } from "../components/common";
 import usePermissions from "../hooks/usePermissions";
 import { useAuth } from "../context/AuthContext";
 
@@ -160,20 +160,20 @@ function TaskDetails() {
 
           <div className="header-actions">
             {canEdit && (
-              <button
-                className="primary-btn"
+              <Button
+                variant="primary"
                 onClick={() => navigate(`/tasks/edit/${task._id}`)}
               >
                 Edit
-              </button>
+              </Button>
             )}
 
-            <button
-              className="secondary-btn"
+            <Button
+              variant="secondary"
               onClick={() => navigate("/tasks")}
             >
               Back
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -340,9 +340,9 @@ function TaskDetails() {
                       href={`${file}?fl_attachment`}
                       target="_blank"
                       rel="noreferrer"
-                      className="download-btn"
+                      style={{ textDecoration: 'none' }}
                     >
-                      Download
+                      <Button size="sm" variant="primary">Download</Button>
                     </a>
                   </li>
                 );
@@ -370,9 +370,9 @@ function TaskDetails() {
                 style={{ width: "100%", padding: 8, minHeight: 80 }}
               />
               <div style={{ marginTop: 8 }}>
-                <button className="primary-btn" type="submit">
+                <Button variant="primary" type="submit">
                   Report Issue
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -414,12 +414,13 @@ function TaskDetails() {
                       >
                         <span className="status-badge">{iss.status}</span>
                         {canResolve && iss.status !== "Resolved" && (
-                          <button
-                            className="secondary-btn"
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => resolveIssue(iss._id)}
                           >
                             Resolve
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>

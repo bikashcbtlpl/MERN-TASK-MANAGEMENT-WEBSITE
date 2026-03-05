@@ -6,6 +6,8 @@ import {
   FormField,
   StatusBadge,
   ActionButtons,
+  Button,
+  Input,
 } from "../components/common";
 import usePermissions from "../hooks/usePermissions";
 
@@ -64,16 +66,32 @@ function ManagePermission() {
     fetchPermissions();
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredPermissions = permissions.filter((p) =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="manage-role-container">
       <PageHeader
         title="Manage Permissions"
         btnLabel={canCreate ? "+ Create Permission" : undefined}
         onBtnClick={openCreateModal}
-      />
+      >
+        <div style={{ marginRight: "16px" }}>
+          <Input
+            fullWidth={false}
+            type="text"
+            placeholder="Search permissions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </PageHeader>
 
       <p>
-        Total Permissions: <strong>{permissions.length}</strong>
+        Total Permissions: <strong>{filteredPermissions.length}</strong>
       </p>
 
       <table className="role-table">
@@ -86,7 +104,7 @@ function ManagePermission() {
           </tr>
         </thead>
         <tbody>
-          {permissions.map((p, index) => (
+          {filteredPermissions.map((p, index) => (
             <tr key={p._id}>
               <td>{index + 1}</td>
               <td>{p.name}</td>
@@ -113,7 +131,7 @@ function ManagePermission() {
       >
         <form onSubmit={handleSubmit}>
           <FormField label="Name">
-            <input
+            <Input
               type="text"
               value={formData.name}
               onChange={(e) =>
@@ -124,7 +142,8 @@ function ManagePermission() {
           </FormField>
 
           <FormField label="Status">
-            <select
+            <Input
+              as="select"
               value={formData.status}
               onChange={(e) =>
                 setFormData({ ...formData, status: e.target.value })
@@ -132,20 +151,20 @@ function ManagePermission() {
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
-            </select>
+            </Input>
           </FormField>
 
           <div className="modal-buttons">
-            <button type="submit" className="save-btn">
+            <Button variant="primary" type="submit">
               {editingPermission ? "Update" : "Create"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               type="button"
-              className="cancel-btn"
               onClick={() => setIsModalOpen(false)}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
+import { Button } from "./common";
 
 function Topbar() {
   const location = useLocation();
@@ -145,9 +146,9 @@ function Topbar() {
             <h4>{user?.name || user?.email}</h4>
             <p>{user?.role?.name || "No Role"}</p>
 
-            <button className="logout-btn" onClick={handleLogout}>
+            <Button variant="danger" fullWidth onClick={handleLogout}>
               Logout
-            </button>
+            </Button>
           </div>
         )}
       </div>

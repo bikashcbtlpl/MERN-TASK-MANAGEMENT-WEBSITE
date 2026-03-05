@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import axiosInstance from "../api/axiosInstance";
-import { FormField } from "../components/common";
+import { FormField, Button, Input } from "../components/common";
 
 const ProjectForm = ({ onSubmit, initialData }) => {
   const [formData, setFormData] = useState(
@@ -106,7 +106,7 @@ const ProjectForm = ({ onSubmit, initialData }) => {
       className="project-form"
     >
       <FormField label="Project Name">
-        <input
+        <Input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -114,7 +114,8 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         />
       </FormField>
       <FormField label="Project Description" style={{ position: "relative" }}>
-        <textarea
+        <Input
+          as="textarea"
           value={formData.description}
           onChange={(e) =>
             setFormData({ ...formData, description: e.target.value })
@@ -157,7 +158,7 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         )}
       </FormField>
       <FormField label="Project Deadline">
-        <input
+        <Input
           type="date"
           value={
             formData.deadline
@@ -170,13 +171,14 @@ const ProjectForm = ({ onSubmit, initialData }) => {
         />
       </FormField>
       <FormField label="Status">
-        <select
+        <Input
+          as="select"
           value={formData.status}
           onChange={(e) => setFormData({ ...formData, status: e.target.value })}
         >
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-        </select>
+        </Input>
       </FormField>
       <div className="form-group">
         <label>Team Assigned</label>
@@ -214,7 +216,9 @@ const ProjectForm = ({ onSubmit, initialData }) => {
           )}
         </div>
       </div>
-      <button type="submit">Create Project</button>
+      <div style={{ marginTop: '16px' }}>
+        <Button variant="primary" type="submit">Create Project</Button>
+      </div>
     </form>
   );
 };

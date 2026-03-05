@@ -1,3 +1,5 @@
+import Button from "./Button";
+
 /**
  * Pagination — Prev / Page X of Y / Next controls.
  *
@@ -19,9 +21,14 @@ const Pagination = ({
 
     return (
         <div className="pagination">
-            <button disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)}>
-                Prev
-            </button>
+            <Button
+                variant="primary"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
+            >
+                ← Prev
+            </Button>
 
             <span className="page-info">
                 Page {currentPage} of {totalPages}
@@ -30,12 +37,14 @@ const Pagination = ({
                 )}
             </span>
 
-            <button
+            <Button
+                variant="primary"
+                size="sm"
                 disabled={currentPage === totalPages}
                 onClick={() => onPageChange(currentPage + 1)}
             >
-                Next
-            </button>
+                Next →
+            </Button>
         </div>
     );
 };
