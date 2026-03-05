@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import {
@@ -23,35 +23,38 @@ const ManageProject = () => {
 
   const { canCreate, canEdit, canDelete } = usePermissions("Project");
 
-  const fetchProjects = async (page = 1) => {
-    try {
-      setLoading(true);
-      const params = { page, limit: 10 };
-      if (query) params.search = query;
-      const res = await axiosInstance.get("/projects", { params });
-      const data = res.data;
-      if (data.projects) {
-        setProjects(data.projects);
-        setTotalProjects(data.totalProjects || 0);
-        setCurrentPage(data.currentPage || page);
-        setTotalPages(data.totalPages || 1);
-      } else if (Array.isArray(data)) {
-        setProjects(data);
-        setTotalProjects(data.length);
-        setCurrentPage(1);
-        setTotalPages(1);
+  const fetchProjects = useCallback(
+    async (page = 1) => {
+      try {
+        setLoading(true);
+        const params = { page, limit: 10 };
+        if (query) params.search = query;
+        const res = await axiosInstance.get("/projects", { params });
+        const data = res.data;
+        if (data.projects) {
+          setProjects(data.projects);
+          setTotalProjects(data.totalProjects || 0);
+          setCurrentPage(data.currentPage || page);
+          setTotalPages(data.totalPages || 1);
+        } else if (Array.isArray(data)) {
+          setProjects(data);
+          setTotalProjects(data.length);
+          setCurrentPage(1);
+          setTotalPages(1);
+        }
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+        setProjects([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching projects:", err);
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [query],
+  );
 
   useEffect(() => {
     if (!authLoading) fetchProjects(1);
-  }, [authLoading]);
+  }, [authLoading, fetchProjects]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -59,7 +62,7 @@ const ManageProject = () => {
         try {
           const newUser = e.newValue ? JSON.parse(e.newValue) : null;
           if (newUser) setUser(newUser);
-        } catch (err) {
+        } catch {
           // ignore
         }
       }
@@ -70,15 +73,29 @@ const ManageProject = () => {
 
   useEffect(() => {
     if (!authLoading) fetchProjects(1);
-  }, [query]);
+  }, [query, authLoading, fetchProjects]);
 
   return (
     <div className="page-container">
-      <PageHeader title="Manage Projects" btnLabel={canCreate ? "Create Project" : undefined} onBtnClick={() => navigate("/projects/create")}>
+      <PageHeader
+        title="Manage Projects"
+        btnLabel={canCreate ? "Create Project" : undefined}
+        onBtnClick={() => navigate("/projects/create")}
+      >
         <div className="header-search-wrapper">
           <span className="search-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </span>
           <input
@@ -118,7 +135,9 @@ const ManageProject = () => {
                   </td>
                   <td>
                     <StatusBadge
-                      status={project.status === "active" ? "Active" : "Inactive"}
+                      status={
+                        project.status === "active" ? "Active" : "Inactive"
+                      }
                     />
                   </td>
                   <td>
@@ -137,7 +156,9 @@ const ManageProject = () => {
                             "Are you sure you want to delete this project?",
                           )
                         ) {
-                          await axiosInstance.delete(`/projects/${project._id}`);
+                          await axiosInstance.delete(
+                            `/projects/${project._id}`,
+                          );
                           fetchProjects();
                         }
                       }}

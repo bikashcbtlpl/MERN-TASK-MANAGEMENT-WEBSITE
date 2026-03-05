@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
-const checkPermission = require("../middleware/permissionMiddleware");
 const superAdminOnly = require("../middleware/superAdminOnly");
 const settingsController = require("../controllers/settingsController");
 

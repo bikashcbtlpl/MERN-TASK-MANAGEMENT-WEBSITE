@@ -11,7 +11,11 @@
     "seed:admin": "node seedAdmin.js",
     "seed:permissions": "node seedPermissions.js",
     "seed": "node seedAdmin.js && node seedPermissions.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.js\"",
+    "format:check": "prettier --check \"**/*.js\"",
+    "ci:check": "npm run lint && npm run format:check",
     "build": "esbuild server.js --bundle --platform=node --target=node18 --minify --outfile=dist/server.js"
   },
   "keywords": [],
@@ -36,7 +40,10 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "esbuild": "^0.27.3",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "nodemon": "^3.1.11",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.8.1"

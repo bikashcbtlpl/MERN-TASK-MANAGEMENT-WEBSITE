@@ -19,8 +19,7 @@ function Dashboard() {
       if (!isAdmin) {
         try {
           const params = { page: 1, limit: 10 };
-          const selectedProject =
-            localStorage.getItem("selectedProject") || "";
+          const selectedProject = localStorage.getItem("selectedProject") || "";
           if (selectedProject) params.project = selectedProject;
 
           const myRes = await axiosInstance.get("/tasks/my", { params });
@@ -31,12 +30,10 @@ function Dashboard() {
           setStats({
             totalUsers: res.data.totalUsers || 0,
             totalTasks: myTasks.length,
-            completedTasks: myTasks.filter(
-              (t) => t.taskStatus === "Completed",
-            ).length,
+            completedTasks: myTasks.filter((t) => t.taskStatus === "Completed")
+              .length,
             activeTasks: myTasks.filter(
-              (t) =>
-                t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
+              (t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
             ).length,
           });
         } catch (err) {
@@ -48,7 +45,7 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchStats();
@@ -62,8 +59,7 @@ function Dashboard() {
   }, [fetchStats]);
 
   if (loading) return <LoadingSpinner message="Loading dashboard..." />;
-  if (!stats)
-    return <LoadingSpinner message="No dashboard data" />;
+  if (!stats) return <LoadingSpinner message="No dashboard data" />;
 
   return (
     <div className="dashboard-container">

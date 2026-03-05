@@ -68,10 +68,12 @@ function ManageTask() {
         setProjects(
           Array.isArray(res.data) ? res.data : res.data.projects || [],
         );
-      } catch (err) {/* ignore */ }
+      } catch {
+        // ignore
+      }
     };
     fetchProjects();
-  }, [currentPage, fetchTasks]);
+  }, [currentPage, fetchTasks, canView, canCreate, canEdit, canDelete]);
 
   useEffect(() => {
     const handler = () => fetchTasks(currentPage);

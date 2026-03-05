@@ -8,19 +8,21 @@ require("dotenv").config();
 
 // Safe no-op stub — never throws, never rejects
 const noopQueue = {
-  add: (data) => {
+  add: (_data) => {
     // Silently drop — email queue is disabled
     return Promise.resolve(null);
   },
-  process: () => { },
-  on: () => { },
+  process: () => {},
+  on: () => {},
   close: () => Promise.resolve(),
 };
 
 const REDIS_ENABLED = process.env.REDIS_ENABLED === "true";
 
 if (!REDIS_ENABLED) {
-  console.warn("[emailQueue] Redis disabled (REDIS_ENABLED != true) — emails will be skipped.");
+  console.warn(
+    "[emailQueue] Redis disabled (REDIS_ENABLED != true) — emails will be skipped.",
+  );
   module.exports = noopQueue;
 } else {
   // Only load Bull when explicitly enabled

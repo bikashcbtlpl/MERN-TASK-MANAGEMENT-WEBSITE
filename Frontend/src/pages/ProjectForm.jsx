@@ -4,18 +4,6 @@ import axiosInstance from "../api/axiosInstance";
 import { FormField, Button, Input } from "../components/common";
 
 const ProjectForm = ({ onSubmit, initialData, mode = "create" }) => {
-  const [formData, setFormData] = useState(
-    initialData || {
-      name: "",
-      description: "",
-      deadline: "",
-      status: "active",
-      team: [],
-    },
-  );
-  const [userOptions, setUserOptions] = useState([]);
-  const [inputValue, setInputValue] = useState("");
-
   const getHandle = (u) => {
     if (!u) return "user";
     if (u.username) return u.username;
@@ -23,6 +11,33 @@ const ProjectForm = ({ onSubmit, initialData, mode = "create" }) => {
     if (u.name) return u.name.replace(/\s+/g, "").toLowerCase();
     return "user";
   };
+
+  const normalizeInitialData = (data) => {
+    if (!data) {
+      return {
+        name: "",
+        description: "",
+        deadline: "",
+        status: "active",
+        team: [],
+      };
+    }
+
+    return {
+      ...data,
+      team: Array.isArray(data.team)
+        ? data.team.map((u) => ({
+            label: u.name || getHandle(u),
+            value: u._id,
+            username: getHandle(u),
+          }))
+        : [],
+    };
+  };
+
+  const [formData, setFormData] = useState(normalizeInitialData(initialData));
+  const [userOptions, setUserOptions] = useState([]);
+  const [inputValue, setInputValue] = useState("");
 
   useEffect(() => {
     axiosInstance.get("/users").then((res) => {
@@ -35,22 +50,6 @@ const ProjectForm = ({ onSubmit, initialData, mode = "create" }) => {
       );
     });
   }, []);
-
-  useEffect(() => {
-    if (initialData) {
-      // Map team to userOptions format if needed
-      setFormData({
-        ...initialData,
-        team: Array.isArray(initialData.team)
-          ? initialData.team.map((u) => ({
-            label: u.name || getHandle(u),
-            value: u._id,
-            username: getHandle(u),
-          }))
-          : [],
-      });
-    }
-  }, [initialData]);
 
   // Custom filter for @mention
   const filterUsers = (input) => {
@@ -216,7 +215,7 @@ const ProjectForm = ({ onSubmit, initialData, mode = "create" }) => {
           )}
         </div>
       </div>
-      <div style={{ marginTop: '16px' }}>
+      <div style={{ marginTop: "16px" }}>
         <Button variant="primary" type="submit">
           {mode === "edit" ? "Update Project" : "Create Project"}
         </Button>

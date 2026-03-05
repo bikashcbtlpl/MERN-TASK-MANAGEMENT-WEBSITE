@@ -10,39 +10,48 @@
  *   All other props are forwarded to the underlying element (type, value, onChange, placeholder, etc.)
  */
 const Input = ({
-    as: Tag = "input",
-    label,
-    error,
-    fullWidth = true,
-    className = "",
-    id,
-    children,
-    ...rest
+  as = "input",
+  label,
+  error,
+  fullWidth = true,
+  className = "",
+  id,
+  children,
+  ...rest
 }) => {
-    const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
+  const inputId =
+    id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
-    const inputClasses = [
-        "field-input",
-        fullWidth ? "field-full" : "",
-        error ? "field-error" : "",
-        className,
-    ]
-        .filter(Boolean)
-        .join(" ");
+  const inputClasses = [
+    "field-input",
+    fullWidth ? "field-full" : "",
+    error ? "field-error" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-    return (
-        <div className={`field-wrapper${fullWidth ? " field-wrapper-full" : ""}`}>
-            {label && (
-                <label className="field-label" htmlFor={inputId}>
-                    {label}
-                </label>
-            )}
-            <Tag id={inputId} className={inputClasses} {...rest}>
-                {children}
-            </Tag>
-            {error && <span className="field-error-msg">{error}</span>}
-        </div>
-    );
+  return (
+    <div className={`field-wrapper${fullWidth ? " field-wrapper-full" : ""}`}>
+      {label && (
+        <label className="field-label" htmlFor={inputId}>
+          {label}
+        </label>
+      )}
+      {as === "textarea" ? (
+        <textarea id={inputId} className={inputClasses} {...rest}>
+          {children}
+        </textarea>
+      ) : as === "select" ? (
+        <select id={inputId} className={inputClasses} {...rest}>
+          {children}
+        </select>
+      ) : (
+        <input id={inputId} className={inputClasses} {...rest} />
+      )}
+      {error && <span className="field-error-msg">{error}</span>}
+    </div>
+  );
 };
 
 export default Input;

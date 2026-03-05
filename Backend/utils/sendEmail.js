@@ -9,7 +9,9 @@ const sendEmail = async (to, subject, text, html = null) => {
   const pass = process.env.EMAIL_PASS;
 
   if (!user || !pass) {
-    console.warn("[sendEmail] EMAIL_USER or EMAIL_PASS not configured — skipping email");
+    console.warn(
+      "[sendEmail] EMAIL_USER or EMAIL_PASS not configured — skipping email",
+    );
     return;
   }
 

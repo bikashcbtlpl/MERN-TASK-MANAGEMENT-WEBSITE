@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
-import { FormField, LoadingSpinner, TaskStatusSelect, Button } from "../components/common";
+import {
+  FormField,
+  LoadingSpinner,
+  TaskStatusSelect,
+  Button,
+} from "../components/common";
 
 function TaskForm() {
   const navigate = useNavigate();
@@ -110,7 +115,7 @@ function TaskForm() {
       setLoading(false);
     };
     load();
-  }, [id]);
+  }, [id, isEditMode]);
 
   const handleFileChange = (e, field) => {
     setFiles((s) => ({ ...s, [field]: Array.from(e.target.files) }));

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { FormField, Button } from "../components/common";
 
@@ -18,18 +18,22 @@ function Settings() {
     sessionTimeout: 30,
   });
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     const res = await axiosInstance.get("/settings");
-    setProfile({ name: res.data.profile.name, email: res.data.profile.email, password: "" });
+    setProfile({
+      name: res.data.profile.name,
+      email: res.data.profile.email,
+      password: "",
+    });
     if (isSuperAdmin) {
       setEmailConfig(res.data.emailConfig);
       setSecurity(res.data.security);
     }
-  };
+  }, [isSuperAdmin]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleProfileSave = async () => {
     await axiosInstance.put("/settings/profile", {

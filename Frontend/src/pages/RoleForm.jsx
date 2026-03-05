@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import { LoadingSpinner, FormField, Button } from "../components/common";
@@ -21,6 +21,44 @@ function RoleForm() {
   const [modules, setModules] = useState({});
   const [loading, setLoading] = useState(true);
 
+  /* ================= FETCH PERMISSIONS ================= */
+
+  const fetchPermissions = useCallback(async () => {
+    const res = await axiosInstance.get("/permissions");
+
+    const grouped = {};
+
+    res.data.forEach((perm) => {
+      const [, module] = perm.name.split(" ");
+
+      if (!grouped[module]) {
+        grouped[module] = [];
+      }
+
+      grouped[module].push(perm);
+    });
+
+    setModules(grouped);
+  }, []);
+
+  /* ================= FETCH ROLE ================= */
+
+  const fetchRole = useCallback(async () => {
+    const res = await axiosInstance.get("/roles");
+
+    const role = res.data.find((r) => r.name === decodeURIComponent(roleName));
+
+    if (!role) return;
+
+    setRoleId(role._id); // ⭐ STORE ID
+
+    setFormData({
+      name: role.name,
+      status: role.status,
+      permissions: role.permissions.map((p) => p._id),
+    });
+  }, [roleName]);
+
   /* ================= FETCH DATA ================= */
 
   useEffect(() => {
@@ -35,45 +73,7 @@ function RoleForm() {
     };
 
     init();
-  }, [roleName]);
-
-  /* ================= FETCH PERMISSIONS ================= */
-
-  const fetchPermissions = async () => {
-    const res = await axiosInstance.get("/permissions");
-
-    const grouped = {};
-
-    res.data.forEach((perm) => {
-      const [action, module] = perm.name.split(" ");
-
-      if (!grouped[module]) {
-        grouped[module] = [];
-      }
-
-      grouped[module].push(perm);
-    });
-
-    setModules(grouped);
-  };
-
-  /* ================= FETCH ROLE ================= */
-
-  const fetchRole = async () => {
-    const res = await axiosInstance.get("/roles");
-
-    const role = res.data.find((r) => r.name === decodeURIComponent(roleName));
-
-    if (!role) return;
-
-    setRoleId(role._id); // ⭐ STORE ID
-
-    setFormData({
-      name: role.name,
-      status: role.status,
-      permissions: role.permissions.map((p) => p._id),
-    });
-  };
+  }, [isEdit, fetchPermissions, fetchRole]);
 
   /* ================= PERMISSION LOGIC ================= */
 

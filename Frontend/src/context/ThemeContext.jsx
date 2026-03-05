@@ -18,7 +18,9 @@ export const ThemeProvider = ({ children }) => {
 
     try {
       localStorage.setItem("theme", theme);
-    } catch {}
+    } catch {
+      return;
+    }
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
@@ -30,6 +32,7 @@ export const ThemeProvider = ({ children }) => {
   );
 };
 
-export const useTheme = () => useContext(ThemeContext);
+const useTheme = () => useContext(ThemeContext);
 
 export default ThemeContext;
+export { useTheme };

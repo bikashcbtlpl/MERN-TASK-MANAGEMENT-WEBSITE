@@ -30,8 +30,7 @@ exports.getDashboardStats = async (req, res) => {
         taskStatus: { $nin: ["Closed", "Cancelled"] },
       });
     } else {
-
-    /* ================= NORMAL USER ================= */
+      /* ================= NORMAL USER ================= */
       // ✅ Count ALL assigned tasks
       totalTasks = await Task.countDocuments({
         assignedTo: user._id,

@@ -15,40 +15,40 @@
  *   style      {object}  – extra inline styles
  */
 const Button = ({
-    variant = "primary",
-    size = "md",
-    type = "button",
-    fullWidth = false,
-    disabled = false,
-    loading = false,
-    onClick,
-    children,
-    className = "",
-    style = {},
+  variant = "primary",
+  size = "md",
+  type = "button",
+  fullWidth = false,
+  disabled = false,
+  loading = false,
+  onClick,
+  children,
+  className = "",
+  style = {},
 }) => {
-    const classes = [
-        "btn",
-        `btn-${variant}`,
-        `btn-${size}`,
-        fullWidth ? "btn-full" : "",
-        loading ? "btn-loading" : "",
-        className,
-    ]
-        .filter(Boolean)
-        .join(" ");
+  const classes = [
+    "btn",
+    `btn-${variant}`,
+    `btn-${size}`,
+    fullWidth ? "btn-full" : "",
+    loading ? "btn-loading" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-    return (
-        <button
-            type={type}
-            className={classes}
-            disabled={disabled || loading}
-            onClick={onClick}
-            style={style}
-        >
-            {loading && <span className="btn-spinner" />}
-            {children}
-        </button>
-    );
+  return (
+    <button
+      type={type}
+      className={classes}
+      disabled={disabled || loading}
+      onClick={onClick}
+      style={style}
+    >
+      {loading && <span className="btn-spinner" />}
+      {children}
+    </button>
+  );
 };
 
 export default Button;

@@ -10,17 +10,17 @@ import Button from "./Button";
  *   children   {node}     – extra content placed to the right of the button (e.g. search)
  */
 const PageHeader = ({ title, btnLabel, onBtnClick, children }) => (
-    <div className="page-header">
-        <h2 className="page-header-title">{title}</h2>
-        <div className="page-header-actions">
-            {children}
-            {btnLabel && onBtnClick && (
-                <Button variant="primary" size="md" onClick={onBtnClick}>
-                    {btnLabel}
-                </Button>
-            )}
-        </div>
+  <div className="page-header">
+    <h2 className="page-header-title">{title}</h2>
+    <div className="page-header-actions">
+      {children}
+      {btnLabel && onBtnClick && (
+        <Button variant="primary" size="md" onClick={onBtnClick}>
+          {btnLabel}
+        </Button>
+      )}
     </div>
+  </div>
 );
 
 export default PageHeader;

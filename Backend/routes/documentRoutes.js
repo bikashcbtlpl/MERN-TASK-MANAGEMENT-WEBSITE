@@ -30,7 +30,12 @@ router.post("/:id/grant", authMiddleware, documentController.grantAccess);
 router.post("/:id/revoke", authMiddleware, documentController.revokeAccess);
 
 // Update document
-router.put("/:id", authMiddleware, upload.fields([{ name: "attachments", maxCount: 1 }]), documentController.updateDocument);
+router.put(
+  "/:id",
+  authMiddleware,
+  upload.fields([{ name: "attachments", maxCount: 1 }]),
+  documentController.updateDocument,
+);
 
 // Delete document
 router.delete("/:id", authMiddleware, documentController.deleteDocument);

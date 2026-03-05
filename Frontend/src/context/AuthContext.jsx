@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
 
         setUser(normalized);
         localStorage.setItem("user", JSON.stringify(normalized));
-      } catch (error) {
+      } catch {
         setUser(null);
         localStorage.removeItem("user");
       } finally {
@@ -109,6 +109,8 @@ export function AuthProvider({ children }) {
   );
 }
 
-export function useAuth() {
+function useAuth() {
   return useContext(AuthContext);
 }
+
+export { useAuth };

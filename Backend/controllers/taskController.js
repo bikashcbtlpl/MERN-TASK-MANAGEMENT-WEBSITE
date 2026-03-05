@@ -54,12 +54,16 @@ exports.createTask = async (req, res) => {
 
     // Date validation
     if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
-      return res.status(400).json({ message: "End date cannot be before start date" });
+      return res
+        .status(400)
+        .json({ message: "End date cannot be before start date" });
     }
 
     // Check assignee is not Super Admin
     if (assignedTo) {
-      const assignedUser = await User.findById(assignedTo).populate("role").lean();
+      const assignedUser = await User.findById(assignedTo)
+        .populate("role")
+        .lean();
 
       if (!assignedUser) {
         return res.status(404).json({ message: "Assigned user not found" });
@@ -69,12 +73,16 @@ exports.createTask = async (req, res) => {
         assignedUser.role?.name === "Super Admin" &&
         req.user.role?.name !== "Super Admin"
       ) {
-        return res.status(403).json({ message: "You cannot assign tasks to Super Admin" });
+        return res
+          .status(403)
+          .json({ message: "You cannot assign tasks to Super Admin" });
       }
     }
 
     // Process file uploads via cloudinary worker
-    const { images, videos, attachments } = await processTaskFiles(req.files || {});
+    const { images, videos, attachments } = await processTaskFiles(
+      req.files || {},
+    );
 
     const newTask = await Task.create({
       title: title.trim(),
@@ -96,14 +104,22 @@ exports.createTask = async (req, res) => {
       const Project = require("../models/Project");
       await Project.findByIdAndUpdate(project, {
         $addToSet: { tasks: newTask._id },
-      }).catch((e) => console.warn("Warning: could not add task to project tasks array", e));
+      }).catch((e) =>
+        console.warn("Warning: could not add task to project tasks array", e),
+      );
     }
 
     // Send email notification to project team when a task is assigned to a project
     if (project) {
       const Project = require("../models/Project");
-      const assignedProject = await Project.findById(project).populate("team", "email").lean();
-      if (assignedProject && assignedProject.team && assignedProject.team.length > 0) {
+      const assignedProject = await Project.findById(project)
+        .populate("team", "email")
+        .lean();
+      if (
+        assignedProject &&
+        assignedProject.team &&
+        assignedProject.team.length > 0
+      ) {
         for (const member of assignedProject.team) {
           if (member.email) {
             await emailQueue.add({
@@ -152,9 +168,7 @@ exports.updateTask = async (req, res) => {
 
     const isSuperAdmin = user.role?.name === "Super Admin";
     const hasEditPerm = isSuperAdmin || userPermissions.includes("Edit Task");
-    const isOnlyViewer =
-      userPermissions.includes("View Task") &&
-      !hasEditPerm;
+    const isOnlyViewer = userPermissions.includes("View Task") && !hasEditPerm;
     const isAssignedUser =
       task.assignedTo && String(task.assignedTo) === String(user._id);
 
@@ -184,14 +198,19 @@ exports.updateTask = async (req, res) => {
     try {
       parsedExistingImages = existingImages ? JSON.parse(existingImages) : [];
       parsedExistingVideos = existingVideos ? JSON.parse(existingVideos) : [];
-      parsedExistingAttachments = existingAttachments ? JSON.parse(existingAttachments) : [];
+      parsedExistingAttachments = existingAttachments
+        ? JSON.parse(existingAttachments)
+        : [];
     } catch {
       return res.status(400).json({ message: "Invalid existing media format" });
     }
 
     // Process new file uploads
-    const { images: newImages, videos: newVideos, attachments: newAttachments } =
-      await processTaskFiles(req.files || {});
+    const {
+      images: newImages,
+      videos: newVideos,
+      attachments: newAttachments,
+    } = await processTaskFiles(req.files || {});
 
     const finalImages = [...parsedExistingImages, ...newImages];
     const finalVideos = [...parsedExistingVideos, ...newVideos];
@@ -208,7 +227,14 @@ exports.updateTask = async (req, res) => {
     };
 
     // Include other updatable fields if present in body
-    const otherFields = ["title", "description", "startDate", "endDate", "notes", "isActive"];
+    const otherFields = [
+      "title",
+      "description",
+      "startDate",
+      "endDate",
+      "notes",
+      "isActive",
+    ];
     otherFields.forEach((f) => {
       if (Object.prototype.hasOwnProperty.call(req.body, f)) {
         updateData[f] = req.body[f];
@@ -223,8 +249,14 @@ exports.updateTask = async (req, res) => {
     // Date validation
     const effectiveStart = updateData.startDate || task.startDate;
     const effectiveEnd = updateData.endDate || task.endDate;
-    if (effectiveStart && effectiveEnd && new Date(effectiveEnd) < new Date(effectiveStart)) {
-      return res.status(400).json({ message: "End date cannot be before start date" });
+    if (
+      effectiveStart &&
+      effectiveEnd &&
+      new Date(effectiveEnd) < new Date(effectiveStart)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "End date cannot be before start date" });
     }
 
     const updatedTask = await Task.findByIdAndUpdate(
@@ -242,20 +274,26 @@ exports.updateTask = async (req, res) => {
       if (oldProjectId) {
         await Project.findByIdAndUpdate(oldProjectId, {
           $pull: { tasks: updatedTask._id },
-        }).catch(() => { });
+        }).catch(() => {});
       }
       if (newProjectId) {
         await Project.findByIdAndUpdate(newProjectId, {
           $addToSet: { tasks: updatedTask._id },
-        }).catch(() => { });
+        }).catch(() => {});
       }
     }
 
     // Email notification if task was added to a new project
     if (newProjectId && oldProjectId !== newProjectId) {
       const Project = require("../models/Project");
-      const assignedProject = await Project.findById(newProjectId).populate("team", "email").lean();
-      if (assignedProject && assignedProject.team && assignedProject.team.length > 0) {
+      const assignedProject = await Project.findById(newProjectId)
+        .populate("team", "email")
+        .lean();
+      if (
+        assignedProject &&
+        assignedProject.team &&
+        assignedProject.team.length > 0
+      ) {
         for (const member of assignedProject.team) {
           if (member.email) {
             await emailQueue.add({
@@ -266,7 +304,11 @@ exports.updateTask = async (req, res) => {
           }
         }
       }
-    } else if (!newProjectId && assignedTo && String(assignedTo) !== String(task.assignedTo)) {
+    } else if (
+      !newProjectId &&
+      assignedTo &&
+      String(assignedTo) !== String(task.assignedTo)
+    ) {
       // Email individual if task is not in a project but got reassigned
       const reassignedUser = await User.findById(assignedTo).lean();
       if (reassignedUser?.email) {
@@ -301,7 +343,9 @@ exports.getTasks = async (req, res) => {
 
     if (!isSuperAdmin) {
       const Project = require("../models/Project");
-      const userProjects = await Project.find({ team: user._id }).select("_id").lean();
+      const userProjects = await Project.find({ team: user._id })
+        .select("_id")
+        .lean();
       const projectIds = userProjects.map((p) => p._id);
 
       filter.$or = [{ assignedTo: user._id }];
@@ -316,7 +360,10 @@ exports.getTasks = async (req, res) => {
           { description: { $regex: req.query.search, $options: "i" } },
         ],
       };
-      filter = Object.keys(filter).length === 0 ? searchFilter : { $and: [filter, searchFilter] };
+      filter =
+        Object.keys(filter).length === 0
+          ? searchFilter
+          : { $and: [filter, searchFilter] };
     }
 
     if (req.query.taskStatus) filter.taskStatus = req.query.taskStatus;
@@ -392,7 +439,7 @@ exports.deleteTask = async (req, res) => {
       const Project = require("../models/Project");
       await Project.findByIdAndUpdate(task.project, {
         $pull: { tasks: task._id },
-      }).catch(() => { });
+      }).catch(() => {});
     }
 
     req.app.get("io")?.emit("taskUpdated");
@@ -423,12 +470,16 @@ exports.getMyTasks = async (req, res) => {
       const isTeamMember = proj.team.some((t) => String(t) === String(userId));
 
       if (!isTeamMember && !isSuperAdmin) {
-        return res.status(403).json({ message: "Access denied to this project" });
+        return res
+          .status(403)
+          .json({ message: "Access denied to this project" });
       }
 
       filter = { project: projectFilter };
     } else {
-      const userProjects = await Project.find({ team: userId }).select("_id").lean();
+      const userProjects = await Project.find({ team: userId })
+        .select("_id")
+        .lean();
       const projectIds = userProjects.map((p) => p._id);
 
       filter = { $or: [{ assignedTo: userId }] };
@@ -441,9 +492,10 @@ exports.getMyTasks = async (req, res) => {
         { description: { $regex: search, $options: "i" } },
       ];
       // Merge search with existing filter
-      filter = Object.keys(filter).length === 0
-        ? { $or: searchOr }
-        : { $and: [filter, { $or: searchOr }] };
+      filter =
+        Object.keys(filter).length === 0
+          ? { $or: searchOr }
+          : { $and: [filter, { $or: searchOr }] };
     }
 
     const page = Math.max(1, parseInt(req.query.page) || 1);

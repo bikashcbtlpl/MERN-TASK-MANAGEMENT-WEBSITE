@@ -26,7 +26,9 @@ exports.createRole = async (req, res) => {
     }).lean();
 
     if (existingRole) {
-      return res.status(400).json({ message: "A role with this name already exists" });
+      return res
+        .status(400)
+        .json({ message: "A role with this name already exists" });
     }
 
     const role = await Role.create({
@@ -102,10 +104,14 @@ exports.updateRoleByName = async (req, res) => {
     if (permissions !== undefined) updateData.permissions = permissions;
     if (status !== undefined) updateData.status = status;
 
-    const updatedRole = await Role.findByIdAndUpdate(roleToUpdate._id, updateData, {
-      new: true,
-      runValidators: true,
-    }).populate("permissions");
+    const updatedRole = await Role.findByIdAndUpdate(
+      roleToUpdate._id,
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).populate("permissions");
 
     res.json(updatedRole);
   } catch (error) {
@@ -143,7 +149,9 @@ exports.updateRole = async (req, res) => {
         name.trim().toLowerCase() === "super admin" &&
         req.user.role?.name !== "Super Admin"
       ) {
-        return res.status(403).json({ message: "Cannot rename role to Super Admin" });
+        return res
+          .status(403)
+          .json({ message: "Cannot rename role to Super Admin" });
       }
       updateData.name = name.trim();
     }
@@ -160,7 +168,9 @@ exports.updateRole = async (req, res) => {
   } catch (error) {
     console.error("Update Role Error:", error);
     if (error.code === 11000) {
-      return res.status(400).json({ message: "A role with this name already exists" });
+      return res
+        .status(400)
+        .json({ message: "A role with this name already exists" });
     }
     res.status(500).json({ message: "Error updating role" });
   }

@@ -37,7 +37,8 @@ async function seedAdmin() {
     }
 
     // 3. Hash password (use a strong default password)
-    const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || "Admin@123456";
+    const defaultPassword =
+      process.env.ADMIN_DEFAULT_PASSWORD || "Admin@123456";
     const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
     // 4. Create admin user
@@ -52,7 +53,9 @@ async function seedAdmin() {
     console.log("✅ Admin user created successfully");
     console.log("   Email: admin@example.com");
     console.log(`   Password: ${defaultPassword}`);
-    console.log("   ⚠️  Please change the password immediately after first login!");
+    console.log(
+      "   ⚠️  Please change the password immediately after first login!",
+    );
 
     await mongoose.connection.close();
     process.exit(0);

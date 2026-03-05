@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axiosInstance from "../api/axiosInstance";
 import {
   PageHeader,
@@ -26,28 +26,28 @@ function ManageUser() {
   const { canCreate, canEdit, canDelete } = usePermissions("User");
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
 
-  useEffect(() => {
-    fetchUsers();
-    fetchRoles();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const res = await axiosInstance.get("/users");
     if (loggedInUser?.role !== "Super Admin") {
       setUsers(res.data.filter((u) => u.role?.name !== "Super Admin"));
     } else {
       setUsers(res.data);
     }
-  };
+  }, [loggedInUser?.role]);
 
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     const res = await axiosInstance.get("/roles");
     if (loggedInUser?.role !== "Super Admin") {
       setRoles(res.data.filter((role) => role.name !== "Super Admin"));
     } else {
       setRoles(res.data);
     }
-  };
+  }, [loggedInUser?.role]);
+
+  useEffect(() => {
+    fetchUsers();
+    fetchRoles();
+  }, [fetchUsers, fetchRoles]);
 
   const openCreateModal = () => {
     if (!canCreate) return;
@@ -90,8 +90,7 @@ function ManageUser() {
   };
 
   const isSuperAdminRow = (user) =>
-    user.role?.name === "Super Admin" &&
-    loggedInUser?.role !== "Super Admin";
+    user.role?.name === "Super Admin" && loggedInUser?.role !== "Super Admin";
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -112,8 +111,18 @@ function ManageUser() {
       >
         <div className="header-search-wrapper">
           <span className="search-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </span>
           <input

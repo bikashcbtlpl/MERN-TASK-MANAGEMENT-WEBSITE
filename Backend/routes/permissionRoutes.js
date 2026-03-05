@@ -10,26 +10,26 @@ router.get("/", authMiddleware, permissionController.getPermissions);
 
 // CREATE permission — Super Admin only (via Edit Permission)
 router.post(
-    "/",
-    authMiddleware,
-    checkPermission(["Create Permission"]),
-    permissionController.createPermission
+  "/",
+  authMiddleware,
+  checkPermission(["Create Permission"]),
+  permissionController.createPermission,
 );
 
 // UPDATE permission — requires Edit Permission
 router.put(
-    "/:id",
-    authMiddleware,
-    checkPermission(["Edit Permission"]),
-    permissionController.updatePermission
+  "/:id",
+  authMiddleware,
+  checkPermission(["Edit Permission"]),
+  permissionController.updatePermission,
 );
 
 // DELETE permission — requires Delete Permission
 router.delete(
-    "/:id",
-    authMiddleware,
-    checkPermission(["Delete Permission"]),
-    permissionController.deletePermission
+  "/:id",
+  authMiddleware,
+  checkPermission(["Delete Permission"]),
+  permissionController.deletePermission,
 );
 
 module.exports = router;

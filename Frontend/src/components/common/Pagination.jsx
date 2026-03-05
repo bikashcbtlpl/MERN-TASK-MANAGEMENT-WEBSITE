@@ -11,42 +11,46 @@ import Button from "./Button";
  *   countLabel   {string}       – optional label prefix e.g. "Tasks" → "Total: 42 Tasks"
  */
 const Pagination = ({
-    currentPage,
-    totalPages,
-    onPageChange,
-    totalCount,
-    countLabel,
+  currentPage,
+  totalPages,
+  onPageChange,
+  totalCount,
+  countLabel,
 }) => {
-    if (totalPages <= 1) return null;
+  if (totalPages <= 1) return null;
 
-    return (
-        <div className="pagination">
-            <Button
-                variant="primary"
-                size="sm"
-                disabled={currentPage === 1}
-                onClick={() => onPageChange(currentPage - 1)}
-            >
-                ← Prev
-            </Button>
+  return (
+    <div className="pagination">
+      <Button
+        variant="primary"
+        size="sm"
+        disabled={currentPage === 1}
+        onClick={() => onPageChange(currentPage - 1)}
+      >
+        ← Prev
+      </Button>
 
-            <span className="page-info">
-                Page {currentPage} of {totalPages}
-                {totalCount !== undefined && (
-                    <> — Total: {totalCount}{countLabel ? ` ${countLabel}` : ""}</>
-                )}
-            </span>
+      <span className="page-info">
+        Page {currentPage} of {totalPages}
+        {totalCount !== undefined && (
+          <>
+            {" "}
+            — Total: {totalCount}
+            {countLabel ? ` ${countLabel}` : ""}
+          </>
+        )}
+      </span>
 
-            <Button
-                variant="primary"
-                size="sm"
-                disabled={currentPage === totalPages}
-                onClick={() => onPageChange(currentPage + 1)}
-            >
-                Next →
-            </Button>
-        </div>
-    );
+      <Button
+        variant="primary"
+        size="sm"
+        disabled={currentPage === totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+      >
+        Next →
+      </Button>
+    </div>
+  );
 };
 
 export default Pagination;

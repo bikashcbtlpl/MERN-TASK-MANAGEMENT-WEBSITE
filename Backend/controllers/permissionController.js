@@ -26,7 +26,9 @@ exports.createPermission = async (req, res) => {
     }).lean();
 
     if (existing) {
-      return res.status(400).json({ message: "Permission with this name already exists" });
+      return res
+        .status(400)
+        .json({ message: "Permission with this name already exists" });
     }
 
     const permission = await Permission.create({
@@ -38,7 +40,9 @@ exports.createPermission = async (req, res) => {
   } catch (error) {
     console.error("Create Permission Error:", error);
     if (error.code === 11000) {
-      return res.status(400).json({ message: "Permission with this name already exists" });
+      return res
+        .status(400)
+        .json({ message: "Permission with this name already exists" });
     }
     res.status(500).json({ message: "Server error" });
   }
@@ -73,7 +77,9 @@ exports.updatePermission = async (req, res) => {
   } catch (error) {
     console.error("Update Permission Error:", error);
     if (error.code === 11000) {
-      return res.status(400).json({ message: "Permission with this name already exists" });
+      return res
+        .status(400)
+        .json({ message: "Permission with this name already exists" });
     }
     res.status(500).json({ message: "Server error" });
   }

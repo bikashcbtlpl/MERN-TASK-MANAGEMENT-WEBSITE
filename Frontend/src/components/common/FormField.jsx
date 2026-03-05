@@ -7,10 +7,10 @@
  *   children  {node}    – the input, select, textarea, etc.
  */
 const FormField = ({ label, style, children }) => (
-    <div className="form-group" style={style}>
-        <label>{label}</label>
-        {children}
-    </div>
+  <div className="form-group" style={style}>
+    <label>{label}</label>
+    {children}
+  </div>
 );
 
 export default FormField;

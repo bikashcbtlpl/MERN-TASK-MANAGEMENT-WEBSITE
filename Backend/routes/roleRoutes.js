@@ -12,34 +12,34 @@ router.get("/name/:roleName", authMiddleware, roleController.getRoleByName);
 
 // CREATE role — requires Create Role permission
 router.post(
-    "/",
-    authMiddleware,
-    checkPermission(["Create Role"]),
-    roleController.createRole
+  "/",
+  authMiddleware,
+  checkPermission(["Create Role"]),
+  roleController.createRole,
 );
 
 // UPDATE role by name — requires Edit Role permission
 router.put(
-    "/name/:roleName",
-    authMiddleware,
-    checkPermission(["Edit Role"]),
-    roleController.updateRoleByName
+  "/name/:roleName",
+  authMiddleware,
+  checkPermission(["Edit Role"]),
+  roleController.updateRoleByName,
 );
 
 // UPDATE role by ID — requires Edit Role permission
 router.put(
-    "/:id",
-    authMiddleware,
-    checkPermission(["Edit Role"]),
-    roleController.updateRole
+  "/:id",
+  authMiddleware,
+  checkPermission(["Edit Role"]),
+  roleController.updateRole,
 );
 
 // DELETE role — requires Delete Role permission
 router.delete(
-    "/:id",
-    authMiddleware,
-    checkPermission(["Delete Role"]),
-    roleController.deleteRole
+  "/:id",
+  authMiddleware,
+  checkPermission(["Delete Role"]),
+  roleController.deleteRole,
 );
 
 module.exports = router;

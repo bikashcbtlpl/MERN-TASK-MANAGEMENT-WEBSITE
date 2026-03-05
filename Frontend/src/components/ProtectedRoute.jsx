@@ -45,7 +45,7 @@ function ProtectedRoute({ children, requiredPermissions = [] }) {
         // update global auth context as well
         if (auth && typeof auth.setUser === "function") auth.setUser(freshUser);
         setUser(freshUser);
-      } catch (error) {
+      } catch {
         localStorage.removeItem("user");
         setUser(null);
       } finally {
@@ -54,7 +54,7 @@ function ProtectedRoute({ children, requiredPermissions = [] }) {
     };
 
     verifyUser();
-  }, []);
+  }, [auth]);
 
   if (loading) return <div>Loading...</div>;
 

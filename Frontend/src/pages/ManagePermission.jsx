@@ -19,14 +19,14 @@ function ManagePermission() {
 
   const { canCreate, canEdit, canDelete } = usePermissions("Permission");
 
-  useEffect(() => {
-    fetchPermissions();
-  }, []);
-
   const fetchPermissions = async () => {
     const res = await axiosInstance.get("/permissions");
     setPermissions(res.data);
   };
+
+  useEffect(() => {
+    fetchPermissions();
+  }, []);
 
   const openCreateModal = () => {
     if (!canCreate) return;
@@ -69,7 +69,7 @@ function ManagePermission() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredPermissions = permissions.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -81,8 +81,18 @@ function ManagePermission() {
       >
         <div className="header-search-wrapper">
           <span className="search-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </span>
           <input

@@ -12,31 +12,31 @@ import Button from "./Button";
  *   deleteLabel{string}  – default "Delete"
  */
 const ActionButtons = ({
-    canEdit,
-    canDelete,
-    onEdit,
-    onDelete,
-    editLabel = "Edit",
-    deleteLabel = "Delete",
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
+  editLabel = "Edit",
+  deleteLabel = "Delete",
 }) => {
-    if (!canEdit && !canDelete) return null;
+  if (!canEdit && !canDelete) return null;
 
-    return (
-        <td onClick={(e) => e.stopPropagation()} className="action-cell">
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                {canEdit && onEdit && (
-                    <Button variant="warning" size="sm" onClick={onEdit}>
-                        {editLabel}
-                    </Button>
-                )}
-                {canDelete && onDelete && (
-                    <Button variant="danger" size="sm" onClick={onDelete}>
-                        {deleteLabel}
-                    </Button>
-                )}
-            </div>
-        </td>
-    );
+  return (
+    <td onClick={(e) => e.stopPropagation()} className="action-cell">
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        {canEdit && onEdit && (
+          <Button variant="warning" size="sm" onClick={onEdit}>
+            {editLabel}
+          </Button>
+        )}
+        {canDelete && onDelete && (
+          <Button variant="danger" size="sm" onClick={onDelete}>
+            {deleteLabel}
+          </Button>
+        )}
+      </div>
+    </td>
+  );
 };
 
 export default ActionButtons;

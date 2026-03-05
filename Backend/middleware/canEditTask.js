@@ -33,7 +33,9 @@ module.exports = async (req, res, next) => {
       return next();
     }
 
-    return res.status(403).json({ message: "Access Denied - You cannot edit this task" });
+    return res
+      .status(403)
+      .json({ message: "Access Denied - You cannot edit this task" });
   } catch (err) {
     console.error("canEditTask middleware error:", err);
     return res.status(500).json({ message: "Server error" });

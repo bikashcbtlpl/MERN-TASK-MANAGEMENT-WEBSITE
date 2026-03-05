@@ -33,8 +33,7 @@ function MyTask() {
         else setInitialLoading(true);
 
         const params = new URLSearchParams({ page, limit: 10 });
-        const selectedProject =
-          localStorage.getItem("selectedProject") || "";
+        const selectedProject = localStorage.getItem("selectedProject") || "";
         if (selectedProject) params.append("project", selectedProject);
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
@@ -183,8 +182,8 @@ function MyTask() {
 
                 <td>
                   {currentUser &&
-                    (getCurrentUserId() === getAssigneeId(task) ||
-                      currentUser.permissions?.includes("Edit Task")) ? (
+                  (getCurrentUserId() === getAssigneeId(task) ||
+                    currentUser.permissions?.includes("Edit Task")) ? (
                     <TaskStatusSelect
                       value={task.taskStatus}
                       onChange={(e) => {
@@ -201,9 +200,8 @@ function MyTask() {
                 <td>{formatDate(task.endDate)}</td>
 
                 <td>
-                  📷 {task.images?.length || 0} | 🎥{" "}
-                  {task.videos?.length || 0} | 📎{" "}
-                  {task.attachments?.length || 0}
+                  📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0}{" "}
+                  | 📎 {task.attachments?.length || 0}
                 </td>
               </tr>
             ))

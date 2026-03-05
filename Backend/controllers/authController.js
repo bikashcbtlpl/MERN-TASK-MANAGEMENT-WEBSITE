@@ -15,7 +15,9 @@ exports.login = async (req, res) => {
     }
 
     // Find user + populate role & permissions
-    const user = await User.findOne({ email: email.toLowerCase().trim() }).populate({
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+    }).populate({
       path: "role",
       populate: {
         path: "permissions",
@@ -46,15 +48,15 @@ exports.login = async (req, res) => {
 
     // Ensure role is properly linked
     if (!user.role) {
-      return res.status(500).json({ message: "User role not configured. Contact administrator." });
+      return res
+        .status(500)
+        .json({ message: "User role not configured. Contact administrator." });
     }
 
     // Generate JWT
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" },
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
     // Set HTTP-only cookie
     res.cookie("token", token, {

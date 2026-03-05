@@ -7,11 +7,15 @@ exports.createIssue = async (req, res) => {
     const { task, title, description } = req.body;
 
     if (!task || !title || !description) {
-      return res.status(400).json({ message: "task, title, and description are required" });
+      return res
+        .status(400)
+        .json({ message: "task, title, and description are required" });
     }
 
     if (!title.trim() || !description.trim()) {
-      return res.status(400).json({ message: "Title and description cannot be empty" });
+      return res
+        .status(400)
+        .json({ message: "Title and description cannot be empty" });
     }
 
     const existingTask = await Task.findById(task).lean();
@@ -42,7 +46,9 @@ exports.getIssuesByTask = async (req, res) => {
     const taskId = req.params.taskId;
 
     // Verify the task exists
-    const task = await Task.findById(taskId).select("_id assignedTo project").lean();
+    const task = await Task.findById(taskId)
+      .select("_id assignedTo project")
+      .lean();
     if (!task) return res.status(404).json({ message: "Task not found" });
 
     const issues = await Issue.find({ task: taskId })
@@ -78,7 +84,12 @@ exports.getAllIssues = async (req, res) => {
         .lean(),
     ]);
 
-    res.json({ issues, total, currentPage: page, totalPages: Math.ceil(total / limit) });
+    res.json({
+      issues,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     console.error("Get All Issues Error:", err);
     res.status(500).json({ message: "Error fetching issues" });

@@ -48,9 +48,13 @@ exports.createUser = async (req, res) => {
     }
 
     // Check existing user
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() }).lean();
+    const existingUser = await User.findOne({
+      email: email.toLowerCase().trim(),
+    }).lean();
     if (existingUser) {
-      return res.status(400).json({ message: "User with this email already exists" });
+      return res
+        .status(400)
+        .json({ message: "User with this email already exists" });
     }
 
     // Generate and hash password
@@ -78,12 +82,15 @@ exports.createUser = async (req, res) => {
     }
 
     // Return user without password
-    const { password: _pw, ...userWithoutPassword } = newUser.toObject();
+    const { password, ...userWithoutPassword } = newUser.toObject();
+    void password;
     res.status(201).json(userWithoutPassword);
   } catch (error) {
     console.error("Create User Error:", error);
     if (error.code === 11000) {
-      return res.status(400).json({ message: "User with this email already exists" });
+      return res
+        .status(400)
+        .json({ message: "User with this email already exists" });
     }
     res.status(500).json({ message: "Error creating user" });
   }
@@ -94,7 +101,9 @@ exports.updateUser = async (req, res) => {
   try {
     const loggedInUser = req.user;
 
-    const userToUpdate = await User.findById(req.params.id).populate("role").lean();
+    const userToUpdate = await User.findById(req.params.id)
+      .populate("role")
+      .lean();
 
     if (!userToUpdate) {
       return res.status(404).json({ message: "User not found" });
@@ -153,10 +162,14 @@ exports.deleteUser = async (req, res) => {
 
     // Prevent deleting yourself
     if (String(req.params.id) === String(loggedInUser._id)) {
-      return res.status(400).json({ message: "You cannot delete your own account" });
+      return res
+        .status(400)
+        .json({ message: "You cannot delete your own account" });
     }
 
-    const userToDelete = await User.findById(req.params.id).populate("role").lean();
+    const userToDelete = await User.findById(req.params.id)
+      .populate("role")
+      .lean();
 
     if (!userToDelete) {
       return res.status(404).json({ message: "User not found" });

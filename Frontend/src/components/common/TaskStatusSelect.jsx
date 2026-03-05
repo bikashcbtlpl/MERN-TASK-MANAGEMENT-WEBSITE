@@ -7,21 +7,21 @@
  *   style     {object}  – optional inline styles
  */
 const TASK_STATUSES = [
-    "Open",
-    "In Progress",
-    "Pending",
-    "On Hold",
-    "Closed",
-    "Completed",
-    "Cancelled",
+  "Open",
+  "In Progress",
+  "Pending",
+  "On Hold",
+  "Closed",
+  "Completed",
+  "Cancelled",
 ];
 
 const TaskStatusSelect = ({ value, onChange, style }) => (
-    <select value={value} onChange={onChange} style={style}>
-        {TASK_STATUSES.map((s) => (
-            <option key={s}>{s}</option>
-        ))}
-    </select>
+  <select value={value} onChange={onChange} style={style}>
+    {TASK_STATUSES.map((s) => (
+      <option key={s}>{s}</option>
+    ))}
+  </select>
 );
 
 export { TASK_STATUSES };

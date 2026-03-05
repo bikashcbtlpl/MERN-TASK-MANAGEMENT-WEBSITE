@@ -18,13 +18,17 @@ const authMiddleware = async (req, res, next) => {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (jwtErr) {
       if (jwtErr.name === "TokenExpiredError") {
-        return res.status(401).json({ message: "Session expired, please login again" });
+        return res
+          .status(401)
+          .json({ message: "Session expired, please login again" });
       }
       return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
 
     if (!decoded?.userId) {
-      return res.status(401).json({ message: "Unauthorized - Malformed token" });
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - Malformed token" });
     }
 
     // Fetch user with role + permissions

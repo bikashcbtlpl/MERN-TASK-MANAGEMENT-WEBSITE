@@ -1,0 +1,13 @@
+{
+  "name": "mern-task-management-website",
+  "private": true,
+  "scripts": {
+    "lint:frontend": "npm --prefix Frontend run lint",
+    "lint:backend": "npm --prefix Backend run lint",
+    "format:check:frontend": "npm --prefix Frontend run format:check",
+    "format:check:backend": "npm --prefix Backend run format:check",
+    "ci:lint": "npm run lint:frontend && npm run lint:backend",
+    "ci:format": "npm run format:check:frontend && npm run format:check:backend",
+    "ci:check": "npm run ci:lint && npm run ci:format"
+  }
+}

@@ -13,7 +13,8 @@ const getAccessUserId = (accessEntry) => {
   }
 
   // Legacy format: ObjectId/string directly in access array
-  if (typeof accessEntry === "object" && accessEntry?._id) return String(accessEntry._id);
+  if (typeof accessEntry === "object" && accessEntry?._id)
+    return String(accessEntry._id);
   return String(accessEntry);
 };
 
@@ -25,7 +26,11 @@ const processDocumentFiles = async (files = {}) => {
 
   if (!attachments.length) return [];
 
-  const result = await runCloudinaryWorker({ images: [], videos: [], attachments });
+  const result = await runCloudinaryWorker({
+    images: [],
+    videos: [],
+    attachments,
+  });
   return result.attachments || [];
 };
 
@@ -40,7 +45,11 @@ exports.listDocuments = async (req, res) => {
     let filter = {};
 
     let docs = await Document.find(filter)
-      .populate({ path: "createdBy", select: "name email role", populate: { path: "role", select: "name" } })
+      .populate({
+        path: "createdBy",
+        select: "name email role",
+        populate: { path: "role", select: "name" },
+      })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -60,22 +69,28 @@ exports.listDocuments = async (req, res) => {
     const userIds = Array.from(userIdSet);
     let usersMap = {};
     if (userIds.length) {
-      const users = await User.find({ _id: { $in: userIds } }).select("name email").lean();
+      const users = await User.find({ _id: { $in: userIds } })
+        .select("name email")
+        .lean();
       usersMap = users.reduce((acc, u) => ({ ...acc, [String(u._id)]: u }), {});
     }
 
     docs = docs.map((d) => {
       // normalize access
-      d.access = (d.access || []).map((a) => {
-        if (!a) return null;
-        const uid = getAccessUserId(a);
-        const accessType =
-          typeof a === "object" && a?.accessType ? a.accessType : "view";
-        return { user: usersMap[uid] || uid, accessType };
-      }).filter(Boolean);
+      d.access = (d.access || [])
+        .map((a) => {
+          if (!a) return null;
+          const uid = getAccessUserId(a);
+          const accessType =
+            typeof a === "object" && a?.accessType ? a.accessType : "view";
+          return { user: usersMap[uid] || uid, accessType };
+        })
+        .filter(Boolean);
 
       // normalize accessRequests to user objects when available
-      d.accessRequests = (d.accessRequests || []).map((u) => usersMap[String(u)] || u);
+      d.accessRequests = (d.accessRequests || []).map(
+        (u) => usersMap[String(u)] || u,
+      );
 
       return d;
     });
@@ -108,11 +123,17 @@ exports.createDocument = async (req, res) => {
     }
 
     // Normalize access array to objects { user, accessType }
-    const normalizedAccess = (accessArr || []).map((a) => {
-      if (typeof a === "string") return { user: a, accessType: "view" };
-      if (a && a.user) return { user: a.user || a.userId, accessType: a.accessType || a.type || "view" };
-      return null;
-    }).filter(Boolean);
+    const normalizedAccess = (accessArr || [])
+      .map((a) => {
+        if (typeof a === "string") return { user: a, accessType: "view" };
+        if (a && a.user)
+          return {
+            user: a.user || a.userId,
+            accessType: a.accessType || a.type || "view",
+          };
+        return null;
+      })
+      .filter(Boolean);
 
     const attachments = await processDocumentFiles(req.files || {});
 
@@ -174,7 +195,10 @@ exports.grantAccess = async (req, res) => {
     const isOwner = String(doc.createdBy) === String(req.user._id);
     const isSuper = req.user.role?.name === "Super Admin";
     if (!isOwner && !isSuper) {
-      return res.status(403).json({ message: "Not allowed - Only document owner or Super Admin can grant access" });
+      return res.status(403).json({
+        message:
+          "Not allowed - Only document owner or Super Admin can grant access",
+      });
     }
 
     const { userId, accessType } = req.body;
@@ -185,7 +209,10 @@ exports.grantAccess = async (req, res) => {
     );
 
     if (existingIndex === -1) {
-      doc.access.push({ user: userId, accessType: accessType === "edit" ? "edit" : "view" });
+      doc.access.push({
+        user: userId,
+        accessType: accessType === "edit" ? "edit" : "view",
+      });
     } else {
       const existing = doc.access[existingIndex];
       if (typeof existing === "object" && existing?.user !== undefined) {
@@ -200,7 +227,9 @@ exports.grantAccess = async (req, res) => {
     }
 
     // Remove from pending requests
-    doc.accessRequests = doc.accessRequests.filter((u) => String(u) !== String(userId));
+    doc.accessRequests = doc.accessRequests.filter(
+      (u) => String(u) !== String(userId),
+    );
     await doc.save();
 
     res.json({ message: "Access granted successfully" });
@@ -222,13 +251,18 @@ exports.revokeAccess = async (req, res) => {
     const isOwner = String(doc.createdBy) === String(req.user._id);
     const isSuper = req.user.role?.name === "Super Admin";
     if (!isOwner && !isSuper) {
-      return res.status(403).json({ message: "Not allowed - Only document owner or Super Admin can revoke access" });
+      return res.status(403).json({
+        message:
+          "Not allowed - Only document owner or Super Admin can revoke access",
+      });
     }
 
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ message: "userId is required" });
 
-    doc.access = doc.access.filter((a) => getAccessUserId(a) !== String(userId));
+    doc.access = doc.access.filter(
+      (a) => getAccessUserId(a) !== String(userId),
+    );
     await doc.save();
 
     res.json({ message: "Access revoked successfully" });
@@ -249,7 +283,9 @@ exports.deleteDocument = async (req, res) => {
     const isOwner = String(doc.createdBy) === String(req.user._id);
     const isSuper = req.user.role?.name === "Super Admin";
     if (!isOwner && !isSuper) {
-      return res.status(403).json({ message: "Not allowed - Only document owner or Super Admin can delete" });
+      return res.status(403).json({
+        message: "Not allowed - Only document owner or Super Admin can delete",
+      });
     }
 
     await Document.findByIdAndDelete(req.params.id);
@@ -274,18 +310,26 @@ exports.updateDocument = async (req, res) => {
 
     // Check if user has 'edit' access to this document
     const accessEntry = doc.access.find((a) => getAccessUserId(a) === userId);
-    const hasEditAccess = accessEntry &&
-      (typeof accessEntry === "object" ? accessEntry.accessType === "edit" : false);
+    const hasEditAccess =
+      accessEntry &&
+      (typeof accessEntry === "object"
+        ? accessEntry.accessType === "edit"
+        : false);
 
     // Must be owner, super admin, or have edit access
     if (!isOwner && !isSuper && !hasEditAccess) {
-      return res.status(403).json({ message: "Not allowed — you need edit access to update this document" });
+      return res.status(403).json({
+        message: "Not allowed — you need edit access to update this document",
+      });
     }
 
     const { name, description, content, access } = req.body;
 
     if (name !== undefined) {
-      if (!name || !name.trim()) return res.status(400).json({ message: "Document name cannot be empty" });
+      if (!name || !name.trim())
+        return res
+          .status(400)
+          .json({ message: "Document name cannot be empty" });
       doc.name = name.trim();
     }
     if (description !== undefined) doc.description = description;
@@ -296,16 +340,25 @@ exports.updateDocument = async (req, res) => {
       let accessArr = [];
       try {
         accessArr = JSON.parse(access);
-      } catch (e) {
+      } catch {
         if (Array.isArray(access)) accessArr = access;
-        else return res.status(400).json({ message: "Invalid access field format" });
+        else
+          return res
+            .status(400)
+            .json({ message: "Invalid access field format" });
       }
 
-      const normalizedAccess = (accessArr || []).map((a) => {
-        if (typeof a === "string") return { user: a, accessType: "view" };
-        if (a && a.user) return { user: a.user || a.userId, accessType: a.accessType || a.type || "view" };
-        return null;
-      }).filter(Boolean);
+      const normalizedAccess = (accessArr || [])
+        .map((a) => {
+          if (typeof a === "string") return { user: a, accessType: "view" };
+          if (a && a.user)
+            return {
+              user: a.user || a.userId,
+              accessType: a.accessType || a.type || "view",
+            };
+          return null;
+        })
+        .filter(Boolean);
 
       doc.access = normalizedAccess;
     }

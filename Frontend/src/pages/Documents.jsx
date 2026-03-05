@@ -5,7 +5,12 @@ import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import { Button, Input, PageHeader, LoadingSpinner } from "../components/common";
+import {
+  Button,
+  Input,
+  PageHeader,
+  LoadingSpinner,
+} from "../components/common";
 import ManageAccessModal from "../components/common/ManageAccessModal";
 
 function Documents() {
@@ -26,8 +31,6 @@ function Documents() {
   const [editDoc, setEditDoc] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
 
-  const [managingAccessFor, setManagingAccessFor] = useState(null);
-  const [selectedGrantUser, setSelectedGrantUser] = useState("");
   const [showManageModalFor, setShowManageModalFor] = useState(null);
   const [accessPopupDocId, setAccessPopupDocId] = useState(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
@@ -47,9 +50,7 @@ function Documents() {
   );
 
   const normalizeHtmlValue = (value = "") =>
-    String(value)
-      .replace(/\s+/g, " ")
-      .trim();
+    String(value).replace(/\s+/g, " ").trim();
 
   const saveEditorContent = (showToast = true) => {
     setContent(editorContent);
@@ -85,10 +86,9 @@ function Documents() {
     try {
       // Use axios directly (not axiosInstance) to avoid triggering the global
       // error toast when this user doesn't have the "View User" permission.
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/users`,
-        { withCredentials: true }
-      );
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/users`, {
+        withCredentials: true,
+      });
       const payload = res.data;
       if (Array.isArray(payload)) setUsers(payload);
       else if (Array.isArray(payload?.users)) setUsers(payload.users);
@@ -128,10 +128,13 @@ function Documents() {
   }, [accessPopupDocId]);
 
   const openDocument = (doc) => {
-    const isOwner = String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
+    const isOwner =
+      String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
     const hasAccess =
       isOwner ||
-      (doc.access || []).some((a) => String(a.user?._id || a.user || a) === String(currentUserId)) ||
+      (doc.access || []).some(
+        (a) => String(a.user?._id || a.user || a) === String(currentUserId),
+      ) ||
       user?.role?.name === "Super Admin";
     if (!hasAccess) {
       toast.info("You do not have access. You can request access.");
@@ -150,7 +153,9 @@ function Documents() {
     if (!name) return toast.error("Name is required");
 
     if (!autoSaveEnabled && hasUnsavedEditorChanges) {
-      return toast.error("Auto Save is off. Click Save Content before submitting");
+      return toast.error(
+        "Auto Save is off. Click Save Content before submitting",
+      );
     }
 
     const finalContent = autoSaveEnabled ? editorContent : content;
@@ -172,7 +177,9 @@ function Documents() {
       if (file) form.append("attachments", file);
       if (editDoc) {
         // Update flow
-        await axiosInstance.put(`/documents/${editDoc._id}`, form, { headers: { "Content-Type": "multipart/form-data" } });
+        await axiosInstance.put(`/documents/${editDoc._id}`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         toast.success("Document updated");
       } else {
         await axiosInstance.post("/documents", form, {
@@ -209,7 +216,9 @@ function Documents() {
 
   const requestAccess = async (docId) => {
     try {
-      const res = await axiosInstance.post(`/documents/${docId}/request-access`);
+      const res = await axiosInstance.post(
+        `/documents/${docId}/request-access`,
+      );
       const message = res?.data?.message || "Access request sent";
       if (/already have access|already submitted/i.test(message)) {
         toast.info(message);
@@ -220,23 +229,6 @@ function Documents() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to request access");
-    }
-  };
-
-  const grantAccess = async (docId) => {
-    if (!selectedGrantUser) return toast.error("Select a user to grant access");
-    try {
-      await axiosInstance.post(`/documents/${docId}/grant`, {
-        userId: selectedGrantUser,
-        accessType: "view",
-      });
-      toast.success("Access granted");
-      setManagingAccessFor(null);
-      setSelectedGrantUser("");
-      fetchDocuments();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to grant access");
     }
   };
 
@@ -254,7 +246,10 @@ function Documents() {
 
   const grantAccessWithType = async (docId, userId, accessType = "view") => {
     try {
-      await axiosInstance.post(`/documents/${docId}/grant`, { userId, accessType });
+      await axiosInstance.post(`/documents/${docId}/grant`, {
+        userId,
+        accessType,
+      });
       toast.success("Access updated");
       setShowManageModalFor(null);
       fetchDocuments();
@@ -297,15 +292,15 @@ function Documents() {
     );
   };
 
-  const selectedUsers = users.filter((u) =>
-    accessList.includes(String(u._id)),
-  );
+  const selectedUsers = users.filter((u) => accessList.includes(String(u._id)));
 
   const filteredDocuments = documents.filter((doc) => {
     const term = searchQuery.toLowerCase();
     return (
       (doc.name || "").toLowerCase().includes(term) ||
-      getPlainText(doc.description || "").toLowerCase().includes(term)
+      getPlainText(doc.description || "")
+        .toLowerCase()
+        .includes(term)
     );
   });
 
@@ -326,7 +321,8 @@ function Documents() {
     const timeout = setTimeout(() => {
       try {
         const plainEditorText = getPlainText(editorContent);
-        if (plainEditorText) localStorage.setItem(editorDraftKey, editorContent);
+        if (plainEditorText)
+          localStorage.setItem(editorDraftKey, editorContent);
         else localStorage.removeItem(editorDraftKey);
 
         setContent(editorContent);
@@ -342,8 +338,14 @@ function Documents() {
 
   // ── Avatar helpers ─────────────────────────────────────
   const AVATAR_COLORS = [
-    "#4f46e5", "#0ea5e9", "#10b981", "#f59e0b",
-    "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6",
+    "#4f46e5",
+    "#0ea5e9",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#ec4899",
+    "#14b8a6",
   ];
   const avatarColor = (str = "") => {
     let h = 0;
@@ -351,7 +353,12 @@ function Documents() {
     return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
   };
   const initials = (name = "") =>
-    name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?";
 
   const AccessAvatars = ({ accessList, docId }) => {
     const isOpen = accessPopupDocId === docId;
@@ -360,11 +367,20 @@ function Documents() {
     const extra = accessList.length - MAX;
 
     return (
-      <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+      <div
+        style={{
+          position: "relative",
+          display: "inline-flex",
+          alignItems: "center",
+        }}
+      >
         {/* Avatar stack */}
         <div
           style={{ display: "flex", cursor: "pointer" }}
-          onClick={(e) => { e.stopPropagation(); setAccessPopupDocId(isOpen ? null : docId); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setAccessPopupDocId(isOpen ? null : docId);
+          }}
           title="Click to see access list"
         >
           {shown.map((a, i) => {
@@ -372,34 +388,55 @@ function Documents() {
             const name = resolveUserName(u);
             const bg = avatarColor(name);
             return (
-              <div key={i} style={{
-                width: 30, height: 30, borderRadius: "50%",
-                background: bg, color: "#fff",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 700,
-                border: "2px solid #fff",
-                marginLeft: i > 0 ? -8 : 0,
-                zIndex: shown.length - i,
-                position: "relative",
-              }}>
+              <div
+                key={i}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: "50%",
+                  background: bg,
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  border: "2px solid #fff",
+                  marginLeft: i > 0 ? -8 : 0,
+                  zIndex: shown.length - i,
+                  position: "relative",
+                }}
+              >
                 {initials(name)}
               </div>
             );
           })}
           {extra > 0 && (
-            <div style={{
-              width: 30, height: 30, borderRadius: "50%",
-              background: "#e2e8f0", color: "#475569",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, fontWeight: 700,
-              border: "2px solid #fff",
-              marginLeft: -8,
-            }}>
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "#e2e8f0",
+                color: "#475569",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 10,
+                fontWeight: 700,
+                border: "2px solid #fff",
+                marginLeft: -8,
+              }}
+            >
               +{extra}
             </div>
           )}
           {accessList.length === 0 && (
-            <span style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>No access</span>
+            <span
+              style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}
+            >
+              No access
+            </span>
           )}
         </div>
 
@@ -407,57 +444,124 @@ function Documents() {
         {isOpen && (
           <div
             style={{
-              position: "absolute", top: 36, left: 0, zIndex: 999,
-              background: "#fff", border: "1px solid #e2e8f0",
-              borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              padding: "10px 0", minWidth: 220,
+              position: "absolute",
+              top: 36,
+              left: 0,
+              zIndex: 999,
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 10,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+              padding: "10px 0",
+              minWidth: 220,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ padding: "4px 14px 8px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <div
+              style={{
+                padding: "4px 14px 8px",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#94a3b8",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}
+            >
               Access List
             </div>
             {accessList.map((a, i) => {
               const u = a.user || a;
               const name = resolveUserName(u);
-              const email = typeof u === "object" ? (u.email || "") : "";
+              const email = typeof u === "object" ? u.email || "" : "";
               const type = a.accessType || a.type || "view";
               return (
-                <div key={i} style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "6px 14px",
-                }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: "50%",
-                    background: avatarColor(name), color: "#fff",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10, fontWeight: 700, flexShrink: 0,
-                  }}>
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: avatarColor(name),
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
                     {initials(name)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
-                    {email && <div style={{ fontSize: 11, color: "#94a3b8" }}>{email}</div>}
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "#1e293b",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {name}
+                    </div>
+                    {email && (
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                        {email}
+                      </div>
+                    )}
                   </div>
-                  <span style={{
-                    padding: "2px 7px", borderRadius: 20, fontSize: 10, fontWeight: 700,
-                    background: type === "edit" ? "#ede9fe" : "#e0f2fe",
-                    color: type === "edit" ? "#6d28d9" : "#0369a1",
-                    textTransform: "uppercase", letterSpacing: "0.04em",
-                    flexShrink: 0,
-                  }}>
+                  <span
+                    style={{
+                      padding: "2px 7px",
+                      borderRadius: 20,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      background: type === "edit" ? "#ede9fe" : "#e0f2fe",
+                      color: type === "edit" ? "#6d28d9" : "#0369a1",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      flexShrink: 0,
+                    }}
+                  >
                     {type}
                   </span>
                 </div>
               );
             })}
             {accessList.length === 0 && (
-              <div style={{ padding: "6px 14px", fontSize: 13, color: "#94a3b8" }}>No one has access yet.</div>
+              <div
+                style={{ padding: "6px 14px", fontSize: 13, color: "#94a3b8" }}
+              >
+                No one has access yet.
+              </div>
             )}
-            <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 6, padding: "6px 14px 0" }}>
+            <div
+              style={{
+                borderTop: "1px solid #f1f5f9",
+                marginTop: 6,
+                padding: "6px 14px 0",
+              }}
+            >
               <button
                 onClick={() => setAccessPopupDocId(null)}
-                style={{ fontSize: 12, color: "#64748b", border: "none", background: "none", cursor: "pointer", padding: 0 }}
+                style={{
+                  fontSize: 12,
+                  color: "#64748b",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
               >
                 Close
               </button>
@@ -513,8 +617,18 @@ function Documents() {
       >
         <div className="header-search-wrapper">
           <span className="search-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </span>
           <input
@@ -530,10 +644,7 @@ function Documents() {
       {loading ? (
         <LoadingSpinner message="Loading documents..." />
       ) : (
-        <table
-          className="role-table"
-          style={{ marginTop: 12 }}
-        >
+        <table className="role-table" style={{ marginTop: 12 }}>
           <thead>
             <tr>
               <th style={{ textAlign: "left", padding: 6 }}>Name</th>
@@ -545,7 +656,9 @@ function Documents() {
           </thead>
           <tbody>
             {filteredDocuments.map((doc) => {
-              const isOwner = String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
+              const isOwner =
+                String(doc.createdBy?._id || doc.createdBy) ===
+                String(currentUserId);
               const isSuper = user?.role?.name === "Super Admin";
               const accessType = getAccessTypeForUser(doc, currentUserId);
               const hasAccess = isOwner || isSuper || !!accessType;
@@ -553,19 +666,42 @@ function Documents() {
               return (
                 <tr key={doc._id} style={{ borderTop: "1px solid #ddd" }}>
                   <td style={{ padding: 6 }}>{doc.name}</td>
-                  <td style={{ padding: 6 }}>{getPlainText(doc.description)}</td>
+                  <td style={{ padding: 6 }}>
+                    {getPlainText(doc.description)}
+                  </td>
                   <td style={{ padding: 6 }}>
                     {doc.createdBy?.name || doc.createdBy}
                   </td>
                   <td style={{ padding: 6 }}>
-                    <AccessAvatars accessList={doc.access || []} docId={doc._id} />
+                    <AccessAvatars
+                      accessList={doc.access || []}
+                      docId={doc._id}
+                    />
                   </td>
-                  <td style={{ padding: 6, display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                  <td
+                    style={{
+                      padding: 6,
+                      display: "flex",
+                      gap: "8px",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                    }}
+                  >
                     {hasAccess && (
-                      <Button variant="primary" size="sm" onClick={() => openDocument(doc)}>Open</Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => openDocument(doc)}
+                      >
+                        Open
+                      </Button>
                     )}
                     {!hasAccess && (
-                      <Button variant="secondary" size="sm" onClick={() => requestAccess(doc._id)}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => requestAccess(doc._id)}
+                      >
                         Request Access
                       </Button>
                     )}
@@ -574,11 +710,19 @@ function Documents() {
                         <Button
                           variant="warning"
                           size="sm"
-                          onClick={() => setShowManageModalFor(showManageModalFor === doc._id ? null : doc._id)}
+                          onClick={() =>
+                            setShowManageModalFor(
+                              showManageModalFor === doc._id ? null : doc._id,
+                            )
+                          }
                         >
                           Manage Access
                         </Button>
-                        <Button variant="danger" size="sm" onClick={() => deleteDocument(doc._id)}>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => deleteDocument(doc._id)}
+                        >
                           Delete
                         </Button>
                       </>
@@ -596,7 +740,11 @@ function Documents() {
                           setEditorContent(doc.content || "");
                           setLastManualSavedAt("");
                           setHasUnsavedEditorChanges(false);
-                          setAccessList((doc.access || []).map((a) => String(a.user?._id || a.user || a)));
+                          setAccessList(
+                            (doc.access || []).map((a) =>
+                              String(a.user?._id || a.user || a),
+                            ),
+                          );
                           setFileInputKey((k) => k + 1);
                           setShowModal(true);
                         }}
@@ -652,10 +800,17 @@ function Documents() {
               overflowY: "auto",
             }}
           >
-            <h3 style={{ marginTop: 0, marginBottom: 14 }}>{editDoc ? "Edit Document" : "Create Document"}</h3>
+            <h3 style={{ marginTop: 0, marginBottom: 14 }}>
+              {editDoc ? "Edit Document" : "Create Document"}
+            </h3>
             <form onSubmit={handleCreate}>
               <div style={{ marginBottom: 12 }}>
-                <Input label="Name" fullWidth value={name} onChange={(e) => setName(e.target.value)} />
+                <Input
+                  label="Name"
+                  fullWidth
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </div>
               <div style={{ marginBottom: 12 }}>
                 <Input
@@ -667,7 +822,9 @@ function Documents() {
                 />
               </div>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                <label
+                  style={{ display: "block", marginBottom: 6, fontWeight: 600 }}
+                >
                   Editor Content
                 </label>
                 <div
@@ -685,7 +842,8 @@ function Documents() {
                       const nextValue = editor.getData();
                       setEditorContent(nextValue);
                       setHasUnsavedEditorChanges(
-                        normalizeHtmlValue(nextValue) !== normalizeHtmlValue(content),
+                        normalizeHtmlValue(nextValue) !==
+                          normalizeHtmlValue(content),
                       );
                     }}
                   />
@@ -723,12 +881,25 @@ function Documents() {
                     </span>
                   )}
                   {!autoSaveEnabled && hasUnsavedEditorChanges && (
-                    <span style={{ fontSize: 12, color: "#b45309", fontWeight: 600 }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: "#b45309",
+                        fontWeight: 600,
+                      }}
+                    >
                       Unsaved editor changes
                     </span>
                   )}
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    marginTop: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
                   <Button
                     type="button"
                     size="sm"
@@ -758,22 +929,38 @@ function Documents() {
                     Clear Content
                   </Button>
                   {lastManualSavedAt && (
-                    <span style={{ fontSize: 12, color: "#64748b", alignSelf: "center" }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: "#64748b",
+                        alignSelf: "center",
+                      }}
+                    >
                       Last manual save: {lastManualSavedAt}
                     </span>
                   )}
                 </div>
-                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b" }}>
-                  You can upload a file, write content in the editor, or use both. If Auto Save is off, click Save Content before submitting.
+                <p
+                  style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b" }}
+                >
+                  You can upload a file, write content in the editor, or use
+                  both. If Auto Save is off, click Save Content before
+                  submitting.
                 </p>
               </div>
               <div style={{ marginBottom: 12 }}>
-                <Input key={fileInputKey} type="file" label="Attach File" fullWidth
+                <Input
+                  key={fileInputKey}
+                  type="file"
+                  label="Attach File"
+                  fullWidth
                   onChange={(e) => setFile(e.target.files[0])}
                 />
               </div>
               <div style={{ marginBottom: 8 }}>
-                <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+                <label
+                  style={{ display: "block", marginBottom: 6, fontWeight: 600 }}
+                >
                   Give Access
                 </label>
 
@@ -870,7 +1057,9 @@ function Documents() {
                             width: 18,
                             height: 18,
                             borderRadius: 4,
-                            border: checked ? "1px solid #0ea5e9" : "1px solid #94a3b8",
+                            border: checked
+                              ? "1px solid #0ea5e9"
+                              : "1px solid #94a3b8",
                             background: checked ? "#0ea5e9" : "#fff",
                             color: "#fff",
                             display: "inline-flex",
@@ -889,12 +1078,19 @@ function Documents() {
                 </div>
               </div>
               <div
-                style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  justifyContent: "flex-end",
+                  marginTop: 16,
+                }}
               >
                 <Button variant="secondary" type="button" onClick={cancelModal}>
                   Cancel
                 </Button>
-                <Button variant="primary" type="submit">{editDoc ? "Save" : "Create"}</Button>
+                <Button variant="primary" type="submit">
+                  {editDoc ? "Save" : "Create"}
+                </Button>
               </div>
             </form>
           </div>

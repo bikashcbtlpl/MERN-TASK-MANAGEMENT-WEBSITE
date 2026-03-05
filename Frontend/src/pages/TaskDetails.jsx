@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import { LoadingSpinner, Button } from "../components/common";
@@ -23,40 +23,40 @@ function TaskDetails() {
   // Super Admin or Admin can resolve issues
   const canResolve = isSuperAdmin || user?.role?.name === "Admin";
 
-  const fetchTask = async () => {
+  const fetchTask = useCallback(async () => {
     try {
       const res = await axiosInstance.get(`/tasks/${id}`);
       setTask(res.data);
-    } catch (error) {
-      console.log("Error fetching task");
+    } catch (err) {
+      console.log("Error fetching task", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/users");
       setUsers(Array.isArray(res.data) ? res.data : res.data.users || []);
     } catch (err) {
       console.log("Error fetching users for mentions", err);
     }
-  };
-
-  useEffect(() => {
-    fetchTask();
-    fetchUsers();
-    fetchIssues();
   }, []);
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     try {
       const res = await axiosInstance.get(`/issues/task/${id}`);
       setIssues(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.log("Error fetching issues", err);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchTask();
+    fetchUsers();
+    fetchIssues();
+  }, [fetchTask, fetchUsers, fetchIssues]);
 
   const submitIssue = async (e) => {
     e.preventDefault();
@@ -76,8 +76,6 @@ function TaskDetails() {
     }
   };
 
-
-
   const resolveIssue = async (issueId) => {
     try {
       const res = await axiosInstance.patch(`/issues/${issueId}/resolve`);
@@ -88,14 +86,6 @@ function TaskDetails() {
     } catch (err) {
       console.error("Error resolving issue", err);
     }
-  };
-
-  const getHandle = (u) => {
-    if (!u) return "user";
-    if (u.username) return u.username;
-    if (u.email) return u.email.split("@")[0];
-    if (u.name) return u.name.replace(/\s+/g, "").toLowerCase();
-    return "user";
   };
 
   const resolveHandleToUser = (handle) => {
@@ -115,7 +105,7 @@ function TaskDetails() {
   const renderDescription = (text) => {
     if (!text) return null;
     // Split on @mentions but keep the marker
-    const parts = text.split(/(@[A-Za-z0-9_\.-]+)/g);
+    const parts = text.split(/(@[A-Za-z0-9_.-]+)/g);
     return parts.map((part, i) => {
       if (part.startsWith("@")) {
         const matchedUser = resolveHandleToUser(part);
@@ -168,10 +158,7 @@ function TaskDetails() {
               </Button>
             )}
 
-            <Button
-              variant="secondary"
-              onClick={() => navigate("/tasks")}
-            >
+            <Button variant="secondary" onClick={() => navigate("/tasks")}>
               Back
             </Button>
           </div>
@@ -340,9 +327,11 @@ function TaskDetails() {
                       href={`${file}?fl_attachment`}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ textDecoration: 'none' }}
+                      style={{ textDecoration: "none" }}
                     >
-                      <Button size="sm" variant="primary">Download</Button>
+                      <Button size="sm" variant="primary">
+                        Download
+                      </Button>
                     </a>
                   </li>
                 );

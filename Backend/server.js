@@ -16,7 +16,9 @@ const app = express();
 
 /* ================= ALLOWED ORIGINS ================= */
 const configuredOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+  ? process.env.ALLOWED_ORIGINS.split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
   : ["http://localhost:5173"];
 
 const allowedOrigins = Array.from(
@@ -25,9 +27,16 @@ const allowedOrigins = Array.from(
       try {
         const parsed = new URL(origin);
         // In local dev, frontend is often opened via localhost or 127.0.0.1 interchangeably.
-        if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-          const otherHost = parsed.hostname === "localhost" ? "127.0.0.1" : "localhost";
-          return [origin, `${parsed.protocol}//${otherHost}${parsed.port ? `:${parsed.port}` : ""}`];
+        if (
+          parsed.hostname === "localhost" ||
+          parsed.hostname === "127.0.0.1"
+        ) {
+          const otherHost =
+            parsed.hostname === "localhost" ? "127.0.0.1" : "localhost";
+          return [
+            origin,
+            `${parsed.protocol}//${otherHost}${parsed.port ? `:${parsed.port}` : ""}`,
+          ];
         }
       } catch {
         // Keep invalid entries untouched; they will simply fail matching in CORS check.
@@ -71,7 +80,11 @@ app.use("/api/documents", require("./routes/documentRoutes"));
 
 /* ================= HEALTH CHECK ================= */
 app.get("/", (req, res) => {
-  res.json({ status: "ok", message: "Backend Running", env: process.env.NODE_ENV });
+  res.json({
+    status: "ok",
+    message: "Backend Running",
+    env: process.env.NODE_ENV,
+  });
 });
 
 /* ================= 404 HANDLER ================= */
@@ -131,7 +144,9 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || "development"}]`);
+  console.log(
+    `🚀 Server running on port ${PORT} [${process.env.NODE_ENV || "development"}]`,
+  );
 });
 
 /* ================= GRACEFUL SHUTDOWN ================= */

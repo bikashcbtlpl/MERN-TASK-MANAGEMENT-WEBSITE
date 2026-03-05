@@ -7,21 +7,21 @@
  *                        "task" renders status-badge class
  */
 const StatusBadge = ({ status, type = "role" }) => {
-    if (type === "task") {
-        const slug = status?.toLowerCase().replace(/\s+/g, "-");
-        return <span className={`status-badge status-${slug}`}>{status}</span>;
-    }
+  if (type === "task") {
+    const slug = status?.toLowerCase().replace(/\s+/g, "-");
+    return <span className={`status-badge status-${slug}`}>{status}</span>;
+  }
 
-    // default: role-style (Active / Inactive)
-    return (
-        <span
-            className={
-                status === "Active" ? "role-status active" : "role-status inactive"
-            }
-        >
-            {status}
-        </span>
-    );
+  // default: role-style (Active / Inactive)
+  return (
+    <span
+      className={
+        status === "Active" ? "role-status active" : "role-status inactive"
+      }
+    >
+      {status}
+    </span>
+  );
 };
 
 export default StatusBadge;

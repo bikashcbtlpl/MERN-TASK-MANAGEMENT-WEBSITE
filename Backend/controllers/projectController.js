@@ -21,7 +21,9 @@ exports.createProject = async (req, res) => {
     });
 
     if (team && team.length > 0) {
-      const users = await User.find({ _id: { $in: team } }).select("email").lean();
+      const users = await User.find({ _id: { $in: team } })
+        .select("email")
+        .lean();
       for (const u of users) {
         if (u.email) {
           // Don't await queue add: if Redis is down or queue rejects,
@@ -32,7 +34,9 @@ exports.createProject = async (req, res) => {
               subject: "Added to New Project",
               text: `You have been added to a new project: ${project.name}.\n\nPlease login to view the details.`,
             }),
-          ).catch((e) => console.warn("[emailQueue] add failed:", e?.message || e));
+          ).catch((e) =>
+            console.warn("[emailQueue] add failed:", e?.message || e),
+          );
         }
       }
     }
@@ -54,7 +58,10 @@ exports.getProjects = async (req, res) => {
 
     const search = req.query.search || "";
     const page = Math.max(1, parseInt(req.query.page || "1", 10));
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "10", 10)));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit || "10", 10)),
+    );
     const skip = (page - 1) * limit;
 
     let baseFilter = {};
@@ -111,7 +118,9 @@ exports.getProjectById = async (req, res) => {
     );
     if (isTeamMember) return res.json(project);
 
-    return res.status(403).json({ message: "Access denied - You are not a member of this project" });
+    return res.status(403).json({
+      message: "Access denied - You are not a member of this project",
+    });
   } catch (err) {
     console.error("Get Project By ID Error:", err);
     res.status(500).json({ message: "Error fetching project" });
@@ -128,7 +137,8 @@ exports.updateProject = async (req, res) => {
     }
 
     const oldProject = await Project.findById(req.params.id).lean();
-    if (!oldProject) return res.status(404).json({ message: "Project not found" });
+    if (!oldProject)
+      return res.status(404).json({ message: "Project not found" });
 
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
@@ -137,11 +147,10 @@ exports.updateProject = async (req, res) => {
     if (status !== undefined) updateData.status = status;
     if (team !== undefined) updateData.team = team;
 
-    const project = await Project.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true },
-    ).lean();
+    const project = await Project.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    }).lean();
 
     if (team !== undefined) {
       const oldTeamStr = (oldProject.team || []).map(String);
@@ -149,7 +158,9 @@ exports.updateProject = async (req, res) => {
       const newlyAdded = newTeamStr.filter((id) => !oldTeamStr.includes(id));
 
       if (newlyAdded.length > 0) {
-        const newUsers = await User.find({ _id: { $in: newlyAdded } }).select("email").lean();
+        const newUsers = await User.find({ _id: { $in: newlyAdded } })
+          .select("email")
+          .lean();
         for (const u of newUsers) {
           if (u.email) {
             Promise.resolve(
@@ -158,7 +169,9 @@ exports.updateProject = async (req, res) => {
                 subject: "Added to Project",
                 text: `You have been added to the project: ${project.name}.\n\nPlease login to view the details.`,
               }),
-            ).catch((e) => console.warn("[emailQueue] add failed:", e?.message || e));
+            ).catch((e) =>
+              console.warn("[emailQueue] add failed:", e?.message || e),
+            );
           }
         }
       }
@@ -181,7 +194,9 @@ exports.deleteProject = async (req, res) => {
     await Task.updateMany(
       { project: project._id },
       { $unset: { project: "" } },
-    ).catch((e) => console.warn("Warning: failed to unset project from tasks", e));
+    ).catch((e) =>
+      console.warn("Warning: failed to unset project from tasks", e),
+    );
 
     res.json({ message: "Project deleted successfully" });
   } catch (err) {
