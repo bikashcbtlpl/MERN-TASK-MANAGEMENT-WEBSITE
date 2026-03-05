@@ -495,6 +495,44 @@
   animation: fadeIn 0.2s;
 }
 
+/* Manage Access modal layout */
+.manage-access-root {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+  align-items: flex-start;
+}
+.manage-access-column {
+  background: #fafbfc;
+  border: 1px solid #e7eaf0;
+  border-radius: 10px;
+  padding: 14px;
+  flex: 1;
+  min-width: 240px;
+}
+.manage-access-list { display: flex; flex-direction: column; gap: 10px; }
+.manage-access-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #eceff4;
+  border-radius: 8px;
+  background: #fff;
+}
+.manage-access-user { display:flex; flex-direction:column; }
+.manage-access-actions { display:flex; gap:8px; align-items:center; }
+.muted { color: #666; }
+.small { font-size: 12px; }
+.full-width { width: 100%; }
+
+@media (max-width: 900px) {
+  .manage-access-root {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modal-buttons {
   display: flex;
   justify-content: space-between;

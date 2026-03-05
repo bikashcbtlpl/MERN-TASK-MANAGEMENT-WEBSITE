@@ -26,6 +26,12 @@ router.post(
 // Grant access (only owner or super admin)
 router.post("/:id/grant", authMiddleware, documentController.grantAccess);
 
+// Revoke access
+router.post("/:id/revoke", authMiddleware, documentController.revokeAccess);
+
+// Update document
+router.put("/:id", authMiddleware, upload.fields([{ name: "attachments", maxCount: 1 }]), documentController.updateDocument);
+
 // Delete document
 router.delete("/:id", authMiddleware, documentController.deleteDocument);
 

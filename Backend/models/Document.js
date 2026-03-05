@@ -5,7 +5,13 @@ const DocumentSchema = new mongoose.Schema(
     name: { type: String, required: true },
     description: { type: String },
     attachments: [{ type: String }],
-    access: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    access: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        // accessType: 'view' or 'edit'
+        accessType: { type: String, enum: ["view", "edit"], default: "view" },
+      },
+    ],
     accessRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

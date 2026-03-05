@@ -16,8 +16,12 @@ const redisOptions = {
     }
     return Math.min(times * 1000, 5000);
   },
-  enableOfflineQueue: false,
-  connectTimeout: 5000,
+  // Allow commands to be enqueued while Redis is unavailable.
+  // Use lazyConnect so the client doesn't attempt an immediate TCP connect
+  // (which throws when Redis is not running). With `enableOfflineQueue` true
+  // Bull will store jobs locally until Redis becomes available.
+  enableOfflineQueue: true,
+  connectTimeout: 10000,
   lazyConnect: true,
 };
 

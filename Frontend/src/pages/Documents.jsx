@@ -2,10 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import { Button, Input, PageHeader } from "../components/common";
+import { Button, Input, PageHeader, LoadingSpinner } from "../components/common";
+import ManageAccessModal from "../components/common/ManageAccessModal";
 
 function Documents() {
   const { user } = useAuth();
+  const currentUserId = user?._id || user?.id;
 
   const [documents, setDocuments] = useState([]);
   const [users, setUsers] = useState([]);
@@ -16,9 +18,12 @@ function Documents() {
   const [description, setDescription] = useState("");
   const [accessList, setAccessList] = useState([]); // array of user ids
   const [file, setFile] = useState(null);
+  const [editDoc, setEditDoc] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const [managingAccessFor, setManagingAccessFor] = useState(null);
   const [selectedGrantUser, setSelectedGrantUser] = useState("");
+  const [showManageModalFor, setShowManageModalFor] = useState(null);
 
   const fetchDocuments = useCallback(async () => {
     try {
@@ -37,11 +42,29 @@ function Documents() {
   const fetchUsers = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/users");
-      setUsers(res.data || []);
+      const payload = res.data;
+      if (Array.isArray(payload)) setUsers(payload);
+      else if (Array.isArray(payload?.users)) setUsers(payload.users);
+      else setUsers([]);
     } catch (err) {
       console.error(err);
     }
   }, []);
+
+  const getAccessTypeForUser = (doc, userId) => {
+    const entry = (doc.access || []).find(
+      (a) => String(a?.user?._id || a?.user || a) === String(userId),
+    );
+    if (!entry) return null;
+    return entry.accessType || entry.type || "view";
+  };
+
+  const resolveUserName = (userRef) => {
+    if (!userRef) return "";
+    if (typeof userRef === "object" && userRef.name) return userRef.name;
+    const found = users.find((u) => String(u._id) === String(userRef));
+    return found?.name || String(userRef);
+  };
 
   useEffect(() => {
     fetchDocuments();
@@ -49,11 +72,10 @@ function Documents() {
   }, [fetchDocuments, fetchUsers]);
 
   const openDocument = (doc) => {
-    const isOwner =
-      doc.createdBy?._id === user?._id || doc.createdBy === user?._id;
+    const isOwner = String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
     const hasAccess =
       isOwner ||
-      (doc.access || []).some((a) => a === user?._id || a?._id === user?._id) ||
+      (doc.access || []).some((a) => String(a.user?._id || a.user || a) === String(currentUserId)) ||
       user?.role?.name === "Super Admin";
     if (!hasAccess) {
       toast.info("You do not have access. You can request access.");
@@ -74,19 +96,24 @@ function Documents() {
       const form = new FormData();
       form.append("name", name);
       form.append("description", description);
-      form.append("createdBy", user?._id);
       form.append("access", JSON.stringify(accessList));
       if (file) form.append("attachments", file);
-
-      await axiosInstance.post("/documents", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success("Document created");
+      if (editDoc) {
+        // Update flow
+        await axiosInstance.put(`/documents/${editDoc._id}`, form, { headers: { "Content-Type": "multipart/form-data" } });
+        toast.success("Document updated");
+      } else {
+        await axiosInstance.post("/documents", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Document created");
+      }
       setShowModal(false);
       setName("");
       setDescription("");
       setAccessList([]);
       setFile(null);
+      setEditDoc(null);
       fetchDocuments();
     } catch (err) {
       console.error(err);
@@ -96,8 +123,14 @@ function Documents() {
 
   const requestAccess = async (docId) => {
     try {
-      await axiosInstance.post(`/documents/${docId}/request-access`);
-      toast.success("Access request sent");
+      const res = await axiosInstance.post(`/documents/${docId}/request-access`);
+      const message = res?.data?.message || "Access request sent";
+      if (/already have access|already submitted/i.test(message)) {
+        toast.info(message);
+      } else {
+        toast.success(message);
+      }
+      fetchDocuments();
     } catch (err) {
       console.error(err);
       toast.error("Failed to request access");
@@ -109,6 +142,7 @@ function Documents() {
     try {
       await axiosInstance.post(`/documents/${docId}/grant`, {
         userId: selectedGrantUser,
+        accessType: "view",
       });
       toast.success("Access granted");
       setManagingAccessFor(null);
@@ -132,6 +166,34 @@ function Documents() {
     }
   };
 
+  const grantAccessWithType = async (docId, userId, accessType = "view") => {
+    try {
+      await axiosInstance.post(`/documents/${docId}/grant`, { userId, accessType });
+      toast.success("Access updated");
+      setShowManageModalFor(null);
+      fetchDocuments();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update access");
+    }
+  };
+
+  const revokeAccess = async (docId, userId) => {
+    try {
+      await axiosInstance.post(`/documents/${docId}/revoke`, { userId });
+      toast.success("Access revoked");
+      fetchDocuments();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to revoke access");
+    }
+  };
+
+  const changeAccessType = async (docId, userId, accessType) => {
+    // grant endpoint will update existing entry
+    await grantAccessWithType(docId, userId, accessType);
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredDocuments = documents.filter((doc) => {
@@ -142,12 +204,32 @@ function Documents() {
     );
   });
 
+  const openCreateModal = () => {
+    setEditDoc(null);
+    setName("");
+    setDescription("");
+    setAccessList([]);
+    setFile(null);
+    setFileInputKey((k) => k + 1);
+    setShowModal(true);
+  };
+
+  const cancelModal = () => {
+    setShowModal(false);
+    setEditDoc(null);
+    setName("");
+    setDescription("");
+    setAccessList([]);
+    setFile(null);
+    setFileInputKey((k) => k + 1);
+  };
+
   return (
-    <div>
+    <div className="page-container">
       <PageHeader
         title="Documents"
         btnLabel="Create Document"
-        onBtnClick={() => setShowModal(true)}
+        onBtnClick={openCreateModal}
       >
         <div style={{ marginRight: "16px" }}>
           <Input
@@ -161,10 +243,11 @@ function Documents() {
       </PageHeader>
 
       {loading ? (
-        <div>Loading...</div>
+        <LoadingSpinner message="Loading documents..." />
       ) : (
         <table
-          style={{ width: "100%", marginTop: 12, borderCollapse: "collapse" }}
+          className="role-table"
+          style={{ marginTop: 12 }}
         >
           <thead>
             <tr>
@@ -177,14 +260,11 @@ function Documents() {
           </thead>
           <tbody>
             {filteredDocuments.map((doc) => {
-              const isOwner =
-                doc.createdBy?._id === user?._id || doc.createdBy === user?._id;
-              const hasAccess =
-                isOwner ||
-                (doc.access || []).some(
-                  (a) => a === user?._id || a?._id === user?._id,
-                ) ||
-                user?.role?.name === "Super Admin";
+              const isOwner = String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
+              const isSuper = user?.role?.name === "Super Admin";
+              const accessType = getAccessTypeForUser(doc, currentUserId);
+              const hasAccess = isOwner || isSuper || !!accessType;
+              const canEditDoc = isOwner || isSuper || accessType === "edit";
               return (
                 <tr key={doc._id} style={{ borderTop: "1px solid #ddd" }}>
                   <td style={{ padding: 6 }}>{doc.name}</td>
@@ -194,26 +274,29 @@ function Documents() {
                   </td>
                   <td style={{ padding: 6 }}>
                     {(doc.access || [])
-                      .map((a) => (a.name ? a.name : a))
+                      .map((a) => {
+                        const u = a.user || a;
+                        const name = resolveUserName(u);
+                        const type = a.accessType || a.type || "view";
+                        return `${name} ${type === "edit" ? "(edit)" : "(view)"}`;
+                      })
                       .join(", ")}
                   </td>
                   <td style={{ padding: 6, display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                    <Button variant="primary" size="sm" onClick={() => openDocument(doc)}>Open</Button>
+                    {hasAccess && (
+                      <Button variant="primary" size="sm" onClick={() => openDocument(doc)}>Open</Button>
+                    )}
                     {!hasAccess && (
                       <Button variant="secondary" size="sm" onClick={() => requestAccess(doc._id)}>
                         Request Access
                       </Button>
                     )}
-                    {isOwner && (
+                    {(isOwner || isSuper) && (
                       <>
                         <Button
                           variant="warning"
                           size="sm"
-                          onClick={() =>
-                            setManagingAccessFor(
-                              managingAccessFor === doc._id ? null : doc._id,
-                            )
-                          }
+                          onClick={() => setShowManageModalFor(showManageModalFor === doc._id ? null : doc._id)}
                         >
                           Manage Access
                         </Button>
@@ -222,26 +305,20 @@ function Documents() {
                         </Button>
                       </>
                     )}
-                    {managingAccessFor === doc._id && (
-                      <div style={{ marginTop: 6, display: "flex", gap: "8px", alignItems: "center" }}>
-                        <select
-                          value={selectedGrantUser}
-                          onChange={(e) => setSelectedGrantUser(e.target.value)}
-                          style={{ padding: "4px 8px", borderRadius: "4px", border: "1px solid #ccc" }}
-                        >
-                          <option value="">Select user</option>
-                          {users
-                            .filter((u) => u._id !== user?._id)
-                            .map((u) => (
-                              <option key={u._id} value={u._id}>
-                                {u.name} ({u.email})
-                              </option>
-                            ))}
-                        </select>
-                        <Button variant="primary" size="sm" onClick={() => grantAccess(doc._id)}>
-                          Grant
-                        </Button>
-                      </div>
+                    {canEditDoc && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setEditDoc(doc);
+                          setName(doc.name || "");
+                          setDescription(doc.description || "");
+                          setAccessList((doc.access || []).map((a) => String(a.user?._id || a.user || a)));
+                          setShowModal(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
                     )}
                   </td>
                 </tr>
@@ -249,6 +326,18 @@ function Documents() {
             })}
           </tbody>
         </table>
+      )}
+
+      {showManageModalFor && (
+        <ManageAccessModal
+          isOpen={!!showManageModalFor}
+          onClose={() => setShowManageModalFor(null)}
+          document={documents.find((d) => d._id === showManageModalFor)}
+          users={users}
+          onGrant={grantAccessWithType}
+          onRevoke={revokeAccess}
+          onChangeType={changeAccessType}
+        />
       )}
 
       {showModal && (
@@ -285,7 +374,7 @@ function Documents() {
                 />
               </div>
               <div style={{ marginBottom: 12 }}>
-                <Input type="file" label="Attach File" fullWidth
+                <Input key={fileInputKey} type="file" label="Attach File" fullWidth
                   onChange={(e) => setFile(e.target.files[0])}
                 />
               </div>
@@ -308,13 +397,13 @@ function Documents() {
                   ))}
                 </select>
               </div>
-              <div
-                style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}
-              >
-                <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>
+                <div
+                  style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}
+                >
+                <Button variant="secondary" type="button" onClick={cancelModal}>
                   Cancel
                 </Button>
-                <Button variant="primary" type="submit">Create</Button>
+                <Button variant="primary" type="submit">{editDoc ? "Save" : "Create"}</Button>
               </div>
             </form>
           </div>

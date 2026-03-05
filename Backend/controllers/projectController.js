@@ -24,11 +24,15 @@ exports.createProject = async (req, res) => {
       const users = await User.find({ _id: { $in: team } }).select("email").lean();
       for (const u of users) {
         if (u.email) {
-          await emailQueue.add({
-            to: u.email,
-            subject: "Added to New Project",
-            text: `You have been added to a new project: ${project.name}.\n\nPlease login to view the details.`,
-          });
+          // Don't await queue add: if Redis is down or queue rejects,
+          // we should not fail project creation. Log errors instead.
+          Promise.resolve(
+            emailQueue.add({
+              to: u.email,
+              subject: "Added to New Project",
+              text: `You have been added to a new project: ${project.name}.\n\nPlease login to view the details.`,
+            }),
+          ).catch((e) => console.warn("[emailQueue] add failed:", e?.message || e));
         }
       }
     }
@@ -148,11 +152,13 @@ exports.updateProject = async (req, res) => {
         const newUsers = await User.find({ _id: { $in: newlyAdded } }).select("email").lean();
         for (const u of newUsers) {
           if (u.email) {
-            await emailQueue.add({
-              to: u.email,
-              subject: "Added to Project",
-              text: `You have been added to the project: ${project.name}.\n\nPlease login to view the details.`,
-            });
+            Promise.resolve(
+              emailQueue.add({
+                to: u.email,
+                subject: "Added to Project",
+                text: `You have been added to the project: ${project.name}.\n\nPlease login to view the details.`,
+              }),
+            ).catch((e) => console.warn("[emailQueue] add failed:", e?.message || e));
           }
         }
       }
