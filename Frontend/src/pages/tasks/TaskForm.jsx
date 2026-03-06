@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance";
 import {
   FormField,
   LoadingSpinner,
   TaskStatusSelect,
   Button,
-} from "../components/common";
+  FeedbackMessage,
+} from "../../components/common";
+import { isSuperAdmin } from "../../permissions/can";
 
 function TaskForm() {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ function TaskForm() {
     videos: [],
     attachments: [],
   });
+  const [feedback, setFeedback] = useState({ type: "", message: "" });
 
   const validateDates = (start, end) => {
     if (start && end && new Date(end) < new Date(start)) {
@@ -62,7 +65,7 @@ function TaskForm() {
       const res = await axiosInstance.get("/users");
       const loggedIn = JSON.parse(localStorage.getItem("user")) || {};
       const list = Array.isArray(res.data) ? res.data : res.data.users || [];
-      if (loggedIn.role?.name !== "Super Admin") {
+      if (!isSuperAdmin(loggedIn)) {
         setUsers(list.filter((u) => u.role?.name !== "Super Admin"));
       } else {
         setUsers(list);
@@ -165,7 +168,10 @@ function TaskForm() {
       navigate("/tasks");
     } catch (err) {
       console.error("Save task error", err);
-      alert(err.response?.data?.message || "Error saving task");
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.message || "Error saving task",
+      });
     }
   };
 
@@ -179,6 +185,12 @@ function TaskForm() {
   return (
     <div className="task-page">
       <div className="task-card">
+        <FeedbackMessage
+          type={feedback.type}
+          message={feedback.message}
+          onClose={() => setFeedback({ type: "", message: "" })}
+        />
+
         <div className="task-header">
           <h2>{isEditMode ? "Edit Task" : "Create Task"}</h2>
         </div>

@@ -1,31 +1,32 @@
-import ManageProject from "./pages/ManageProject";
-import ProjectFormPage from "./pages/ProjectFormPage";
+import ManageProject from "./pages/projects/ManageProject";
+import ProjectFormPage from "./pages/projects/ProjectFormPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/Login";
+import Login from "./pages/auth/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import { useAuth } from "./context/AuthContext";
 
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 
 // TASKS
-import ManageTask from "./pages/ManageTask";
-import TaskForm from "./pages/TaskForm";
-import TaskDetails from "./pages/TaskDetails";
-import MyTask from "./pages/MyTask";
+import ManageTask from "./pages/tasks/ManageTask";
+import TaskForm from "./pages/tasks/TaskForm";
+import TaskDetails from "./pages/tasks/TaskDetails";
+import MyTask from "./pages/tasks/MyTask";
 
 // ROLES
-import RoleForm from "./pages/RoleForm";
-import ManageRole from "./pages/ManageRole";
+import RoleForm from "./pages/roles/RoleForm";
+import ManageRole from "./pages/roles/ManageRole";
 
 // PERMISSIONS
-import ManagePermission from "./pages/ManagePermission";
-import Documents from "./pages/Documents";
+import ManagePermission from "./pages/permissions/ManagePermission";
+import Documents from "./pages/documents/DocumentsPage";
+import { PERMS, PERM_GROUPS } from "./permissions/can";
 
 // USERS
-import ManageUser from "./pages/ManageUser";
+import ManageUser from "./pages/users/ManageUser";
 
-import Settings from "./pages/Settings";
+import Settings from "./pages/settings/Settings";
 
 function App() {
   const { loading } = useAuth();
@@ -72,11 +73,7 @@ function App() {
             path="tasks"
             element={
               <ProtectedRoute
-                requiredPermissions={[
-                  "Create Task",
-                  "Edit Task",
-                  "Delete Task",
-                ]}
+                requiredPermissions={PERM_GROUPS.TASK_MANAGE}
               >
                 <ManageTask />
               </ProtectedRoute>
@@ -89,7 +86,7 @@ function App() {
           <Route
             path="tasks/create"
             element={
-              <ProtectedRoute requiredPermissions={["Create Task"]}>
+              <ProtectedRoute requiredPermissions={[PERMS.TASK_CREATE]}>
                 <TaskForm />
               </ProtectedRoute>
             }
@@ -98,7 +95,7 @@ function App() {
           <Route
             path="tasks/edit/:id"
             element={
-              <ProtectedRoute requiredPermissions={["Edit Task"]}>
+              <ProtectedRoute requiredPermissions={[PERMS.TASK_EDIT]}>
                 <TaskForm />
               </ProtectedRoute>
             }
@@ -107,7 +104,7 @@ function App() {
           <Route
             path="tasks/:id"
             element={
-              <ProtectedRoute requiredPermissions={["View Task"]}>
+              <ProtectedRoute requiredPermissions={[PERMS.TASK_VIEW]}>
                 <TaskDetails />
               </ProtectedRoute>
             }
@@ -116,7 +113,7 @@ function App() {
           <Route
             path="my-tasks"
             element={
-              <ProtectedRoute requiredPermissions={["View Task"]}>
+              <ProtectedRoute requiredPermissions={[PERMS.TASK_VIEW]}>
                 <MyTask />
               </ProtectedRoute>
             }
@@ -128,12 +125,7 @@ function App() {
             path="roles"
             element={
               <ProtectedRoute
-                requiredPermissions={[
-                  "View Role",
-                  "Create Role",
-                  "Edit Role",
-                  "Delete Role",
-                ]}
+                requiredPermissions={PERM_GROUPS.ROLE_MANAGE}
               >
                 <ManageRole />
               </ProtectedRoute>
@@ -143,7 +135,7 @@ function App() {
           <Route
             path="roles/create"
             element={
-              <ProtectedRoute requiredPermissions={["Create Role"]}>
+              <ProtectedRoute requiredPermissions={[PERMS.ROLE_CREATE]}>
                 <RoleForm />
               </ProtectedRoute>
             }
@@ -152,7 +144,7 @@ function App() {
           <Route
             path="roles/edit/:roleName"
             element={
-              <ProtectedRoute requiredPermissions={["Edit Role"]}>
+              <ProtectedRoute requiredPermissions={[PERMS.ROLE_EDIT]}>
                 <RoleForm />
               </ProtectedRoute>
             }
@@ -164,12 +156,7 @@ function App() {
             path="permissions"
             element={
               <ProtectedRoute
-                requiredPermissions={[
-                  "View Permission",
-                  "Create Permission",
-                  "Edit Permission",
-                  "Delete Permission",
-                ]}
+                requiredPermissions={PERM_GROUPS.PERMISSION_MANAGE}
               >
                 <ManagePermission />
               </ProtectedRoute>
@@ -182,12 +169,7 @@ function App() {
             path="users"
             element={
               <ProtectedRoute
-                requiredPermissions={[
-                  "View User",
-                  "Create User",
-                  "Edit User",
-                  "Delete User",
-                ]}
+                requiredPermissions={PERM_GROUPS.USER_MANAGE}
               >
                 <ManageUser />
               </ProtectedRoute>

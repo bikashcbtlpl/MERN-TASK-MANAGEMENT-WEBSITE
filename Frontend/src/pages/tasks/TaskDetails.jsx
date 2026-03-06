@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance";
-import { LoadingSpinner, Button } from "../components/common";
-import usePermissions from "../hooks/usePermissions";
-import { useAuth } from "../context/AuthContext";
+import axiosInstance from "../../api/axiosInstance";
+import { LoadingSpinner, Button } from "../../components/common";
+import usePermissions from "../../hooks/usePermissions";
+import { PERMS } from "../../permissions/can";
 
 function TaskDetails() {
   const { id } = useParams();
@@ -18,10 +18,9 @@ function TaskDetails() {
   const [hoverUser, setHoverUser] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
 
-  const { canEdit, isSuperAdmin } = usePermissions("Task");
-  const { user } = useAuth();
-  // Super Admin or Admin can resolve issues
-  const canResolve = isSuperAdmin || user?.role?.name === "Admin";
+  const { can } = usePermissions();
+  const canEditTask = can(PERMS.TASK_EDIT);
+  const canResolve = can(PERMS.ISSUE_EDIT);
 
   const fetchTask = useCallback(async () => {
     try {
@@ -149,7 +148,7 @@ function TaskDetails() {
           </div>
 
           <div className="header-actions">
-            {canEdit && (
+            {canEditTask && (
               <Button
                 variant="primary"
                 onClick={() => navigate(`/tasks/edit/${task._id}`)}

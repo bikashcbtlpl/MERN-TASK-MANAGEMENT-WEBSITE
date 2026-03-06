@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import axiosInstance from "../api/axiosInstance";
-import { FormField, Button } from "../components/common";
+import { useAuth, normalizeUser } from "../../context/AuthContext";
+import axiosInstance from "../../api/axiosInstance";
+import { FormField, Button } from "../../components/common";
 
 function Login() {
   const navigate = useNavigate();
@@ -20,8 +20,9 @@ function Login() {
     e.preventDefault();
     try {
       const response = await axiosInstance.post("/auth/login", formData);
-      setUser(response.data.user);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      const normalizedUser = normalizeUser(response.data.user);
+      setUser(normalizedUser);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
       localStorage.setItem("loginTime", Date.now());
       navigate("/dashboard");
     } catch (error) {

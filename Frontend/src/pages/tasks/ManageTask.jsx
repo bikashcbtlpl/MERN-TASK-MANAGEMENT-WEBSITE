@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance";
-import socket from "../socket";
+import axiosInstance from "../../api/axiosInstance";
+import socket from "../../socket";
 import {
   PageHeader,
   Pagination,
@@ -11,8 +11,8 @@ import {
   TASK_STATUSES,
   Button,
   Input,
-} from "../components/common";
-import usePermissions from "../hooks/usePermissions";
+} from "../../components/common";
+import usePermissions from "../../hooks/usePermissions";
 
 function ManageTask() {
   const navigate = useNavigate();
@@ -46,58 +46,6 @@ function ManageTask() {
           if (selectedProject) p.append("project", selectedProject);
           return p;
         };
-
-        // When a topbar project is selected, derive total/pages from filtered data
-        // to avoid stale backend pagination behavior.
-        if (selectedProject) {
-          const baseParams = buildBaseParams();
-          baseParams.set("page", "1");
-          baseParams.set("limit", "100");
-
-          const firstRes = await axiosInstance.get(`/tasks?${baseParams.toString()}`);
-          const firstPageTasks = firstRes.data.tasks || [];
-          const apiPages = Math.max(1, firstRes.data.totalPages || 1);
-
-          const pageRequests = [];
-          for (let p = 2; p <= apiPages; p++) {
-            const nextParams = new URLSearchParams(baseParams);
-            nextParams.set("page", String(p));
-            pageRequests.push(axiosInstance.get(`/tasks?${nextParams.toString()}`));
-          }
-
-          const restResponses = pageRequests.length
-            ? await Promise.all(pageRequests)
-            : [];
-
-          const allTasks = [
-            ...firstPageTasks,
-            ...restResponses.flatMap((r) => r.data.tasks || []),
-          ];
-
-          const selectedNormalized = String(selectedProject).trim().toLowerCase();
-          const filteredByProject = allTasks.filter((task) => {
-            const projectId = String(task.project?._id || task.project || "").toLowerCase();
-            const projectName = String(task.project?.name || "").trim().toLowerCase();
-            return (
-              projectId === selectedNormalized ||
-              projectName === selectedNormalized
-            );
-          });
-
-          const computedTotal = filteredByProject.length;
-          const computedPages = Math.max(1, Math.ceil(computedTotal / 10));
-          const start = (page - 1) * 10;
-          const visible = filteredByProject.slice(start, start + 10);
-
-          setTasks(visible);
-          setTotalTasks(computedTotal);
-          setTotalPages(computedPages);
-
-          if (page > 1 && visible.length === 0) {
-            setCurrentPage(page - 1);
-          }
-          return;
-        }
 
         const params = buildBaseParams();
         params.set("page", String(page));

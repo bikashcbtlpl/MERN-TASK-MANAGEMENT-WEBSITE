@@ -3,46 +3,45 @@ import axiosInstance from "../api/axiosInstance";
 
 const AuthContext = createContext();
 
+const normalizeUser = (u) => {
+  if (!u) return null;
+  // Build role object
+  let roleObj = u.role || null;
+  const topPerms = u.permissions || [];
+
+  if (typeof roleObj === "string") {
+    roleObj = {
+      name: roleObj,
+      permissions: topPerms.map((p) => ({ name: p })),
+    };
+  } else if (roleObj && Array.isArray(roleObj.permissions)) {
+    // role.permissions may be array of strings or objects
+    if (typeof roleObj.permissions[0] === "string") {
+      roleObj.permissions = roleObj.permissions.map((p) => ({ name: p }));
+    }
+  } else if (!roleObj) {
+    roleObj = {
+      name: null,
+      permissions: topPerms.map((p) => ({ name: p })),
+    };
+  }
+
+  // Ensure top-level permissions array of strings for legacy checks
+  const permissions =
+    u.permissions && Array.isArray(u.permissions)
+      ? u.permissions
+      : (roleObj.permissions || []).map((p) => (p && p.name) || p);
+
+  return { ...u, role: roleObj, permissions };
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return null;
     try {
       const parsed = JSON.parse(storedUser);
-      // Normalize stored user shape to have role object with permissions as [{name}]
-      const normalize = (u) => {
-        if (!u) return null;
-        // Build role object
-        let roleObj = u.role || null;
-        let topPerms = u.permissions || [];
-
-        if (typeof roleObj === "string") {
-          roleObj = {
-            name: roleObj,
-            permissions: topPerms.map((p) => ({ name: p })),
-          };
-        } else if (roleObj && Array.isArray(roleObj.permissions)) {
-          // role.permissions may be array of strings or objects
-          if (typeof roleObj.permissions[0] === "string") {
-            roleObj.permissions = roleObj.permissions.map((p) => ({ name: p }));
-          }
-        } else if (!roleObj) {
-          roleObj = {
-            name: null,
-            permissions: topPerms.map((p) => ({ name: p })),
-          };
-        }
-
-        // Ensure top-level permissions array of strings for legacy checks
-        const permissions =
-          u.permissions && Array.isArray(u.permissions)
-            ? u.permissions
-            : (roleObj.permissions || []).map((p) => (p && p.name) || p);
-
-        return { ...u, role: roleObj, permissions };
-      };
-
-      return normalize(parsed);
+      return normalizeUser(parsed);
     } catch {
       return null;
     }
@@ -114,3 +113,4 @@ function useAuth() {
 }
 
 export { useAuth };
+export { normalizeUser };

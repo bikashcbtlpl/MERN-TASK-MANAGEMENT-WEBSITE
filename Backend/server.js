@@ -1,7 +1,7 @@
-// Fix: Override system DNS with Google DNS to resolve MongoDB Atlas SRV records
-// (Local DNS is blocking querySrv lookups needed by mongodb+srv://)
 const dns = require("dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+if (process.env.FORCE_GOOGLE_DNS === "true") {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+}
 
 require("dotenv").config();
 const express = require("express");
@@ -11,6 +11,7 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
+const syncPermissions = require("./utils/syncPermissions");
 
 const app = express();
 
@@ -113,7 +114,13 @@ if (!MONGO_URI) {
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected Successfully"))
+  .then(async () => {
+    console.log("✅ MongoDB Connected Successfully");
+    const result = await syncPermissions({ syncSuperAdmin: true });
+    console.log(
+      `✅ Permissions synced (created: ${result.created}, defaults: ${result.total}, super-admin: ${result.superAdminSynced ? "ok" : "missing"})`,
+    );
+  })
   .catch((err) => {
     console.error("MongoDB Connection Error:", err);
     process.exit(1);

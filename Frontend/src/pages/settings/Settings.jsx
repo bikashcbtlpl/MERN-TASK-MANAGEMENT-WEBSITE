@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
-import axiosInstance from "../api/axiosInstance";
-import { FormField, Button } from "../components/common";
+import axiosInstance from "../../api/axiosInstance";
+import { FormField, Button, FeedbackMessage } from "../../components/common";
+import { useAuth } from "../../context/AuthContext";
+import { isSuperAdmin as checkSuperAdmin } from "../../permissions/can";
 
 function Settings() {
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  const isSuperAdmin = storedUser?.role === "Super Admin";
+  const { user, setUser } = useAuth();
+  const isSuperAdmin = checkSuperAdmin(user);
 
-  const [profile, setProfile] = useState({ name: "", email: "", password: "" });
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+  });
   const [emailConfig, setEmailConfig] = useState({
     smtpHost: "",
     smtpPort: "",
@@ -17,17 +24,26 @@ function Settings() {
     enableRegistration: true,
     sessionTimeout: 30,
   });
+  const [feedback, setFeedback] = useState({ type: "", message: "" });
 
   const fetchSettings = useCallback(async () => {
-    const res = await axiosInstance.get("/settings");
-    setProfile({
-      name: res.data.profile.name,
-      email: res.data.profile.email,
-      password: "",
-    });
-    if (isSuperAdmin) {
-      setEmailConfig(res.data.emailConfig);
-      setSecurity(res.data.security);
+    try {
+      const res = await axiosInstance.get("/settings");
+      setProfile({
+        name: res.data.profile.name,
+        email: res.data.profile.email,
+        currentPassword: "",
+        newPassword: "",
+      });
+      if (isSuperAdmin) {
+        setEmailConfig(res.data.emailConfig);
+        setSecurity(res.data.security);
+      }
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.message || "Unable to load settings",
+      });
     }
   }, [isSuperAdmin]);
 
@@ -36,31 +52,65 @@ function Settings() {
   }, [fetchSettings]);
 
   const handleProfileSave = async () => {
-    await axiosInstance.put("/settings/profile", {
-      name: profile.name,
-      password: profile.password,
-    });
-    const updatedUser = { ...storedUser, name: profile.name };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    window.dispatchEvent(new Event("storage"));
-    alert("Profile Updated");
-    setProfile({ ...profile, password: "" });
+    try {
+      await axiosInstance.put("/settings/profile", {
+        name: profile.name,
+        currentPassword: profile.currentPassword,
+        newPassword: profile.newPassword,
+      });
+
+      if (user) {
+        const updatedUser = { ...user, name: profile.name };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        window.dispatchEvent(new Event("storage"));
+      }
+
+      setFeedback({ type: "success", message: "Profile updated" });
+      setProfile((prev) => ({ ...prev, currentPassword: "", newPassword: "" }));
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.message || "Profile update failed",
+      });
+    }
   };
 
   const handleEmailSave = async () => {
     if (!isSuperAdmin) return;
-    await axiosInstance.put("/settings/email", emailConfig);
-    alert("Email Settings Updated");
+    try {
+      await axiosInstance.put("/settings/email", emailConfig);
+      setFeedback({ type: "success", message: "Email settings updated" });
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        message: err.response?.data?.message || "Email settings update failed",
+      });
+    }
   };
 
   const handleSecuritySave = async () => {
     if (!isSuperAdmin) return;
-    await axiosInstance.put("/settings/security", security);
-    alert("Security Settings Updated");
+    try {
+      await axiosInstance.put("/settings/security", security);
+      setFeedback({ type: "success", message: "Security settings updated" });
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        message:
+          err.response?.data?.message || "Security settings update failed",
+      });
+    }
   };
 
   return (
     <div className="settings-container">
+      <FeedbackMessage
+        type={feedback.type}
+        message={feedback.message}
+        onClose={() => setFeedback({ type: "", message: "" })}
+      />
+
       {/* PROFILE */}
       <div className="settings-card">
         <h3>Profile Settings</h3>
@@ -76,12 +126,22 @@ function Settings() {
           <input value={profile.email} disabled />
         </FormField>
 
+        <FormField label="Current Password">
+          <input
+            type="password"
+            value={profile.currentPassword}
+            onChange={(e) =>
+              setProfile({ ...profile, currentPassword: e.target.value })
+            }
+          />
+        </FormField>
+
         <FormField label="New Password">
           <input
             type="password"
-            value={profile.password}
+            value={profile.newPassword}
             onChange={(e) =>
-              setProfile({ ...profile, password: e.target.value })
+              setProfile({ ...profile, newPassword: e.target.value })
             }
           />
         </FormField>

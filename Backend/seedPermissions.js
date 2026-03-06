@@ -1,46 +1,20 @@
 const dns = require("dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+if (process.env.FORCE_GOOGLE_DNS === "true") {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+}
 
 require("dotenv").config();
 const mongoose = require("mongoose");
 
 const Permission = require("./models/Permission");
 const Role = require("./models/Role");
+const { getDefaultPermissions } = require("./config/permissionCatalog");
 
 async function seedPermissions() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("✅ MongoDB Connected");
 
-  const defaultPermissions = [
-    // User management
-    "View User",
-    "Create User",
-    "Edit User",
-    "Delete User",
-    // Role management
-    "Create Role",
-    "Edit Role",
-    "Delete Role",
-    // Permission management
-    "Create Permission",
-    "Edit Permission",
-    "Delete Permission",
-    // Project management
-    "View Project",
-    "Create Project",
-    "Edit Project",
-    "Delete Project",
-    // Task management
-    "View Task",
-    "Create Task",
-    "Edit Task",
-    "Delete Task",
-    // Issue management
-    "View Issue",
-    "Create Issue",
-    "Edit Issue",
-    "Delete Issue",
-  ];
+  const defaultPermissions = getDefaultPermissions();
 
   const createdPermissions = [];
 

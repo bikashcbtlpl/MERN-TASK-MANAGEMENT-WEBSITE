@@ -1,24 +1,13 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { PERMS, PERM_GROUPS, canAny } from "../permissions/can";
 
 function Sidebar() {
   const { user, loading } = useAuth();
-  const permissions = user?.permissions || [];
   if (loading) return null;
 
-  const hasPermission = (permissionList) => {
-    // Super Admin bypass
-    if (user?.role?.name === "Super Admin") return true;
-    return permissionList.some((perm) => permissions.includes(perm));
-  };
-
-  const canManageTask = hasPermission([
-    "Create Task",
-    "Edit Task",
-    "Delete Task",
-  ]);
-
-  const canViewTask = hasPermission(["View Task"]);
+  const canManageTask = canAny(user, PERM_GROUPS.TASK_MANAGE);
+  const canViewTask = canAny(user, [PERMS.TASK_VIEW]);
 
   return (
     <div className="sidebar">
@@ -29,12 +18,9 @@ function Sidebar() {
         <NavLink to="/dashboard">Dashboard</NavLink>
 
         {/* PROJECT SECTION - visible only to users with project permissions */}
-        {hasPermission([
-          "View Project",
-          "Create Project",
-          "Edit Project",
-          "Delete Project",
-        ]) && <NavLink to="/projects">Manage Projects</NavLink>}
+        {canAny(user, PERM_GROUPS.PROJECT_MANAGE) && (
+          <NavLink to="/projects">Manage Projects</NavLink>
+        )}
 
         {/* DOCUMENTS - visible to all authenticated users; access controlled on page */}
         <NavLink to="/documents">Documents</NavLink>
@@ -50,28 +36,19 @@ function Sidebar() {
         )}
 
         {/* ROLE */}
-        {hasPermission([
-          "View Role",
-          "Create Role",
-          "Edit Role",
-          "Delete Role",
-        ]) && <NavLink to="/roles">Manage Role</NavLink>}
+        {canAny(user, PERM_GROUPS.ROLE_MANAGE) && (
+          <NavLink to="/roles">Manage Role</NavLink>
+        )}
 
         {/* PERMISSION */}
-        {hasPermission([
-          "View Permission",
-          "Create Permission",
-          "Edit Permission",
-          "Delete Permission",
-        ]) && <NavLink to="/permissions">Manage Permission</NavLink>}
+        {canAny(user, PERM_GROUPS.PERMISSION_MANAGE) && (
+          <NavLink to="/permissions">Manage Permission</NavLink>
+        )}
 
         {/* USER */}
-        {hasPermission([
-          "View User",
-          "Create User",
-          "Edit User",
-          "Delete User",
-        ]) && <NavLink to="/users">Manage User</NavLink>}
+        {canAny(user, PERM_GROUPS.USER_MANAGE) && (
+          <NavLink to="/users">Manage User</NavLink>
+        )}
 
         <NavLink to="/settings">Settings</NavLink>
       </div>

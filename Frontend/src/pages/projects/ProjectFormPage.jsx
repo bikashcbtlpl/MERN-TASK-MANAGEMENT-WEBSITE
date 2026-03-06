@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ProjectForm from "./ProjectForm";
-import axiosInstance from "../api/axiosInstance";
-import { LoadingSpinner } from "../components/common";
+import axiosInstance from "../../api/axiosInstance";
+import { LoadingSpinner } from "../../components/common";
 
 const ProjectFormPage = ({ mode }) => {
   const { id } = useParams();

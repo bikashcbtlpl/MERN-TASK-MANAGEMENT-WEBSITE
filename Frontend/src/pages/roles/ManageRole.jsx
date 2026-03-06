@@ -1,22 +1,27 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance";
-import { PageHeader, StatusBadge, ActionButtons } from "../components/common";
-import usePermissions from "../hooks/usePermissions";
+import axiosInstance from "../../api/axiosInstance";
+import {
+  PageHeader,
+  StatusBadge,
+  ActionButtons,
+} from "../../components/common";
+import usePermissions from "../../hooks/usePermissions";
+import { useAuth } from "../../context/AuthContext";
+import { isSuperAdmin } from "../../permissions/can";
 
 function ManageRole() {
   const [roles, setRoles] = useState([]);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { canCreate, canEdit, canDelete } = usePermissions("Role");
-
-  // Keep using localStorage for the Super Admin guard check
-  const loggedInUser = JSON.parse(localStorage.getItem("user"));
+  const isCurrentSuperAdmin = isSuperAdmin(user);
 
   const fetchRoles = useCallback(async () => {
     try {
       const response = await axiosInstance.get("/roles");
-      if (loggedInUser?.role !== "Super Admin") {
+      if (!isCurrentSuperAdmin) {
         setRoles(response.data.filter((r) => r.name !== "Super Admin"));
       } else {
         setRoles(response.data);
@@ -24,7 +29,7 @@ function ManageRole() {
     } catch (error) {
       console.log("Error fetching roles", error);
     }
-  }, [loggedInUser?.role]);
+  }, [isCurrentSuperAdmin]);
 
   useEffect(() => {
     fetchRoles();
@@ -41,7 +46,7 @@ function ManageRole() {
   };
 
   const isSuperAdminRow = (role) =>
-    role.name === "Super Admin" && loggedInUser?.role !== "Super Admin";
+    role.name === "Super Admin" && !isCurrentSuperAdmin;
 
   const [searchQuery, setSearchQuery] = useState("");
 

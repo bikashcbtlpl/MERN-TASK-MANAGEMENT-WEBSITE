@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import {
   PageHeader,
@@ -7,9 +7,9 @@ import {
   ActionButtons,
   LoadingSpinner,
   StatusBadge,
-} from "../components/common";
-import usePermissions from "../hooks/usePermissions";
-import { useAuth } from "../context/AuthContext";
+} from "../../components/common";
+import usePermissions from "../../hooks/usePermissions";
+import { useAuth } from "../../context/AuthContext";
 
 const ManageProject = () => {
   const [projects, setProjects] = useState([]);

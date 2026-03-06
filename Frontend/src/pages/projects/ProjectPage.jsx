@@ -1,6 +1,6 @@
 import React from "react";
 import ProjectForm from "./ProjectForm";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance";
 
 const ProjectPage = () => {
   const handleProjectSubmit = async (data) => {

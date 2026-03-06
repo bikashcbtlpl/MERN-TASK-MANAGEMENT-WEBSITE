@@ -1,4 +1,8 @@
 import { useAuth } from "../context/AuthContext";
+import {
+  can as canPermission,
+  isSuperAdmin as checkSuperAdmin,
+} from "../permissions/can";
 
 /**
  * usePermissions — single source of truth for permission checks.
@@ -20,27 +24,13 @@ import { useAuth } from "../context/AuthContext";
 const usePermissions = (resource) => {
   const { user } = useAuth();
 
-  const isSuperAdmin = user?.role?.name === "Super Admin";
-
-  // Build a flat array of permission name strings from whichever shape is present
-  const permNames = (() => {
-    // Prefer role.permissions (array of objects {name} or strings)
-    const rolePerms = user?.role?.permissions;
-    if (Array.isArray(rolePerms) && rolePerms.length > 0) {
-      return rolePerms.map((p) => (typeof p === "string" ? p : p?.name || ""));
-    }
-    // Fallback: top-level user.permissions (flat string array)
-    const flatPerms = user?.permissions;
-    if (Array.isArray(flatPerms)) return flatPerms;
-    return [];
-  })();
+  const isSuperAdmin = checkSuperAdmin(user);
 
   /**
    * Returns true if the current user has the given permission
    * (Super Admins always pass).
    */
-  const can = (permissionName) =>
-    isSuperAdmin || permNames.includes(permissionName);
+  const can = (permissionName) => canPermission(user, permissionName);
 
   if (resource) {
     return {

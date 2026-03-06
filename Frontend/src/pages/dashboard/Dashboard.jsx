@@ -1,15 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
-import axiosInstance from "../api/axiosInstance";
-import socket from "../socket";
-import { LoadingSpinner } from "../components/common";
+import axiosInstance from "../../api/axiosInstance";
+import socket from "../../socket";
+import { LoadingSpinner } from "../../components/common";
+import { useAuth } from "../../context/AuthContext";
+import { isAdminUser } from "../../permissions/can";
 
 function Dashboard() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin =
-    user?.role?.name === "Super Admin" || user?.role?.name === "Admin";
+  const isAdmin = isAdminUser(user);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -48,8 +49,8 @@ function Dashboard() {
   }, [isAdmin]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (!authLoading && user) fetchStats();
+  }, [fetchStats, authLoading, user]);
 
   useEffect(() => {
     const handler = () => fetchStats();
@@ -68,7 +69,8 @@ function Dashboard() {
     return () => socket.off("taskUpdated", handleUpdate);
   }, [fetchStats]);
 
-  if (loading) return <LoadingSpinner message="Loading dashboard..." />;
+  if (authLoading || loading)
+    return <LoadingSpinner message="Loading dashboard..." />;
   if (!stats) return <LoadingSpinner message="No dashboard data" />;
 
   return (

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance";
-import { LoadingSpinner, FormField, Button } from "../components/common";
+import axiosInstance from "../../api/axiosInstance";
+import { LoadingSpinner, FormField, Button } from "../../components/common";
 
 function RoleForm() {
   const navigate = useNavigate();

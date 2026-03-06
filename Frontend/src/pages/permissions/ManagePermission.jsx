@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance";
 import {
   PageHeader,
   Modal,
@@ -8,8 +8,8 @@ import {
   ActionButtons,
   Button,
   Input,
-} from "../components/common";
-import usePermissions from "../hooks/usePermissions";
+} from "../../components/common";
+import usePermissions from "../../hooks/usePermissions";
 
 function ManagePermission() {
   const [permissions, setPermissions] = useState([]);

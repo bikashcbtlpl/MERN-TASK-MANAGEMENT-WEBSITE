@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import axiosInstance from "../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance";
 import {
   PageHeader,
   Modal,
@@ -8,8 +8,10 @@ import {
   ActionButtons,
   Button,
   Input,
-} from "../components/common";
-import usePermissions from "../hooks/usePermissions";
+} from "../../components/common";
+import usePermissions from "../../hooks/usePermissions";
+import { useAuth } from "../../context/AuthContext";
+import { isSuperAdmin } from "../../permissions/can";
 
 function ManageUser() {
   const [users, setUsers] = useState([]);
@@ -22,27 +24,28 @@ function ManageUser() {
     role: "",
     status: "Active",
   });
+  const { user } = useAuth();
 
   const { canCreate, canEdit, canDelete } = usePermissions("User");
-  const loggedInUser = JSON.parse(localStorage.getItem("user"));
+  const isCurrentSuperAdmin = isSuperAdmin(user);
 
   const fetchUsers = useCallback(async () => {
     const res = await axiosInstance.get("/users");
-    if (loggedInUser?.role !== "Super Admin") {
+    if (!isCurrentSuperAdmin) {
       setUsers(res.data.filter((u) => u.role?.name !== "Super Admin"));
     } else {
       setUsers(res.data);
     }
-  }, [loggedInUser?.role]);
+  }, [isCurrentSuperAdmin]);
 
   const fetchRoles = useCallback(async () => {
     const res = await axiosInstance.get("/roles");
-    if (loggedInUser?.role !== "Super Admin") {
+    if (!isCurrentSuperAdmin) {
       setRoles(res.data.filter((role) => role.name !== "Super Admin"));
     } else {
       setRoles(res.data);
     }
-  }, [loggedInUser?.role]);
+  }, [isCurrentSuperAdmin]);
 
   useEffect(() => {
     fetchUsers();
@@ -90,7 +93,7 @@ function ManageUser() {
   };
 
   const isSuperAdminRow = (user) =>
-    user.role?.name === "Super Admin" && loggedInUser?.role !== "Super Admin";
+    user.role?.name === "Super Admin" && !isCurrentSuperAdmin;
 
   const [searchQuery, setSearchQuery] = useState("");
 

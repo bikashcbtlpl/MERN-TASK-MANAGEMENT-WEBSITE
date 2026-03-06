@@ -1,8 +1,10 @@
 const Task = require("../models/Task");
 const User = require("../models/User");
 const mongoose = require("mongoose");
+const Project = require("../models/Project");
 const runCloudinaryWorker = require("../utils/runCloudinaryWorker");
 const emailQueue = require("../queues/emailQueue");
+const { canAccessTask } = require("../utils/taskAccess");
 
 /* =====================================================
    SAFE CLOUDINARY FILE EXTRACTOR
@@ -340,7 +342,6 @@ exports.getTasks = async (req, res) => {
     const user = req.user;
     const isSuperAdmin = user.role?.name === "Super Admin";
     const projectFilter = String(req.query.project || "").trim();
-    const Project = require("../models/Project");
 
     let filter = {};
 
@@ -438,6 +439,13 @@ exports.getTaskById = async (req, res) => {
 
     if (!task) return res.status(404).json({ message: "Task not found" });
 
+    const canView = await canAccessTask(req.user, task);
+    if (!canView) {
+      return res.status(403).json({
+        message: "Access denied - You are not allowed to view this task",
+      });
+    }
+
     // Include related issues
     const issues = await Issue.find({ task: task._id })
       .populate("reportedBy", "email name")
@@ -484,7 +492,6 @@ exports.getMyTasks = async (req, res) => {
   try {
     const userId = req.user._id;
     const search = req.query.search || "";
-    const Project = require("../models/Project");
 
     let filter = {};
     const projectFilter = req.query.project;

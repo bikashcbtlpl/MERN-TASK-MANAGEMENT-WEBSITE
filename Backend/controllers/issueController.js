@@ -1,5 +1,6 @@
 const Issue = require("../models/Issue");
 const Task = require("../models/Task");
+const { canAccessTask } = require("../utils/taskAccess");
 
 /* ================= CREATE ISSUE ================= */
 exports.createIssue = async (req, res) => {
@@ -21,6 +22,13 @@ exports.createIssue = async (req, res) => {
     const existingTask = await Task.findById(task).lean();
     if (!existingTask) {
       return res.status(404).json({ message: "Task not found" });
+    }
+
+    const hasTaskAccess = await canAccessTask(req.user, existingTask);
+    if (!hasTaskAccess) {
+      return res.status(403).json({
+        message: "Access denied - You cannot report issues for this task",
+      });
     }
 
     const newIssue = await Issue.create({
@@ -50,6 +58,13 @@ exports.getIssuesByTask = async (req, res) => {
       .select("_id assignedTo project")
       .lean();
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    const hasTaskAccess = await canAccessTask(req.user, task);
+    if (!hasTaskAccess) {
+      return res.status(403).json({
+        message: "Access denied - You cannot view issues for this task",
+      });
+    }
 
     const issues = await Issue.find({ task: taskId })
       .populate("reportedBy", "email name")

@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../api/axiosInstance";
-import socket from "../socket";
+import axiosInstance from "../../api/axiosInstance";
+import socket from "../../socket";
+import { PERMS, can as canPermission } from "../../permissions/can";
 import {
   PageHeader,
   Pagination,
@@ -11,7 +12,7 @@ import {
   StatusBadge,
   Button,
   Input,
-} from "../components/common";
+} from "../../components/common";
 
 function MyTask() {
   const navigate = useNavigate();
@@ -209,7 +210,7 @@ function MyTask() {
                 <td>
                   {currentUser &&
                   (getCurrentUserId() === getAssigneeId(task) ||
-                    currentUser.permissions?.includes("Edit Task")) ? (
+                    canPermission(currentUser, PERMS.TASK_EDIT)) ? (
                     <TaskStatusSelect
                       value={task.taskStatus}
                       onChange={(e) => {

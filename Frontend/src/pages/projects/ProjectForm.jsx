@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
-import axiosInstance from "../api/axiosInstance";
-import { FormField, Button, Input } from "../components/common";
+import axiosInstance from "../../api/axiosInstance";
+import { FormField, Button, Input } from "../../components/common";
 
 const ProjectForm = ({ onSubmit, initialData, mode = "create" }) => {
   const getHandle = (u) => {
