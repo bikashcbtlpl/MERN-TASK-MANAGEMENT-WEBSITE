@@ -41,6 +41,21 @@ const configuredOrigins = process.env.ALLOWED_ORIGINS
       .filter(Boolean)
   : ["http://localhost:5173"];
 
+const configuredOriginRegexes = process.env.ALLOWED_ORIGIN_REGEX
+  ? process.env.ALLOWED_ORIGIN_REGEX.split(",")
+      .map((pattern) => pattern.trim())
+      .filter(Boolean)
+      .map((pattern) => {
+        try {
+          return new RegExp(pattern);
+        } catch {
+          console.warn(`Invalid ALLOWED_ORIGIN_REGEX pattern ignored: ${pattern}`);
+          return null;
+        }
+      })
+      .filter(Boolean)
+  : [];
+
 const allowedOrigins = Array.from(
   new Set(
     configuredOrigins.flatMap((origin) => {
@@ -71,6 +86,9 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;
+  if (configuredOriginRegexes.some((pattern) => pattern.test(origin))) {
+    return true;
+  }
 
   // In development, accept localhost/loopback origins on any port
   // so Vite can use fallback ports without breaking API calls.
