@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import socket from "../socket";
-import { toast } from "react-toastify";
 import {
   PageHeader,
   Pagination,
@@ -29,6 +28,9 @@ function ManageTask() {
   const [search, setSearch] = useState("");
   const [taskStatus, setTaskStatus] = useState("");
   const [isActive, setIsActive] = useState("");
+  const [selectedProject, setSelectedProject] = useState(
+    () => localStorage.getItem("selectedProject") || "",
+  );
 
   const { canCreate, canEdit, canDelete, canView } = usePermissions("Task");
 
@@ -36,27 +38,104 @@ function ManageTask() {
     async (page = 1) => {
       try {
         setLoading(true);
-        const params = new URLSearchParams({ page, limit: 10 });
-        if (search) params.append("search", search);
-        if (taskStatus) params.append("taskStatus", taskStatus);
-        if (isActive !== "") params.append("isActive", isActive);
+        const buildBaseParams = () => {
+          const p = new URLSearchParams();
+          if (search) p.append("search", search);
+          if (taskStatus) p.append("taskStatus", taskStatus);
+          if (isActive !== "") p.append("isActive", isActive);
+          if (selectedProject) p.append("project", selectedProject);
+          return p;
+        };
+
+        // When a topbar project is selected, derive total/pages from filtered data
+        // to avoid stale backend pagination behavior.
+        if (selectedProject) {
+          const baseParams = buildBaseParams();
+          baseParams.set("page", "1");
+          baseParams.set("limit", "100");
+
+          const firstRes = await axiosInstance.get(`/tasks?${baseParams.toString()}`);
+          const firstPageTasks = firstRes.data.tasks || [];
+          const apiPages = Math.max(1, firstRes.data.totalPages || 1);
+
+          const pageRequests = [];
+          for (let p = 2; p <= apiPages; p++) {
+            const nextParams = new URLSearchParams(baseParams);
+            nextParams.set("page", String(p));
+            pageRequests.push(axiosInstance.get(`/tasks?${nextParams.toString()}`));
+          }
+
+          const restResponses = pageRequests.length
+            ? await Promise.all(pageRequests)
+            : [];
+
+          const allTasks = [
+            ...firstPageTasks,
+            ...restResponses.flatMap((r) => r.data.tasks || []),
+          ];
+
+          const selectedNormalized = String(selectedProject).trim().toLowerCase();
+          const filteredByProject = allTasks.filter((task) => {
+            const projectId = String(task.project?._id || task.project || "").toLowerCase();
+            const projectName = String(task.project?.name || "").trim().toLowerCase();
+            return (
+              projectId === selectedNormalized ||
+              projectName === selectedNormalized
+            );
+          });
+
+          const computedTotal = filteredByProject.length;
+          const computedPages = Math.max(1, Math.ceil(computedTotal / 10));
+          const start = (page - 1) * 10;
+          const visible = filteredByProject.slice(start, start + 10);
+
+          setTasks(visible);
+          setTotalTasks(computedTotal);
+          setTotalPages(computedPages);
+
+          if (page > 1 && visible.length === 0) {
+            setCurrentPage(page - 1);
+          }
+          return;
+        }
+
+        const params = buildBaseParams();
+        params.set("page", String(page));
+        params.set("limit", "10");
 
         const res = await axiosInstance.get(`/tasks?${params.toString()}`);
-        setTasks(res.data.tasks || []);
+        const serverTasks = res.data.tasks || [];
+        setTasks(serverTasks);
         setTotalPages(res.data.totalPages || 1);
         setTotalTasks(res.data.totalTasks || 0);
 
-        if (page > 1 && res.data.tasks.length === 0) {
+        if (page > 1 && serverTasks.length === 0) {
           setCurrentPage(page - 1);
         }
       } catch (error) {
-        toast.error(error.response?.data?.message || "Error fetching tasks");
+        console.error(error.response?.data?.message || "Error fetching tasks");
       } finally {
         setLoading(false);
       }
     },
-    [search, taskStatus, isActive],
+    [search, taskStatus, isActive, selectedProject],
   );
+
+  useEffect(() => {
+    const syncSelectedProject = () => {
+      setSelectedProject(localStorage.getItem("selectedProject") || "");
+      setCurrentPage(1);
+    };
+    window.addEventListener("storage", syncSelectedProject);
+    window.addEventListener("projectSelectionChanged", syncSelectedProject);
+    return () => {
+      window.removeEventListener("storage", syncSelectedProject);
+      window.removeEventListener(
+        "projectSelectionChanged",
+        syncSelectedProject,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     if (canView || canCreate || canEdit || canDelete) {
@@ -84,10 +163,9 @@ function ManageTask() {
   const updateTaskField = async (id, data) => {
     try {
       await axiosInstance.put(`/tasks/${id}`, data);
-      toast.success("Task updated");
       fetchTasks(currentPage);
-    } catch {
-      toast.error("Update failed");
+    } catch (error) {
+      console.error(error.response?.data?.message || "Update failed");
     }
   };
 
@@ -95,15 +173,15 @@ function ManageTask() {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
     try {
       await axiosInstance.delete(`/tasks/${id}`);
-      toast.success("Task deleted successfully");
       fetchTasks(currentPage);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Error deleting task");
+      console.error(error.response?.data?.message || "Error deleting task");
     }
   };
 
   const formatDate = (date) =>
     date ? new Date(date).toLocaleDateString() : "-";
+  const shouldShowPagination = totalPages > 1 && totalTasks > 10;
 
   return (
     <div className="manage-role-container">
@@ -111,20 +189,38 @@ function ManageTask() {
         title="Manage Tasks"
         btnLabel={canCreate ? "+ Create Task" : undefined}
         onBtnClick={() => navigate("/tasks/create")}
-      />
+      >
+        <div className="header-search-wrapper">
+          <span className="search-icon">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input
+            className="header-search"
+            type="text"
+            placeholder="Search title or description..."
+            value={search}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setSearch(e.target.value);
+            }}
+          />
+        </div>
+      </PageHeader>
 
       {/* FILTERS */}
       <div className="task-filters">
-        <Input
-          fullWidth={false}
-          placeholder="Search title or description..."
-          value={search}
-          onChange={(e) => {
-            setCurrentPage(1);
-            setSearch(e.target.value);
-          }}
-        />
-
         {/* Reuse TASK_STATUSES constant for the filter dropdown */}
         <Input
           as="select"
@@ -278,11 +374,13 @@ function ManageTask() {
             </tbody>
           </table>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+          {shouldShowPagination && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </>
       )}
     </div>

@@ -115,18 +115,25 @@ function Topbar() {
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => {
                   const val = e.target.value;
+                  const selectedName =
+                    e.target.options[e.target.selectedIndex]?.text || "";
                   setSelectedProject(val);
                   localStorage.setItem("selectedProject", val);
+                  localStorage.setItem("selectedProjectName", selectedName);
                   // fire storage event for other tabs
                   window.dispatchEvent(new Event("storage"));
-                  // navigate to My Task so user sees filtered tasks
-                  navigate("/tasks");
+                  // notify same-tab screens that project scope changed
+                  window.dispatchEvent(
+                    new CustomEvent("projectSelectionChanged", {
+                      detail: { projectId: val },
+                    }),
+                  );
                 }}
                 style={{ marginRight: 4, padding: 6, borderRadius: 4 }}
               >
                 <option value="">All Projects</option>
                 {projects.map((p) => (
-                  <option key={p._id} value={p._id}>
+                  <option key={p._id || p.id || p.name} value={p._id || p.id || p.name}>
                     {p.name}
                   </option>
                 ))}

@@ -1,5 +1,4 @@
 import axios from "axios";
-import { toast } from "react-toastify";
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -12,12 +11,6 @@ axiosInstance.interceptors.response.use(
 
   /* ================= GLOBAL ERROR HANDLER ================= */
   (error) => {
-    const message =
-      error.response?.data?.message || error.message || "Something went wrong";
-
-    // 🔥 Show toast automatically
-    toast.error(message);
-
     // 🔐 Auto logout if token expired
     if (error.response?.status === 401) {
       localStorage.clear();

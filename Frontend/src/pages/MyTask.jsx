@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import socket from "../socket";
 import {
+  PageHeader,
   Pagination,
   LoadingSpinner,
   TaskStatusSelect,
@@ -80,7 +81,11 @@ function MyTask() {
   useEffect(() => {
     const handler = () => fetchMyTasks(1, true);
     window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+    window.addEventListener("projectSelectionChanged", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("projectSelectionChanged", handler);
+    };
   }, [fetchMyTasks]);
 
   useEffect(() => {
@@ -96,11 +101,42 @@ function MyTask() {
   const active = tasks.filter(
     (t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
   ).length;
+  const shouldShowPagination = totalPages > 1 && totalTasks > 10;
 
   if (initialLoading) return <LoadingSpinner message="Loading your tasks..." />;
 
   return (
     <div className="manage-role-container">
+      <PageHeader title="My Tasks">
+        <div className="header-search-wrapper">
+          <span className="search-icon">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input
+            className="header-search"
+            type="text"
+            placeholder="Search tasks..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+      </PageHeader>
+
       <div>
         {refreshing && (
           <span style={{ fontSize: "13px", color: "#777" }}>Updating...</span>
@@ -109,16 +145,6 @@ function MyTask() {
 
       {/* FILTERS */}
       <div className="task-filters">
-        <Input
-          fullWidth={false}
-          placeholder="Search tasks..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
-
         <Input
           as="select"
           fullWidth={false}
@@ -215,11 +241,13 @@ function MyTask() {
         </tbody>
       </table>
 
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      {shouldShowPagination && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
     </div>
   );
 }

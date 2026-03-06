@@ -4,7 +4,6 @@ import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
-import { toast } from "react-toastify";
 import {
   Button,
   Input,
@@ -35,9 +34,9 @@ function Documents() {
   const [accessPopupDocId, setAccessPopupDocId] = useState(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
     try {
-      return localStorage.getItem("documents_editor_autosave") !== "off";
+      return localStorage.getItem("documents_editor_autosave") === "on";
     } catch {
-      return true;
+      return false;
     }
   });
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState("");
@@ -65,7 +64,7 @@ function Documents() {
       // Ignore local storage errors.
     }
 
-    if (showToast) toast.success("Editor content saved");
+    if (showToast) window.alert("Editor content saved");
   };
 
   const fetchDocuments = useCallback(async () => {
@@ -76,7 +75,7 @@ function Documents() {
       setDocuments(res.data || []);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load documents");
+      console.error("Failed to load documents");
     } finally {
       setLoading(false);
     }
@@ -137,7 +136,7 @@ function Documents() {
       ) ||
       user?.role?.name === "Super Admin";
     if (!hasAccess) {
-      toast.info("You do not have access. You can request access.");
+      window.alert("You do not have access. You can request access.");
       return;
     }
     const fileUrl =
@@ -145,17 +144,19 @@ function Documents() {
         ? doc.attachments[0]
         : null;
     if (fileUrl) window.open(fileUrl, "_blank");
-    else toast.error("No file attached");
+    else window.alert("No file attached");
   };
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!name) return toast.error("Name is required");
+    if (!name) {
+      window.alert("Name is required");
+      return;
+    }
 
     if (!autoSaveEnabled && hasUnsavedEditorChanges) {
-      return toast.error(
-        "Auto Save is off. Click Save Content before submitting",
-      );
+      window.alert("Auto Save is off. Click Save Content before submitting");
+      return;
     }
 
     const finalContent = autoSaveEnabled ? editorContent : content;
@@ -165,7 +166,8 @@ function Documents() {
       .replace(/\s+/g, " ")
       .trim();
     if (!editDoc && !file && !plainEditorText) {
-      return toast.error("Upload a file or write content in the editor");
+      window.alert("Upload a file or write content in the editor");
+      return;
     }
 
     try {
@@ -180,12 +182,12 @@ function Documents() {
         await axiosInstance.put(`/documents/${editDoc._id}`, form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success("Document updated");
+        window.alert("Document updated");
       } else {
         await axiosInstance.post("/documents", form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success("Document created");
+        window.alert("Document created");
       }
       setShowModal(false);
       setName("");
@@ -210,7 +212,7 @@ function Documents() {
       fetchDocuments();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to create document");
+      window.alert("Failed to save document");
     }
   };
 
@@ -220,15 +222,11 @@ function Documents() {
         `/documents/${docId}/request-access`,
       );
       const message = res?.data?.message || "Access request sent";
-      if (/already have access|already submitted/i.test(message)) {
-        toast.info(message);
-      } else {
-        toast.success(message);
-      }
+      window.alert(message);
       fetchDocuments();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to request access");
+      window.alert("Failed to request access");
     }
   };
 
@@ -236,11 +234,11 @@ function Documents() {
     if (!confirm("Delete this document?")) return;
     try {
       await axiosInstance.delete(`/documents/${docId}`);
-      toast.success("Document deleted");
+      window.alert("Document deleted");
       fetchDocuments();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete document");
+      window.alert("Failed to delete document");
     }
   };
 
@@ -250,23 +248,23 @@ function Documents() {
         userId,
         accessType,
       });
-      toast.success("Access updated");
+      window.alert("Access updated");
       setShowManageModalFor(null);
       fetchDocuments();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update access");
+      window.alert("Failed to update access");
     }
   };
 
   const revokeAccess = async (docId, userId) => {
     try {
       await axiosInstance.post(`/documents/${docId}/revoke`, { userId });
-      toast.success("Access revoked");
+      window.alert("Access revoked");
       fetchDocuments();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to revoke access");
+      window.alert("Failed to revoke access");
     }
   };
 
@@ -923,7 +921,7 @@ function Documents() {
                       } catch {
                         // Ignore draft clearing errors.
                       }
-                      toast.info("Editor content cleared");
+                      window.alert("Editor content cleared");
                     }}
                   >
                     Clear Content

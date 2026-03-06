@@ -27,10 +27,6 @@ import ManageUser from "./pages/ManageUser";
 
 import Settings from "./pages/Settings";
 
-// TOASTIFY IMPORTS
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
 function App() {
   const { loading } = useAuth();
 
@@ -40,20 +36,6 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* GLOBAL TOAST CONTAINER */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        pauseOnHover
-        pauseOnFocusLoss
-        draggable
-        limit={3}
-        theme="colored"
-      />
-
       <Routes>
         {/* Default Redirect */}
         <Route path="/" element={<Navigate to="/login" />} />

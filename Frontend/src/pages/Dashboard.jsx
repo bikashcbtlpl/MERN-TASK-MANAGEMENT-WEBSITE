@@ -52,6 +52,16 @@ function Dashboard() {
   }, [fetchStats]);
 
   useEffect(() => {
+    const handler = () => fetchStats();
+    window.addEventListener("projectSelectionChanged", handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener("projectSelectionChanged", handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, [fetchStats]);
+
+  useEffect(() => {
     if (!socket.connected) socket.connect();
     const handleUpdate = () => fetchStats();
     socket.on("taskUpdated", handleUpdate);

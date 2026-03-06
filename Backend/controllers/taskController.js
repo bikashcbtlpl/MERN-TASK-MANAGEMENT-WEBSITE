@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
 const User = require("../models/User");
+const mongoose = require("mongoose");
 const runCloudinaryWorker = require("../utils/runCloudinaryWorker");
 const emailQueue = require("../queues/emailQueue");
 
@@ -338,11 +339,12 @@ exports.getTasks = async (req, res) => {
   try {
     const user = req.user;
     const isSuperAdmin = user.role?.name === "Super Admin";
+    const projectFilter = String(req.query.project || "").trim();
+    const Project = require("../models/Project");
 
     let filter = {};
 
     if (!isSuperAdmin) {
-      const Project = require("../models/Project");
       const userProjects = await Project.find({ team: user._id })
         .select("_id")
         .lean();
@@ -350,6 +352,29 @@ exports.getTasks = async (req, res) => {
 
       filter.$or = [{ assignedTo: user._id }];
       if (projectIds.length) filter.$or.push({ project: { $in: projectIds } });
+    }
+
+    // Apply topbar-selected project filter for all users.
+    if (projectFilter) {
+      let projectClause;
+
+      if (mongoose.Types.ObjectId.isValid(projectFilter)) {
+        projectClause = { project: projectFilter };
+      } else {
+        const matchingProjects = await Project.find({
+          name: { $regex: new RegExp(`^${projectFilter}$`, "i") },
+        })
+          .select("_id")
+          .lean();
+        projectClause = {
+          project: { $in: matchingProjects.map((p) => p._id) },
+        };
+      }
+
+      filter =
+        Object.keys(filter).length === 0
+          ? projectClause
+          : { $and: [filter, projectClause] };
     }
 
     // Search
@@ -367,6 +392,8 @@ exports.getTasks = async (req, res) => {
     }
 
     if (req.query.taskStatus) filter.taskStatus = req.query.taskStatus;
+    if (req.query.isActive === "true") filter.isActive = true;
+    if (req.query.isActive === "false") filter.isActive = false;
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));

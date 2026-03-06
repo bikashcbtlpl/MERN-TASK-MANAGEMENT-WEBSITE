@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ProjectForm from "./ProjectForm";
 import axiosInstance from "../api/axiosInstance";
-import { toast } from "react-toastify";
 import { LoadingSpinner } from "../components/common";
 
 const ProjectFormPage = ({ mode }) => {
@@ -22,7 +21,6 @@ const ProjectFormPage = ({ mode }) => {
         .catch((err) => {
           console.error("Failed to load project:", err);
           const msg = err.response?.data?.message || "Failed to load project";
-          toast.error(msg);
           setError(msg);
         })
         .finally(() => {
@@ -38,19 +36,17 @@ const ProjectFormPage = ({ mode }) => {
           ...data,
           team: data.team.map((u) => u.value ?? u),
         });
-        toast.success("Project updated successfully");
       } else {
         await axiosInstance.post("/projects", {
           ...data,
           team: data.team.map((u) => u.value ?? u),
         });
-        toast.success("Project created successfully");
       }
       navigate("/projects");
     } catch (err) {
       const msg =
         err.response?.data?.message || err.message || "Error saving project";
-      toast.error(msg);
+      setError(msg);
     }
   };
 

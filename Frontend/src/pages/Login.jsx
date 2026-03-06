@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
-import { toast } from "react-toastify";
 import { FormField, Button } from "../components/common";
 
 function Login() {
@@ -24,12 +23,10 @@ function Login() {
       setUser(response.data.user);
       localStorage.setItem("user", JSON.stringify(response.data.user));
       localStorage.setItem("loginTime", Date.now());
-      toast.success("Login successful");
       navigate("/dashboard");
     } catch (error) {
       const message = error.response?.data?.message || "Login failed";
       setError(message);
-      toast.error(message);
     }
   };
 

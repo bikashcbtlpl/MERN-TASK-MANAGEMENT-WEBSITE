@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { Outlet } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 function Layout() {
   const navigate = useNavigate();
@@ -36,9 +34,6 @@ function Layout() {
 
   return (
     <div className="layout">
-      {/* 🔥 Global Toast container */}
-      <ToastContainer position="top-right" autoClose={3000} />
-
       <Sidebar />
 
       <div className="main-section">
