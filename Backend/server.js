@@ -66,15 +66,38 @@ const allowedOrigins = Array.from(
   ),
 );
 
+const isDevelopment = process.env.NODE_ENV !== "production";
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  // In development, accept localhost/loopback origins on any port
+  // so Vite can use fallback ports without breaking API calls.
+  if (isDevelopment) {
+    try {
+      const parsed = new URL(origin);
+      if (["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
 /* ================= MIDDLEWARE ================= */
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g., mobile apps, curl)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        // Do not throw; reject CORS cleanly without polluting error logs.
+        callback(null, false);
       }
     },
     credentials: true,
@@ -170,7 +193,13 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   },
 });
