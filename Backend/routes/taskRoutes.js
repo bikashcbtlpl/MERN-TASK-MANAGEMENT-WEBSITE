@@ -55,7 +55,7 @@ router.get(
 
 /* =======================================================
    UPDATE TASK (WITH FILE UPLOAD)
-   Allow users with 'Edit Task' permission OR the task assignee to update.
+  Allow users with 'Edit Task' permission OR members of the task project team.
 ======================================================= */
 const canEditTask = require("../middleware/canEditTask");
 

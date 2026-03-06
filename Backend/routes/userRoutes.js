@@ -4,12 +4,25 @@ const authMiddleware = require("../middleware/authMiddleware");
 const checkPermission = require("../middleware/permissionMiddleware");
 const userController = require("../controllers/userController");
 
-// GET all users — Admin/Super Admin only
+// GET all users — user-management roles and document-view roles
 router.get(
   "/",
   authMiddleware,
-  checkPermission(["View User", "Create User", "Edit User", "Delete User"]),
+  checkPermission([
+    "View User",
+    "Create User",
+    "Edit User",
+    "Delete User",
+    "View Document",
+  ]),
   userController.getUsers,
+);
+
+// GET users for document access (all authenticated users)
+router.get(
+  "/for-access",
+  authMiddleware,
+  userController.getUsersForDocumentAccess,
 );
 
 // GET current logged-in user

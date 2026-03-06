@@ -1,5 +1,4 @@
 const Task = require("../models/Task");
-const User = require("../models/User");
 const mongoose = require("mongoose");
 const Project = require("../models/Project");
 const emailQueue = require("../queues/emailQueue");
@@ -35,7 +34,6 @@ exports.createTask = async (req, res) => {
       title,
       description,
       taskStatus,
-      assignedTo,
       startDate,
       endDate,
       notes,
@@ -50,7 +48,6 @@ exports.createTask = async (req, res) => {
       return res.status(400).json({ message: "Description is required" });
     }
 
-    if (!assignedTo || assignedTo === "") assignedTo = null;
     if (!project || project === "") project = null;
 
     // Date validation
@@ -58,26 +55,6 @@ exports.createTask = async (req, res) => {
       return res
         .status(400)
         .json({ message: "End date cannot be before start date" });
-    }
-
-    // Check assignee is not Super Admin
-    if (assignedTo) {
-      const assignedUser = await User.findById(assignedTo)
-        .populate("role")
-        .lean();
-
-      if (!assignedUser) {
-        return res.status(404).json({ message: "Assigned user not found" });
-      }
-
-      if (
-        assignedUser.role?.name === "Super Admin" &&
-        req.user.role?.name !== "Super Admin"
-      ) {
-        return res
-          .status(403)
-          .json({ message: "You cannot assign tasks to Super Admin" });
-      }
     }
 
     // Process file uploads via cloudinary worker
@@ -89,7 +66,6 @@ exports.createTask = async (req, res) => {
       title: title.trim(),
       description: description.trim(),
       taskStatus: taskStatus || "Open",
-      assignedTo,
       startDate,
       endDate,
       notes,
@@ -131,16 +107,6 @@ exports.createTask = async (req, res) => {
           }
         }
       }
-    } else if (assignedTo) {
-      // Fallback: Notify individual if task is not in a project but assigned to them
-      const assignedUser = await User.findById(assignedTo).lean();
-      if (assignedUser?.email) {
-        queueTaskEmail({
-          to: assignedUser.email,
-          subject: "New Task Assigned",
-          text: `You have been assigned a new task:\n\nTitle: ${newTask.title}\nStatus: ${newTask.taskStatus}\n\nPlease login to view the details.`,
-        });
-      }
     }
 
     req.app.get("io")?.emit("taskUpdated");
@@ -169,17 +135,17 @@ exports.updateTask = async (req, res) => {
 
     const isSuperAdmin = user.role?.name === "Super Admin";
     const hasEditPerm = isSuperAdmin || userPermissions.includes("Edit Task");
-    const isAssignedUser =
-      task.assignedTo && String(task.assignedTo) === String(user._id);
+    const isProjectMember = task.project
+      ? await Project.exists({ _id: task.project, team: user._id })
+      : false;
 
-    // Without edit permission, only the assigned user can proceed.
-    if (!hasEditPerm && !isAssignedUser) {
+    // Without edit permission, only project team members can update task status.
+    if (!hasEditPerm && !isProjectMember) {
       return res.status(403).json({ message: "Not allowed to edit this task" });
     }
 
     let {
       taskStatus = task.taskStatus,
-      assignedTo,
       existingImages,
       existingVideos,
       existingAttachments,
@@ -187,7 +153,6 @@ exports.updateTask = async (req, res) => {
     } = req.body;
 
     // Normalize empty strings to null
-    if (assignedTo === "" || assignedTo === "null") assignedTo = null;
     if (project === "" || project === "null") project = null;
 
     // Parse existing media arrays safely
@@ -219,7 +184,6 @@ exports.updateTask = async (req, res) => {
     // Build explicit update object
     let updateData = {
       taskStatus,
-      assignedTo,
       project,
       images: finalImages,
       videos: finalVideos,
@@ -241,8 +205,8 @@ exports.updateTask = async (req, res) => {
       }
     });
 
-    // Assigned users without Edit Task can only update status.
-    if (!hasEditPerm && isAssignedUser) {
+    // Project team members without Edit Task can only update status.
+    if (!hasEditPerm && isProjectMember) {
       updateData = { taskStatus };
     }
 
@@ -304,20 +268,6 @@ exports.updateTask = async (req, res) => {
           }
         }
       }
-    } else if (
-      !newProjectId &&
-      assignedTo &&
-      String(assignedTo) !== String(task.assignedTo)
-    ) {
-      // Email individual if task is not in a project but got reassigned
-      const reassignedUser = await User.findById(assignedTo).lean();
-      if (reassignedUser?.email) {
-        queueTaskEmail({
-          to: reassignedUser.email,
-          subject: "Task Assigned to You",
-          text: `A task has been assigned to you:\n\nTitle: ${updatedTask.title}\nStatus: ${updatedTask.taskStatus}\n\nPlease login to view the details.`,
-        });
-      }
     }
 
     req.app.get("io")?.emit("taskUpdated");
@@ -348,8 +298,7 @@ exports.getTasks = async (req, res) => {
         .lean();
       const projectIds = userProjects.map((p) => p._id);
 
-      filter.$or = [{ assignedTo: user._id }];
-      if (projectIds.length) filter.$or.push({ project: { $in: projectIds } });
+      filter = projectIds.length ? { project: { $in: projectIds } } : { _id: null };
     }
 
     // Apply topbar-selected project filter for all users.
@@ -402,7 +351,6 @@ exports.getTasks = async (req, res) => {
     const [totalTasks, tasks] = await Promise.all([
       Task.countDocuments(filter),
       Task.find(filter)
-        .populate("assignedTo", "email name")
         .populate("createdBy", "email name")
         .populate("project", "name")
         .skip(skip)
@@ -431,7 +379,6 @@ const Issue = require("../models/Issue");
 exports.getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate("assignedTo", "email name")
       .populate("createdBy", "email name")
       .populate("project", "name")
       .lean();
@@ -493,16 +440,37 @@ exports.deleteTask = async (req, res) => {
 exports.getMyTasks = async (req, res) => {
   try {
     const userId = req.user._id;
+    const isSuperAdmin = req.user.role?.name === "Super Admin";
+    const userPermissions = (req.user.role?.permissions || [])
+      .filter((p) => p && p.status !== "Inactive")
+      .map((p) => p.name);
+    const hasEditPerm = isSuperAdmin || userPermissions.includes("Edit Task");
     const search = req.query.search || "";
 
     let filter = {};
-    const projectFilter = req.query.project;
+    const rawProjectFilter = String(req.query.project || "").trim();
+    const projectFilter = ["", "all", "all projects", "null", "undefined"].includes(
+      rawProjectFilter.toLowerCase(),
+    )
+      ? ""
+      : rawProjectFilter;
 
     if (projectFilter) {
-      const proj = await Project.findById(projectFilter).select("team").lean();
+      let proj = null;
+
+      if (mongoose.Types.ObjectId.isValid(projectFilter)) {
+        proj = await Project.findById(projectFilter).select("team").lean();
+      } else {
+        const safeProjectFilter = escapeRegex(projectFilter);
+        proj = await Project.findOne({
+          name: { $regex: new RegExp(`^${safeProjectFilter}$`, "i") },
+        })
+          .select("team _id")
+          .lean();
+      }
+
       if (!proj) return res.status(404).json({ message: "Project not found" });
 
-      const isSuperAdmin = req.user.role?.name === "Super Admin";
       const isTeamMember = proj.team.some((t) => String(t) === String(userId));
 
       if (!isTeamMember && !isSuperAdmin) {
@@ -511,15 +479,14 @@ exports.getMyTasks = async (req, res) => {
           .json({ message: "Access denied to this project" });
       }
 
-      filter = { project: projectFilter };
+      filter = { project: proj._id };
     } else {
       const userProjects = await Project.find({ team: userId })
         .select("_id")
         .lean();
       const projectIds = userProjects.map((p) => p._id);
 
-      filter = { $or: [{ assignedTo: userId }] };
-      if (projectIds.length) filter.$or.push({ project: { $in: projectIds } });
+      filter = projectIds.length ? { project: { $in: projectIds } } : { _id: null };
     }
 
     if (search) {
@@ -542,7 +509,6 @@ exports.getMyTasks = async (req, res) => {
     const [totalTasks, tasks] = await Promise.all([
       Task.countDocuments(filter),
       Task.find(filter)
-        .populate("assignedTo", "email name")
         .populate("createdBy", "email name")
         .populate("project", "name")
         .skip(skip)
@@ -551,8 +517,21 @@ exports.getMyTasks = async (req, res) => {
         .lean(),
     ]);
 
+    const teamProjects = await Project.find({ team: userId }).select("_id").lean();
+    const teamProjectIdSet = new Set(teamProjects.map((p) => String(p._id)));
+
     res.json({
-      tasks: tasks.map((task) => serializeTask(task)),
+      tasks: tasks.map((task) => {
+        const projectId = task.project?._id || task.project;
+        const canEditStatus =
+          hasEditPerm ||
+          (projectId ? teamProjectIdSet.has(String(projectId)) : false);
+
+        return {
+          ...serializeTask(task),
+          canEditStatus,
+        };
+      }),
       totalTasks,
       currentPage: page,
       totalPages: Math.ceil(totalTasks / limit),

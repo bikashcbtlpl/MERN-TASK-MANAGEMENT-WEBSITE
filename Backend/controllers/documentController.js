@@ -34,6 +34,23 @@ const queueEmailSafely = async (payload) => {
 };
 
 /* =====================================================
+   LIST USERS FOR DOCUMENT ACCESS
+===================================================== */
+exports.listAccessUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .populate("role", "name")
+      .select("name email role")
+      .lean();
+    const visibleUsers = users.filter((u) => u.role?.name !== "Super Admin");
+    res.json(visibleUsers);
+  } catch (err) {
+    console.error("List Access Users Error:", err);
+    res.status(500).json({ message: "Error loading users for access management" });
+  }
+};
+
+/* =====================================================
    LIST DOCUMENTS
 ===================================================== */
 exports.listDocuments = async (req, res) => {

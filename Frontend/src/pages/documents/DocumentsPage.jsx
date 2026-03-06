@@ -87,20 +87,31 @@ function Documents() {
   }, []);
 
   const fetchUsers = useCallback(async () => {
-    try {
-      const res = await axiosInstance.get("/users");
-      const payload = res.data;
-      if (Array.isArray(payload)) setUsers(payload);
-      else if (Array.isArray(payload?.users)) setUsers(payload.users);
-      else setUsers([]);
-    } catch (err) {
-      // Users list is optional for this page. Keep UI functional even if restricted.
-      if (err?.response?.status && err.response.status !== 403) {
-        showFeedback("error", "Unable to load users for access management");
+    const endpoints = ["/documents/access-users", "/users/for-access", "/users"];
+    let lastError = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await axiosInstance.get(endpoint);
+        const payload = res.data;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.users)
+            ? payload.users
+            : [];
+        const visibleUsers = list.filter((u) => u?.role?.name !== "Super Admin");
+        setUsers(visibleUsers);
+        return;
+      } catch (err) {
+        lastError = err;
       }
-      // Silently ignore — user list is optional (only needed for Manage Access modal)
-      setUsers([]);
     }
+
+    // Users list is optional for this page. Keep UI functional even if restricted.
+    if (lastError?.response?.status && lastError.response.status !== 403) {
+      showFeedback("error", "Unable to load users for access management");
+    }
+    setUsers([]);
   }, []);
 
   const getAccessTypeForUser = (doc, userId) => {

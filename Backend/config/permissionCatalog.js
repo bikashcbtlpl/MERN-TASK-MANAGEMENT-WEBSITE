@@ -15,6 +15,12 @@ const PERMISSION_CATALOG = {
   project: ["View Project", "Create Project", "Edit Project", "Delete Project"],
   task: ["View Task", "Create Task", "Edit Task", "Delete Task"],
   issue: ["View Issue", "Create Issue", "Edit Issue", "Delete Issue"],
+  document: [
+    "View Document",
+    "Create Document",
+    "Edit Document",
+    "Delete Document",
+  ],
 };
 
 const getDefaultPermissions = () => {

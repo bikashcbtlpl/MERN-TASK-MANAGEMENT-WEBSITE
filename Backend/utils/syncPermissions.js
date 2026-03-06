@@ -59,6 +59,55 @@ const syncPermissions = async ({ syncSuperAdmin = true } = {}) => {
     }
   }
 
+  // Backward-compatible RBAC migration:
+  // roles that already had Task CRUD get equivalent Document CRUD.
+  const permissionDocs = await Permission.find({
+    name: {
+      $in: [
+        "View Task",
+        "Create Task",
+        "Edit Task",
+        "Delete Task",
+        "View Document",
+        "Create Document",
+        "Edit Document",
+        "Delete Document",
+      ],
+    },
+  })
+    .select("_id name")
+    .lean();
+
+  const permByName = permissionDocs.reduce((acc, p) => {
+    acc[p.name] = String(p._id);
+    return acc;
+  }, {});
+
+  const mapping = [
+    ["View Task", "View Document"],
+    ["Create Task", "Create Document"],
+    ["Edit Task", "Edit Document"],
+    ["Delete Task", "Delete Document"],
+  ];
+
+  const roles = await Role.find({}).populate("permissions", "name");
+  for (const role of roles) {
+    const rolePermNameSet = new Set((role.permissions || []).map((p) => p?.name));
+    const rolePermIdSet = new Set((role.permissions || []).map((p) => String(p?._id || p)));
+
+    let changed = false;
+    mapping.forEach(([fromName, toName]) => {
+      const toId = permByName[toName];
+      if (!toId) return;
+      if (rolePermNameSet.has(fromName) && !rolePermIdSet.has(toId)) {
+        role.permissions.push(toId);
+        changed = true;
+      }
+    });
+
+    if (changed) await role.save();
+  }
+
   return {
     created: missing.length,
     total: allDefaultPermissions.length,

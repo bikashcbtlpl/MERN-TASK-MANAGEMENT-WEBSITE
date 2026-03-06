@@ -53,7 +53,9 @@ exports.createRole = async (req, res) => {
 /* ================= GET ALL ROLES ================= */
 exports.getRoles = async (req, res) => {
   try {
-    const roles = await Role.find().populate("permissions").lean();
+    const roles = await Role.find({ name: { $ne: "Super Admin" } })
+      .populate("permissions")
+      .lean();
     res.json(roles.map((role) => serializeRole(role)));
   } catch (error) {
     console.error("Get Roles Error:", error);

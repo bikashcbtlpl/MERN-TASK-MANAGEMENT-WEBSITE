@@ -103,6 +103,12 @@ function Topbar() {
     return "U";
   };
 
+  const getDisplayRoleName = () => {
+    const roleName = user?.role?.name || "";
+    if (roleName === "Super Admin") return "Admin";
+    return roleName || "No Role";
+  };
+
   return (
     <div className="topbar">
       <div className="page-title">{formatPageTitle()}</div>
@@ -163,7 +169,7 @@ function Topbar() {
             <div className="avatar-circle large">{getInitial()}</div>
 
             <h4>{user?.name || user?.email}</h4>
-            <p>{user?.role?.name || "No Role"}</p>
+            <p>{getDisplayRoleName()}</p>
 
             <Button variant="danger" fullWidth onClick={handleLogout}>
               Logout

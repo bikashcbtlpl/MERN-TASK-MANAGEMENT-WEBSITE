@@ -28,6 +28,11 @@ export const PERMS = Object.freeze({
   ISSUE_CREATE: "Create Issue",
   ISSUE_EDIT: "Edit Issue",
   ISSUE_DELETE: "Delete Issue",
+
+  DOCUMENT_VIEW: "View Document",
+  DOCUMENT_CREATE: "Create Document",
+  DOCUMENT_EDIT: "Edit Document",
+  DOCUMENT_DELETE: "Delete Document",
 });
 
 export const PERM_GROUPS = Object.freeze({
@@ -45,6 +50,12 @@ export const PERM_GROUPS = Object.freeze({
     PERMS.PROJECT_CREATE,
     PERMS.PROJECT_EDIT,
     PERMS.PROJECT_DELETE,
+  ],
+  DOCUMENT_MANAGE: [
+    PERMS.DOCUMENT_VIEW,
+    PERMS.DOCUMENT_CREATE,
+    PERMS.DOCUMENT_EDIT,
+    PERMS.DOCUMENT_DELETE,
   ],
 });
 

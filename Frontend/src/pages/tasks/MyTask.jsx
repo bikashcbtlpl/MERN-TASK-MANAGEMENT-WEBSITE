@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
 import socket from "../../socket";
 import { PERMS, can as canPermission } from "../../permissions/can";
+import { useAuth } from "../../context/AuthContext";
 import {
   PageHeader,
   Pagination,
@@ -16,6 +17,13 @@ import {
 
 function MyTask() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const normalizeProjectSelection = (value) => {
+    const v = String(value || "").trim();
+    const blocked = ["", "all", "all projects", "null", "undefined"];
+    return blocked.includes(v.toLowerCase()) ? "" : v;
+  };
 
   const [tasks, setTasks] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -35,19 +43,19 @@ function MyTask() {
         else setInitialLoading(true);
 
         const params = new URLSearchParams({ page, limit: 10 });
-        const selectedProject = localStorage.getItem("selectedProject") || "";
+        const selectedProject = normalizeProjectSelection(
+          localStorage.getItem("selectedProject"),
+        );
         if (selectedProject) params.append("project", selectedProject);
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
 
         const res = await axiosInstance.get(`/tasks/my?${params.toString()}`);
-        const activeTasks = (res.data.tasks || []).filter(
-          (t) => t.isActive !== false,
-        );
+        const serverTasks = res.data.tasks || [];
 
-        setTasks(activeTasks);
+        setTasks(serverTasks);
         setTotalPages(res.data.totalPages || 1);
-        setTotalTasks(activeTasks.length);
+        setTotalTasks(res.data.totalTasks || 0);
       } catch (error) {
         console.log("Error fetching tasks:", error.response?.data?.message);
       } finally {
@@ -61,11 +69,6 @@ function MyTask() {
   useEffect(() => {
     fetchMyTasks(currentPage, true);
   }, [fetchMyTasks, currentPage]);
-
-  const currentUser = JSON.parse(localStorage.getItem("user"));
-  const getCurrentUserId = () => currentUser?._id || currentUser?.id || null;
-  const getAssigneeId = (task) =>
-    task.assignedTo?._id || task.assignedTo?.id || null;
 
   const updateStatus = async (taskId, status) => {
     try {
@@ -102,7 +105,7 @@ function MyTask() {
   const active = tasks.filter(
     (t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
   ).length;
-  const shouldShowPagination = totalPages > 1 && totalTasks > 10;
+  const shouldShowPagination = totalPages > 1;
 
   if (initialLoading) return <LoadingSpinner message="Loading your tasks..." />;
 
@@ -193,6 +196,7 @@ function MyTask() {
             <th>Task Status</th>
             <th>Start</th>
             <th>End</th>
+            <th>Project</th>
             <th>Files</th>
           </tr>
         </thead>
@@ -207,12 +211,11 @@ function MyTask() {
                 <td>{(currentPage - 1) * 10 + index + 1}</td>
                 <td>{task.title}</td>
 
-                <td>
-                  {currentUser &&
-                  (getCurrentUserId() === getAssigneeId(task) ||
-                    canPermission(currentUser, PERMS.TASK_EDIT)) ? (
+                <td onClick={(e) => e.stopPropagation()}>
+                  {user && (task.canEditStatus || canPermission(user, PERMS.TASK_EDIT)) ? (
                     <TaskStatusSelect
                       value={task.taskStatus}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => {
                         e.stopPropagation();
                         updateStatus(task._id, e.target.value);
@@ -225,6 +228,7 @@ function MyTask() {
 
                 <td>{formatDate(task.startDate)}</td>
                 <td>{formatDate(task.endDate)}</td>
+                <td>{task.project?.name || "-"}</td>
 
                 <td>
                   📷 {task.images?.length || 0} | 🎥 {task.videos?.length || 0}{" "}
@@ -234,7 +238,7 @@ function MyTask() {
             ))
           ) : (
             <tr>
-              <td colSpan="6" style={{ textAlign: "center" }}>
+              <td colSpan="7" style={{ textAlign: "center" }}>
                 No tasks assigned
               </td>
             </tr>

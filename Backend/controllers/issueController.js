@@ -56,7 +56,7 @@ exports.getIssuesByTask = async (req, res) => {
 
     // Verify the task exists
     const task = await Task.findById(taskId)
-      .select("_id assignedTo project")
+      .select("_id project")
       .lean();
     if (!task) return res.status(404).json({ message: "Task not found" });
 

@@ -148,7 +148,6 @@ const serializeTask = (task) => {
     images: Array.isArray(task.images) ? task.images : [],
     videos: Array.isArray(task.videos) ? task.videos : [],
     attachments: Array.isArray(task.attachments) ? task.attachments : [],
-    assignedTo: serializeTaskUser(task.assignedTo),
     createdBy: serializeTaskUser(task.createdBy),
     project: serializeTaskProject(task.project),
     createdAt: task.createdAt,

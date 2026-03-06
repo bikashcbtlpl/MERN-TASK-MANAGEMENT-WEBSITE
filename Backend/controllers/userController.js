@@ -28,10 +28,28 @@ exports.getUsers = async (req, res) => {
       .populate("role", "name status")
       .select("-password")
       .lean();
-    res.json(users.map((u) => serializeUser(u)));
+    const visibleUsers = users.filter((u) => u.role?.name !== "Super Admin");
+    res.json(visibleUsers.map((u) => serializeUser(u)));
   } catch (error) {
     console.error("Get Users Error:", error);
     res.status(500).json({ message: "Error fetching users" });
+  }
+};
+
+/* ================= GET USERS FOR DOCUMENT ACCESS ================= */
+exports.getUsersForDocumentAccess = async (req, res) => {
+  try {
+    const users = await User.find()
+      .populate("role", "name status")
+      .select("-password")
+      .lean();
+    const visibleUsers = users.filter((u) => u.role?.name !== "Super Admin");
+    res.json(visibleUsers.map((u) => serializeUser(u)));
+  } catch (error) {
+    console.error("Get Users For Document Access Error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching users for document access" });
   }
 };
 

@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Task = require("../models/Task");
+const Project = require("../models/Project");
 
 exports.getDashboardStats = async (req, res) => {
   try {
@@ -31,22 +32,29 @@ exports.getDashboardStats = async (req, res) => {
       });
     } else {
       /* ================= NORMAL USER ================= */
-      // ✅ Count ALL assigned tasks
-      totalTasks = await Task.countDocuments({
-        assignedTo: user._id,
-      });
+      const userProjects = await Project.find({ team: user._id })
+        .select("_id")
+        .lean();
+      const projectIds = userProjects.map((p) => p._id);
 
-      // ✅ Completed tasks
-      completedTasks = await Task.countDocuments({
-        assignedTo: user._id,
-        taskStatus: "Completed",
-      });
+      if (projectIds.length > 0) {
+        // ✅ Count all tasks in the user's project teams
+        totalTasks = await Task.countDocuments({
+          project: { $in: projectIds },
+        });
 
-      // ✅ Active tasks only (not closed + not cancelled)
-      activeTasks = await Task.countDocuments({
-        assignedTo: user._id,
-        taskStatus: { $nin: ["Closed", "Cancelled"] },
-      });
+        // ✅ Completed tasks
+        completedTasks = await Task.countDocuments({
+          project: { $in: projectIds },
+          taskStatus: "Completed",
+        });
+
+        // ✅ Active tasks only (not closed + not cancelled)
+        activeTasks = await Task.countDocuments({
+          project: { $in: projectIds },
+          taskStatus: { $nin: ["Closed", "Cancelled"] },
+        });
+      }
     }
 
     res.json({

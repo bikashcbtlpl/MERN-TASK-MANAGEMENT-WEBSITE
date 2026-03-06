@@ -17,6 +17,12 @@ import usePermissions from "../../hooks/usePermissions";
 function ManageTask() {
   const navigate = useNavigate();
 
+  const normalizeProjectSelection = (value) => {
+    const v = String(value || "").trim();
+    const blocked = ["", "all", "all projects", "null", "undefined"];
+    return blocked.includes(v.toLowerCase()) ? "" : v;
+  };
+
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
 
@@ -29,7 +35,7 @@ function ManageTask() {
   const [taskStatus, setTaskStatus] = useState("");
   const [isActive, setIsActive] = useState("");
   const [selectedProject, setSelectedProject] = useState(
-    () => localStorage.getItem("selectedProject") || "",
+    () => normalizeProjectSelection(localStorage.getItem("selectedProject")),
   );
 
   const { canCreate, canEdit, canDelete, canView } = usePermissions("Task");
@@ -71,7 +77,9 @@ function ManageTask() {
 
   useEffect(() => {
     const syncSelectedProject = () => {
-      setSelectedProject(localStorage.getItem("selectedProject") || "");
+      setSelectedProject(
+        normalizeProjectSelection(localStorage.getItem("selectedProject")),
+      );
       setCurrentPage(1);
     };
     window.addEventListener("storage", syncSelectedProject);
