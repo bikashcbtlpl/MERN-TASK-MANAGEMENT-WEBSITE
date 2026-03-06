@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+
 const AVATAR_COLORS = [
   "#4f46e5",
   "#0ea5e9",
@@ -29,11 +31,55 @@ function AccessAvatars({
   accessPopupDocId,
   setAccessPopupDocId,
   resolveUserName,
+  popupTitle = "Access List",
+  emptyInlineLabel = "No access",
+  emptyPopupLabel = "No one has access yet.",
+  triggerTitle = "Click to see access list",
+  showTypeBadge = true,
 }) {
   const isOpen = accessPopupDocId === docId;
   const MAX = 3;
   const shown = accessList.slice(0, MAX);
   const extra = accessList.length - MAX;
+  const triggerRef = useRef(null);
+  const popupRef = useRef(null);
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+
+  const setPopupPosition = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const popupWidth = 220;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - popupWidth - 8));
+    setPopupPos({
+      top: rect.bottom + 6,
+      left,
+    });
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setPopupPosition();
+
+    const handleOutsideClick = (event) => {
+      const target = event.target;
+      if (triggerRef.current?.contains(target)) return;
+      if (popupRef.current?.contains(target)) return;
+      setAccessPopupDocId(null);
+    };
+
+    const handleWindowMove = () => setPopupPosition();
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("resize", handleWindowMove);
+    window.addEventListener("scroll", handleWindowMove, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("resize", handleWindowMove);
+      window.removeEventListener("scroll", handleWindowMove, true);
+    };
+  }, [isOpen, setAccessPopupDocId]);
 
   return (
     <div
@@ -44,12 +90,13 @@ function AccessAvatars({
       }}
     >
       <div
+        ref={triggerRef}
         style={{ display: "flex", cursor: "pointer" }}
         onClick={(e) => {
           e.stopPropagation();
           setAccessPopupDocId(isOpen ? null : docId);
         }}
-        title="Click to see access list"
+        title={triggerTitle}
       >
         {shown.map((a, i) => {
           const u = a.user || a;
@@ -101,18 +148,19 @@ function AccessAvatars({
         )}
         {accessList.length === 0 && (
           <span style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>
-            No access
+            {emptyInlineLabel}
           </span>
         )}
       </div>
 
       {isOpen && (
         <div
+          ref={popupRef}
           style={{
-            position: "absolute",
-            top: 36,
-            left: 0,
-            zIndex: 999,
+            position: "fixed",
+            top: popupPos.top,
+            left: popupPos.left,
+            zIndex: 1200,
             background: "#fff",
             border: "1px solid #e2e8f0",
             borderRadius: 10,
@@ -132,7 +180,7 @@ function AccessAvatars({
               letterSpacing: "0.06em",
             }}
           >
-            Access List
+            {popupTitle}
           </div>
           {accessList.map((a, i) => {
             const u = a.user || a;
@@ -181,27 +229,29 @@ function AccessAvatars({
                   </div>
                   {email && <div style={{ fontSize: 11, color: "#94a3b8" }}>{email}</div>}
                 </div>
-                <span
-                  style={{
-                    padding: "2px 7px",
-                    borderRadius: 20,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    background: type === "edit" ? "#ede9fe" : "#e0f2fe",
-                    color: type === "edit" ? "#6d28d9" : "#0369a1",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                    flexShrink: 0,
-                  }}
-                >
-                  {type}
-                </span>
+                {showTypeBadge && (
+                  <span
+                    style={{
+                      padding: "2px 7px",
+                      borderRadius: 20,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      background: type === "edit" ? "#ede9fe" : "#e0f2fe",
+                      color: type === "edit" ? "#6d28d9" : "#0369a1",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {type}
+                  </span>
+                )}
               </div>
             );
           })}
           {accessList.length === 0 && (
             <div style={{ padding: "6px 14px", fontSize: 13, color: "#94a3b8" }}>
-              No one has access yet.
+              {emptyPopupLabel}
             </div>
           )}
           <div

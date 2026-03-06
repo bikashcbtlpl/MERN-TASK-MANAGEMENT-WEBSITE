@@ -1,9 +1,10 @@
+require("dotenv").config();
+
 const dns = require("dns");
 if (process.env.FORCE_GOOGLE_DNS === "true") {
   dns.setServers(["8.8.8.8", "8.8.4.4"]);
 }
 
-require("dotenv").config();
 const mongoose = require("mongoose");
 
 const Permission = require("./models/Permission");
@@ -11,8 +12,30 @@ const Role = require("./models/Role");
 const { getDefaultPermissions } = require("./config/permissionCatalog");
 
 async function seedPermissions() {
-  await mongoose.connect(process.env.MONGO_URI);
-  console.log("✅ MongoDB Connected");
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    throw new Error("MONGO_URI is not set");
+  }
+
+  try {
+    await mongoose.connect(mongoUri);
+    console.log("✅ MongoDB Connected");
+  } catch (err) {
+    const canRetryWithDnsFallback =
+      mongoUri.startsWith("mongodb+srv://") &&
+      err?.code === "ECONNREFUSED" &&
+      err?.syscall === "querySrv" &&
+      process.env.MONGO_DNS_FALLBACK !== "disabled";
+
+    if (!canRetryWithDnsFallback) throw err;
+
+    console.warn(
+      "Mongo SRV DNS resolution failed. Retrying with Google DNS fallback...",
+    );
+    dns.setServers(["8.8.8.8", "8.8.4.4"]);
+    await mongoose.connect(mongoUri);
+    console.log("✅ MongoDB Connected (DNS fallback)");
+  }
 
   const defaultPermissions = getDefaultPermissions();
 

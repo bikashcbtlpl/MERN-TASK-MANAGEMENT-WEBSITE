@@ -1,11 +1,12 @@
 const Permission = require("../models/Permission");
 const Role = require("../models/Role");
+const { serializePermission } = require("../utils/serializers");
 
 /* ================= GET ALL PERMISSIONS ================= */
 exports.getPermissions = async (req, res) => {
   try {
     const permissions = await Permission.find().sort({ name: 1 }).lean();
-    res.json(permissions);
+    res.json(permissions.map((permission) => serializePermission(permission)));
   } catch (error) {
     console.error("Get Permissions Error:", error);
     res.status(500).json({ message: "Server error" });
@@ -36,7 +37,7 @@ exports.createPermission = async (req, res) => {
       status: status || "Active",
     });
 
-    res.status(201).json(permission);
+    res.status(201).json(serializePermission(permission));
   } catch (error) {
     console.error("Create Permission Error:", error);
     if (error.code === 11000) {
@@ -69,11 +70,11 @@ exports.updatePermission = async (req, res) => {
     }
 
     const updated = await Permission.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).lean();
 
-    res.json(updated);
+    res.json(serializePermission(updated));
   } catch (error) {
     console.error("Update Permission Error:", error);
     if (error.code === 11000) {

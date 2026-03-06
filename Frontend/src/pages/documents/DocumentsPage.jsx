@@ -110,21 +110,13 @@ function Documents() {
     if (!userRef) return "";
     if (typeof userRef === "object" && userRef.name) return userRef.name;
     const found = users.find((u) => String(u._id) === String(userRef));
-    return found?.name || String(userRef);
+    return found?.name || "Deleted User";
   };
 
   useEffect(() => {
     fetchDocuments();
     fetchUsers();
   }, [fetchDocuments, fetchUsers]);
-
-  // Close access popup when clicking outside
-  useEffect(() => {
-    if (!accessPopupDocId) return;
-    const close = () => setAccessPopupDocId(null);
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [accessPopupDocId]);
 
   const openDocument = (doc) => {
     const isOwner =
@@ -386,7 +378,7 @@ function Documents() {
 
       <PageHeader
         title="Documents"
-        btnLabel="Create Document"
+        btnLabel="+ Create Document"
         onBtnClick={openCreateModal}
       >
         <div className="header-search-wrapper">

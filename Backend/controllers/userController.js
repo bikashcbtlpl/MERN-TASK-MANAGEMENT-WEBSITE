@@ -1,9 +1,25 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const generatePassword = require("../utils/generatePassword");
+const Document = require("../models/Document");
+const { serializeUser, serializeAuthUser } = require("../utils/serializers");
+const emailQueue = require("../queues/emailQueue");
 
 // Allowed fields for update (whitelist to avoid mass assignment)
 const ALLOWED_UPDATE_FIELDS = ["name", "email", "role", "status"];
+
+const queueUserEmailSafely = async (payload) => {
+  try {
+    await emailQueue.add(payload);
+    console.log(
+      `[user-email] queued (${emailQueue.isNoop ? "direct-mode" : "redis-worker"}) -> ${payload?.subject} -> ${payload?.to}`,
+    );
+  } catch (e) {
+    console.warn("[emailQueue] add failed:", e?.message || e);
+  }
+};
+
+const normalizeStatus = (value) => String(value || "").trim().toLowerCase();
 
 /* ================= GET ALL USERS ================= */
 exports.getUsers = async (req, res) => {
@@ -12,7 +28,7 @@ exports.getUsers = async (req, res) => {
       .populate("role", "name status")
       .select("-password")
       .lean();
-    res.json(users);
+    res.json(users.map((u) => serializeUser(u)));
   } catch (error) {
     console.error("Get Users Error:", error);
     res.status(500).json({ message: "Error fetching users" });
@@ -24,13 +40,7 @@ exports.getCurrentUser = async (req, res) => {
   try {
     const user = req.user;
 
-    res.json({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role.name,
-      permissions: (user.role.permissions || []).map((p) => p.name),
-    });
+    res.json(serializeAuthUser(user));
   } catch (error) {
     console.error("Get Current User Error:", error);
     res.status(500).json({ message: "Error fetching user" });
@@ -69,22 +79,21 @@ exports.createUser = async (req, res) => {
       status: status || "Active",
     });
 
-    // Queue welcome email with credentials
-    try {
-      const emailQueue = require("../queues/emailQueue");
-      await emailQueue.add({
-        to: email,
-        subject: "Your Login Credentials - Task Management System",
-        text: `Welcome to the Task Management System!\n\nYour login credentials:\nEmail: ${email}\nPassword: ${plainPassword}\n\nPlease login and change your password immediately.\nLogin at: ${process.env.FRONTEND_URL || "http://localhost:5173"}`,
-      });
-    } catch (emailErr) {
-      console.warn("Warning: Could not queue welcome email:", emailErr.message);
-    }
+    await queueUserEmailSafely({
+      to: email,
+      subject: "Your Account Was Created - Task Management System",
+      text: `Welcome to the Task Management System!\n\nYour account has been created for ${email}.\nFor security reasons, credentials are not sent by email.\nPlease contact your administrator for secure credential handoff.\nLogin at: ${process.env.FRONTEND_URL || "http://localhost:5173"}`,
+    });
 
     // Return user without password
     const { password, ...userWithoutPassword } = newUser.toObject();
     void password;
-    res.status(201).json(userWithoutPassword);
+    res.status(201).json({
+      ...serializeUser(userWithoutPassword),
+      temporaryPassword: plainPassword,
+      passwordDelivery:
+        "Share this temporary password securely; it is not sent by email.",
+    });
   } catch (error) {
     console.error("Create User Error:", error);
     if (error.code === 11000) {
@@ -139,13 +148,48 @@ exports.updateUser = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     )
       .populate("role", "name")
       .select("-password")
       .lean();
 
-    res.json(updatedUser);
+    const previousStatus = normalizeStatus(userToUpdate.status);
+    const nextStatus = normalizeStatus(updatedUser?.status);
+
+    const statusChangedToInactive =
+      Object.prototype.hasOwnProperty.call(updateData, "status") &&
+      previousStatus !== "inactive" &&
+      nextStatus === "inactive";
+    const statusChangedToActive =
+      Object.prototype.hasOwnProperty.call(updateData, "status") &&
+      previousStatus === "inactive" &&
+      nextStatus === "active";
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "status")) {
+      console.log(
+        `[user-email] status transition check for ${updatedUser?.email || req.params.id}: ${previousStatus} -> ${nextStatus}`,
+      );
+    }
+
+    if (statusChangedToInactive && updatedUser?.email) {
+      const actorName = loggedInUser?.name || loggedInUser?.email || "Administrator";
+      await queueUserEmailSafely({
+        to: updatedUser.email,
+        subject: "Account Set to Inactive",
+        text: `Hello ${updatedUser.name || "User"},\n\nYour account has been marked as inactive by ${actorName}.\nYou will not be able to access the system until it is reactivated.\n\nIf you think this is a mistake, please contact your administrator.`,
+      });
+    }
+    if (statusChangedToActive && updatedUser?.email) {
+      const actorName = loggedInUser?.name || loggedInUser?.email || "Administrator";
+      await queueUserEmailSafely({
+        to: updatedUser.email,
+        subject: "Account Reactivated",
+        text: `Hello ${updatedUser.name || "User"},\n\nYour account has been reactivated by ${actorName}.\nYou can now log in and access the system again.\n\nIf you were not expecting this change, please contact your administrator.`,
+      });
+    }
+
+    res.json(serializeUser(updatedUser));
   } catch (error) {
     console.error("Update User Error:", error);
     if (error.code === 11000) {
@@ -186,6 +230,24 @@ exports.deleteUser = async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.params.id);
+    await Document.updateMany(
+      {},
+      {
+        $pull: {
+          access: { user: req.params.id },
+          accessRequests: req.params.id,
+        },
+      },
+    );
+
+    if (userToDelete.email) {
+      const actorName = loggedInUser?.name || loggedInUser?.email || "Administrator";
+      await queueUserEmailSafely({
+        to: userToDelete.email,
+        subject: "Account Deleted",
+        text: `Hello ${userToDelete.name || "User"},\n\nYour account has been deleted by ${actorName}.\nYou no longer have access to the system.\n\nIf you think this is a mistake, please contact your administrator.`,
+      });
+    }
 
     res.json({ message: "User deleted successfully" });
   } catch (error) {

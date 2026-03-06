@@ -1,6 +1,7 @@
 const Document = require("../models/Document");
 const User = require("../models/User");
-const runCloudinaryWorker = require("../utils/runCloudinaryWorker");
+const emailQueue = require("../queues/emailQueue");
+const { serializeDocument } = require("../utils/serializers");
 
 const getAccessUserId = (accessEntry) => {
   if (!accessEntry) return null;
@@ -19,19 +20,17 @@ const getAccessUserId = (accessEntry) => {
 };
 
 /* =====================================================
-   UPLOAD DOCUMENT ATTACHMENTS VIA CLOUDINARY WORKER
+   NORMALIZE CLOUDINARY FILE URLS FROM MULTER
 ===================================================== */
-const processDocumentFiles = async (files = {}) => {
-  const attachments = (files.attachments || []).map((f) => ({ path: f.path }));
+const processDocumentFiles = async (files = {}) =>
+  (files.attachments || []).map((f) => f.path).filter(Boolean);
 
-  if (!attachments.length) return [];
-
-  const result = await runCloudinaryWorker({
-    images: [],
-    videos: [],
-    attachments,
-  });
-  return result.attachments || [];
+const queueEmailSafely = async (payload) => {
+  try {
+    await emailQueue.add(payload);
+  } catch (e) {
+    console.warn("[emailQueue] add failed:", e?.message || e);
+  }
 };
 
 /* =====================================================
@@ -39,12 +38,20 @@ const processDocumentFiles = async (files = {}) => {
 ===================================================== */
 exports.listDocuments = async (req, res) => {
   try {
-    // All authenticated users can see all documents.
-    // Access control for opening/editing/deleting is enforced per-action.
-    // Showing all docs allows users to discover documents and request access.
-    let filter = {};
+    const currentUserId = String(req.user._id);
+    const isSuper = req.user.role?.name === "Super Admin";
 
-    let docs = await Document.find(filter)
+    const accessFilter = isSuper
+      ? {}
+      : {
+          $or: [
+            { createdBy: req.user._id },
+            { "access.user": req.user._id }, // current schema
+            { access: req.user._id }, // legacy schema (ObjectId[] access)
+          ],
+        };
+
+    let docs = await Document.find(accessFilter)
       .populate({
         path: "createdBy",
         select: "name email role",
@@ -81,21 +88,26 @@ exports.listDocuments = async (req, res) => {
         .map((a) => {
           if (!a) return null;
           const uid = getAccessUserId(a);
+          if (!usersMap[uid]) return null;
           const accessType =
             typeof a === "object" && a?.accessType ? a.accessType : "view";
-          return { user: usersMap[uid] || uid, accessType };
+          return { user: usersMap[uid], accessType };
         })
         .filter(Boolean);
 
       // normalize accessRequests to user objects when available
-      d.accessRequests = (d.accessRequests || []).map(
-        (u) => usersMap[String(u)] || u,
-      );
+      d.accessRequests = (d.accessRequests || [])
+        .map((u) => usersMap[String(u)] || null)
+        .filter(Boolean);
+
+      const isOwner = String(d.createdBy?._id || d.createdBy) === currentUserId;
+      const canViewRequests = isOwner || isSuper;
+      if (!canViewRequests) d.accessRequests = [];
 
       return d;
     });
 
-    res.json(docs);
+    res.json(docs.map((doc) => serializeDocument(doc)));
   } catch (err) {
     console.error("List Documents Error:", err);
     res.status(500).json({ message: "Error listing documents" });
@@ -126,7 +138,7 @@ exports.createDocument = async (req, res) => {
     const normalizedAccess = (accessArr || [])
       .map((a) => {
         if (typeof a === "string") return { user: a, accessType: "view" };
-        if (a && a.user)
+        if (a && (a.user || a.userId))
           return {
             user: a.user || a.userId,
             accessType: a.accessType || a.type || "view",
@@ -146,7 +158,51 @@ exports.createDocument = async (req, res) => {
       createdBy: req.user._id,
     });
 
-    res.status(201).json(doc);
+    // Notify users who were granted access at creation time.
+    const recipientIds = Array.from(
+      new Set(
+        normalizedAccess
+          .map((a) => String(a.user))
+          .filter((id) => id && id !== String(req.user._id)),
+      ),
+    );
+
+    if (recipientIds.length > 0) {
+      const recipients = await User.find({ _id: { $in: recipientIds } })
+        .select("email name")
+        .lean();
+
+      const actorName = req.user.name || "A user";
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+      const jobs = recipients
+        .filter((recipient) => recipient?.email)
+        .map((recipient) =>
+          queueEmailSafely({
+            to: recipient.email,
+            subject: "Document Access Granted",
+            text: `${actorName} created a document and granted you access.\n\nDocument: ${doc.name}\n\nOpen it here: ${frontendUrl}/documents`,
+          }),
+        );
+      await Promise.all(jobs);
+    }
+
+    const responseDoc = await Document.findById(doc._id)
+      .populate({
+        path: "createdBy",
+        select: "name email",
+      })
+      .populate({
+        path: "access.user",
+        select: "name email",
+      })
+      .populate({
+        path: "accessRequests",
+        select: "name email",
+      })
+      .lean();
+
+    res.status(201).json(serializeDocument(responseDoc));
   } catch (err) {
     console.error("Create Document Error:", err);
     res.status(500).json({ message: "Error creating document" });
@@ -175,6 +231,18 @@ exports.requestAccess = async (req, res) => {
 
     doc.accessRequests.push(uid);
     await doc.save();
+
+    // Notify the document owner about this access request.
+    const owner = await User.findById(doc.createdBy).select("email").lean();
+    if (owner?.email) {
+      const requesterName = req.user.name || req.user.email || "A user";
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      await queueEmailSafely({
+        to: owner.email,
+        subject: "New Document Access Request",
+        text: `${requesterName} requested access to your document.\n\nDocument: ${doc.name}\n\nReview requests here: ${frontendUrl}/documents`,
+      });
+    }
 
     res.json({ message: "Access request submitted successfully" });
   } catch (err) {
@@ -231,6 +299,18 @@ exports.grantAccess = async (req, res) => {
       (u) => String(u) !== String(userId),
     );
     await doc.save();
+
+    // Notify the grantee that access was granted/updated.
+    const grantee = await User.findById(userId).select("email").lean();
+    if (grantee?.email) {
+      const actorName = req.user.name || req.user.email || "A user";
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      await queueEmailSafely({
+        to: grantee.email,
+        subject: "Document Access Updated",
+        text: `${actorName} granted you ${accessType === "edit" ? "edit" : "view"} access to a document.\n\nDocument: ${doc.name}\n\nOpen it here: ${frontendUrl}/documents`,
+      });
+    }
 
     res.json({ message: "Access granted successfully" });
   } catch (err) {
@@ -351,7 +431,7 @@ exports.updateDocument = async (req, res) => {
       const normalizedAccess = (accessArr || [])
         .map((a) => {
           if (typeof a === "string") return { user: a, accessType: "view" };
-          if (a && a.user)
+          if (a && (a.user || a.userId))
             return {
               user: a.user || a.userId,
               accessType: a.accessType || a.type || "view",
@@ -372,7 +452,26 @@ exports.updateDocument = async (req, res) => {
     }
 
     await doc.save();
-    res.json({ message: "Document updated successfully", document: doc });
+
+    const responseDoc = await Document.findById(doc._id)
+      .populate({
+        path: "createdBy",
+        select: "name email",
+      })
+      .populate({
+        path: "access.user",
+        select: "name email",
+      })
+      .populate({
+        path: "accessRequests",
+        select: "name email",
+      })
+      .lean();
+
+    res.json({
+      message: "Document updated successfully",
+      document: serializeDocument(responseDoc),
+    });
   } catch (err) {
     console.error("Update Document Error:", err);
     res.status(500).json({ message: "Error updating document" });

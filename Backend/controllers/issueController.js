@@ -1,6 +1,7 @@
 const Issue = require("../models/Issue");
 const Task = require("../models/Task");
 const { canAccessTask } = require("../utils/taskAccess");
+const { serializeIssue } = require("../utils/serializers");
 
 /* ================= CREATE ISSUE ================= */
 exports.createIssue = async (req, res) => {
@@ -41,7 +42,7 @@ exports.createIssue = async (req, res) => {
     // Emit socket event
     req.app.get("io")?.emit("issueCreated", { task, issue: newIssue });
 
-    res.status(201).json(newIssue);
+    res.status(201).json(serializeIssue(newIssue));
   } catch (err) {
     console.error("Create Issue Error:", err);
     res.status(500).json({ message: "Error creating issue" });
@@ -71,7 +72,7 @@ exports.getIssuesByTask = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json(issues);
+    res.json(issues.map((issue) => serializeIssue(issue)));
   } catch (err) {
     console.error("Get Issues By Task Error:", err);
     res.status(500).json({ message: "Error fetching issues" });
@@ -100,7 +101,7 @@ exports.getAllIssues = async (req, res) => {
     ]);
 
     res.json({
-      issues,
+      issues: issues.map((issue) => serializeIssue(issue)),
       total,
       currentPage: page,
       totalPages: Math.ceil(total / limit),
@@ -126,14 +127,14 @@ exports.updateIssue = async (req, res) => {
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const updated = await Issue.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     })
       .populate("reportedBy", "email name")
       .lean();
 
     req.app.get("io")?.emit("issueUpdated", { issue: updated });
-    res.json(updated);
+    res.json(serializeIssue(updated));
   } catch (err) {
     console.error("Update Issue Error:", err);
     res.status(500).json({ message: "Error updating issue" });
@@ -173,7 +174,7 @@ exports.resolveIssue = async (req, res) => {
       .lean();
 
     req.app.get("io")?.emit("issueUpdated", { issue: updated });
-    res.json(updated);
+    res.json(serializeIssue(updated));
   } catch (err) {
     console.error("Resolve Issue Error:", err);
     res.status(500).json({ message: "Error resolving issue" });

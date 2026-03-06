@@ -1,59 +1,147 @@
 :root {
-  --bg: #f1f5f9;
+  color-scheme: light;
+
+  --bg: #fef2f2;
   --surface: #ffffff;
-  --primary: #2563eb;
-  --primary-600: #1e40af;
-  --muted: #64748b;
-  --text: #1e293b;
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #ffffff;
-  --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  --surface-elevated: #ffffff;
+  --surface-soft: #fff7f7;
+  --text: #3f0a0a;
+  --text-muted: #7f1d1d;
+  --muted: var(--text-muted);
+  --text-soft: #5f7088;
+  --text-subtle: #3a4f66;
+  --text-inverse: #ffffff;
+  --placeholder: #92a0b4;
+  --icon-muted: #7c8ca3;
+
+  --primary: #dc2626;
+  --primary-600: #b91c1c;
+  --secondary: #2563eb;
+  --secondary-600: #1d4ed8;
   --success: #16a34a;
   --danger: #ef4444;
+  --danger-600: #dc2626;
+  --warning: #f59e0b;
+  --warning-600: #d97706;
+
+  --gradient-brand: linear-gradient(130deg, var(--primary), var(--secondary));
+  --gradient-avatar: linear-gradient(140deg, var(--primary), var(--secondary));
+  --gradient-sidebar: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-end) 100%);
+  --bg-accent-start: rgba(37, 99, 235, 0.12);
+  --bg-accent-end: rgba(22, 163, 74, 0.08);
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  --focus-ring-soft: rgba(37, 99, 235, 0.09);
+  --shadow-primary: 0 10px 20px rgba(37, 99, 235, 0.22);
+  --shadow-primary-strong: 0 9px 16px rgba(37, 99, 235, 0.3);
+  --spinner-track: rgba(37, 99, 235, 0.18);
+  --overlay-light: rgba(255, 255, 255, 0.78);
+
+  --sidebar-bg: #991b1b;
+  --sidebar-bg-end: #101d31;
+  --sidebar-text: #ffffff;
+  --sidebar-link: rgba(226, 232, 240, 0.84);
+  --sidebar-link-hover-bg: rgba(255, 255, 255, 0.11);
+  --sidebar-divider: rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+
+  --ui-border: #d8e1ee;
+  --ui-border-strong: #b8c6da;
+  --ui-surface-soft: #f8fbff;
+  --ui-surface-muted: #edf3fb;
+  --ui-overlay: rgba(15, 23, 36, 0.48);
+  --ui-shadow-sm: 0 2px 8px rgba(20, 34, 59, 0.08);
+  --ui-shadow-md: 0 10px 30px rgba(20, 34, 59, 0.12);
+  --ui-shadow-lg: 0 18px 42px rgba(20, 34, 59, 0.18);
+  --card-shadow: 0 4px 12px rgba(127, 29, 29, 0.16);
+
+  --btn-secondary-bg: #e5edf7;
+  --btn-secondary-bg-hover: #d9e5f4;
+  --btn-secondary-border: #d7e2f0;
+  --btn-secondary-text: #29425f;
+
+  --team-tag-bg: #e6eefb;
+  --team-tag-text: #1f3d66;
+  --team-tag-icon: #64748b;
+
+  --status-open-bg: #e0f2fe;
+  --status-open-text: #0369a1;
+  --status-progress-bg: #fff6d8;
+  --status-progress-text: #b45309;
+  --status-pending-bg: #f5e8ff;
+  --status-pending-text: #7e22ce;
+  --status-hold-bg: #efe7ff;
+  --status-hold-text: #6d28d9;
+  --status-closed-bg: #e2f7ee;
+  --status-closed-text: #0f766e;
+  --status-completed-bg: #dcfce7;
+  --status-completed-text: #166534;
+  --status-cancelled-bg: #ffe4e6;
+  --status-cancelled-text: #be123c;
+  --status-active-bg: #dcfce7;
+  --status-active-text: #166534;
+  --status-inactive-bg: #fee2e2;
+  --status-inactive-text: #991b1b;
 }
 
-/* Dark theme overrides */
 .dark-theme {
+  color-scheme: dark;
+
   --bg: #0f1724;
   --surface: #0b1220;
+  --surface-elevated: #111b2c;
+  --surface-soft: #131d2d;
+  --text: #e6eef8;
+  --text-muted: #9aa6b2;
+  --muted: var(--text-muted);
+  --text-soft: #99abc3;
+  --text-subtle: #b5c5d9;
+  --text-inverse: #ffffff;
+  --placeholder: #8ca0bc;
+  --icon-muted: #9aacc6;
+
   --primary: #3b82f6;
   --primary-600: #60a5fa;
-  --muted: #9aa6b2;
-  --text: #e6eef8;
-  --sidebar-bg: #071022;
-  --sidebar-text: #cfe8ff;
-  --card-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --secondary: #0ea5e9;
+  --secondary-600: #38bdf8;
   --success: #10b981;
   --danger: #f87171;
-}
+  --danger-600: #ef4444;
+  --warning: #fbbf24;
+  --warning-600: #f59e0b;
 
-/* Helpful utility classes */
-body {
-  background: var(--bg);
-  color: var(--text);
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-}
+  --bg-accent-start: rgba(59, 130, 246, 0.2);
+  --bg-accent-end: rgba(16, 185, 129, 0.14);
+  --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.2);
+  --focus-ring-soft: rgba(96, 165, 250, 0.14);
+  --shadow-primary: 0 10px 20px rgba(96, 165, 250, 0.2);
+  --shadow-primary-strong: 0 9px 16px rgba(96, 165, 250, 0.28);
+  --spinner-track: rgba(96, 165, 250, 0.22);
+  --overlay-light: rgba(2, 6, 23, 0.72);
 
-.surface {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--card-shadow);
-}
+  --sidebar-bg: #071022;
+  --sidebar-bg-end: #0d1b33;
+  --sidebar-text: #cfe8ff;
+  --sidebar-link: rgba(207, 232, 255, 0.82);
+  --sidebar-link-hover-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-divider: rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 255, 255, 0.06);
 
-.btn-primary {
-  background: var(--primary);
-  color: #fff;
-}
-.btn-primary:hover {
-  background: var(--primary-600);
-}
+  --ui-border: #243247;
+  --ui-border-strong: #334866;
+  --ui-surface-soft: #131d2d;
+  --ui-surface-muted: #172235;
+  --ui-overlay: rgba(2, 6, 23, 0.68);
+  --ui-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.32);
+  --ui-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.38);
+  --ui-shadow-lg: 0 18px 42px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 
-.status-badge {
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.04);
-}
+  --btn-secondary-bg: #1d2a3d;
+  --btn-secondary-bg-hover: #24344b;
+  --btn-secondary-border: #314761;
+  --btn-secondary-text: #d3e3f8;
 
-/* Ensure theme variables cascade to existing classes that use hard-coded colors when updated later */
+  --team-tag-bg: #1c2a42;
+  --team-tag-text: #cfe3ff;
+  --team-tag-icon: #9fb4d4;
+}

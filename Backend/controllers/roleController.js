@@ -1,5 +1,9 @@
 const Role = require("../models/Role");
 const User = require("../models/User");
+const { serializeRole } = require("../utils/serializers");
+
+const escapeRegex = (value = "") =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /* ================= CREATE ROLE ================= */
 exports.createRole = async (req, res) => {
@@ -21,8 +25,9 @@ exports.createRole = async (req, res) => {
     }
 
     // Prevent duplicate role (case-insensitive)
+    const safeRoleName = escapeRegex(name.trim());
     const existingRole = await Role.findOne({
-      name: { $regex: `^${name.trim()}$`, $options: "i" },
+      name: { $regex: `^${safeRoleName}$`, $options: "i" },
     }).lean();
 
     if (existingRole) {
@@ -37,7 +42,8 @@ exports.createRole = async (req, res) => {
       status: status || "Active",
     });
 
-    res.status(201).json(role);
+    const populatedRole = await Role.findById(role._id).populate("permissions").lean();
+    res.status(201).json(serializeRole(populatedRole));
   } catch (error) {
     console.error("Create Role Error:", error);
     res.status(500).json({ message: "Error creating role" });
@@ -48,7 +54,7 @@ exports.createRole = async (req, res) => {
 exports.getRoles = async (req, res) => {
   try {
     const roles = await Role.find().populate("permissions").lean();
-    res.json(roles);
+    res.json(roles.map((role) => serializeRole(role)));
   } catch (error) {
     console.error("Get Roles Error:", error);
     res.status(500).json({ message: "Error fetching roles" });
@@ -58,8 +64,9 @@ exports.getRoles = async (req, res) => {
 /* ================= GET ROLE BY NAME ================= */
 exports.getRoleByName = async (req, res) => {
   try {
+    const safeRoleName = escapeRegex(req.params.roleName);
     const role = await Role.findOne({
-      name: { $regex: `^${req.params.roleName}$`, $options: "i" },
+      name: { $regex: `^${safeRoleName}$`, $options: "i" },
     })
       .populate("permissions")
       .lean();
@@ -68,7 +75,7 @@ exports.getRoleByName = async (req, res) => {
       return res.status(404).json({ message: "Role not found" });
     }
 
-    res.json(role);
+    res.json(serializeRole(role));
   } catch (error) {
     console.error("Get Role By Name Error:", error);
     res.status(500).json({ message: "Error fetching role" });
@@ -79,9 +86,10 @@ exports.getRoleByName = async (req, res) => {
 exports.updateRoleByName = async (req, res) => {
   try {
     const loggedInUser = req.user;
+    const safeRoleName = escapeRegex(req.params.roleName);
 
     const roleToUpdate = await Role.findOne({
-      name: { $regex: `^${req.params.roleName}$`, $options: "i" },
+      name: { $regex: `^${safeRoleName}$`, $options: "i" },
     }).lean();
 
     if (!roleToUpdate) {
@@ -108,12 +116,12 @@ exports.updateRoleByName = async (req, res) => {
       roleToUpdate._id,
       updateData,
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       },
     ).populate("permissions");
 
-    res.json(updatedRole);
+    res.json(serializeRole(updatedRole));
   } catch (error) {
     console.error("Update Role By Name Error:", error);
     res.status(500).json({ message: "Error updating role" });
@@ -160,11 +168,11 @@ exports.updateRole = async (req, res) => {
     if (status !== undefined) updateData.status = status;
 
     const role = await Role.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).populate("permissions");
 
-    res.json(role);
+    res.json(serializeRole(role));
   } catch (error) {
     console.error("Update Role Error:", error);
     if (error.code === 11000) {

@@ -136,7 +136,7 @@ const ManageAccessModal = ({
         : users.find((u) => String(u._id) === String(rawUser)) || rawUser;
     return {
       id: resolved?._id || resolved,
-      name: resolved?.name || String(resolved),
+      name: resolved?.name || "Deleted User",
       email: resolved?.email || "",
       accessType: a.accessType || a.type || "view",
     };
@@ -147,7 +147,7 @@ const ManageAccessModal = ({
       users.find((x) => String(x._id) === String(u._id || u)) || u;
     return {
       _id: resolved._id || resolved.id || resolved,
-      name: resolved.name || String(resolved),
+      name: resolved.name || "Deleted User",
       email: resolved.email || "",
     };
   });

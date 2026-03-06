@@ -8,6 +8,7 @@ import {
   LoadingSpinner,
   StatusBadge,
 } from "../../components/common";
+import AccessAvatars from "../../components/documents/AccessAvatars";
 import usePermissions from "../../hooks/usePermissions";
 import { useAuth } from "../../context/AuthContext";
 
@@ -18,6 +19,7 @@ const ManageProject = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProjects, setTotalProjects] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [teamPopupProjectId, setTeamPopupProjectId] = useState(null);
   const navigate = useNavigate();
   const { loading: authLoading, setUser } = useAuth();
 
@@ -75,11 +77,14 @@ const ManageProject = () => {
     if (!authLoading) fetchProjects(1);
   }, [query, authLoading, fetchProjects]);
 
+  const resolveTeamMemberName = (member) =>
+    member?.name || member?.email?.split("@")?.[0] || "User";
+
   return (
     <div className="page-container">
       <PageHeader
         title="Manage Projects"
-        btnLabel={canCreate ? "Create Project" : undefined}
+        btnLabel={canCreate ? "+ Create Project" : undefined}
         onBtnClick={() => navigate("/projects/create")}
       >
         <div className="header-search-wrapper">
@@ -141,9 +146,18 @@ const ManageProject = () => {
                     />
                   </td>
                   <td>
-                    {(project.team || [])
-                      .map((u) => u.name || u.email || "")
-                      .join(", ")}
+                    <AccessAvatars
+                      accessList={project.team || []}
+                      docId={project._id}
+                      accessPopupDocId={teamPopupProjectId}
+                      setAccessPopupDocId={setTeamPopupProjectId}
+                      resolveUserName={resolveTeamMemberName}
+                      popupTitle="Team Members"
+                      emptyInlineLabel="-"
+                      emptyPopupLabel="No team members assigned."
+                      triggerTitle="Click to see team members"
+                      showTypeBadge={false}
+                    />
                   </td>
                   {(canEdit || canDelete) && (
                     <ActionButtons

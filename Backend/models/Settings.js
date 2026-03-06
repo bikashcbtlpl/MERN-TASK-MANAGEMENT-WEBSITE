@@ -13,10 +13,6 @@ const settingsSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  sessionTimeout: {
-    type: Number,
-    default: 30,
-  },
 });
 
 module.exports = mongoose.model("Settings", settingsSchema);

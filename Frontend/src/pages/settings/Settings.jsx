@@ -22,7 +22,6 @@ function Settings() {
   const [security, setSecurity] = useState({
     minPasswordLength: 6,
     enableRegistration: true,
-    sessionTimeout: 30,
   });
   const [feedback, setFeedback] = useState({ type: "", message: "" });
 
@@ -200,16 +199,6 @@ function Settings() {
               value={security.minPasswordLength}
               onChange={(e) =>
                 setSecurity({ ...security, minPasswordLength: e.target.value })
-              }
-            />
-          </FormField>
-
-          <FormField label="Session Timeout (minutes)">
-            <input
-              type="number"
-              value={security.sessionTimeout}
-              onChange={(e) =>
-                setSecurity({ ...security, sessionTimeout: e.target.value })
               }
             />
           </FormField>

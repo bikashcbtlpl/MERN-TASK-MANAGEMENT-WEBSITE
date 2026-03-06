@@ -1,14 +1,25 @@
 /* ================= GLOBAL BASE ================= */
-:root {
-  --ui-border: #d8e1ee;
-  --ui-border-strong: #b8c6da;
-  --ui-surface-soft: #f8fbff;
-  --ui-surface-muted: #edf3fb;
-  --ui-overlay: rgba(15, 23, 36, 0.48);
-  --ui-shadow-sm: 0 2px 8px rgba(20, 34, 59, 0.08);
-  --ui-shadow-md: 0 10px 30px rgba(20, 34, 59, 0.12);
-  --ui-shadow-lg: 0 18px 42px rgba(20, 34, 59, 0.18);
-}
+/* UI SECTION MAP
+  1) Global Base
+  2) App Shell (Sidebar + Topbar + Main Layout)
+  3) Shared Utility Elements
+  4) Shared Page Headers + Header Search
+  5) Auth (Login Page)
+  6) Dashboard UI
+  7) Shared Tables (Manage Pages)
+  8) Status Badges
+  9) Shared Forms (Tasks/Roles/Projects/Settings)
+  10) Mention + Tag Input UI
+  11) List Filters + Pagination
+  12) Task Details Page + Attachment Edit Block
+  13) Role Permission Matrix
+  14) Modal UI
+  15) Button System
+  16) Loading Spinner UI
+  17) React-Select Inline Control
+  18) Global Animations
+  19) Responsive Breakpoints
+*/
 
 * {
   margin: 0;
@@ -28,9 +39,12 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   color: var(--text);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
   background:
-    radial-gradient(circle at 10% 8%, rgba(37, 99, 235, 0.12), transparent 42%),
-    radial-gradient(circle at 94% 100%, rgba(22, 163, 74, 0.08), transparent 48%),
+    radial-gradient(circle at 10% 8%, var(--bg-accent-start), transparent 42%),
+    radial-gradient(circle at 94% 100%, var(--bg-accent-end), transparent 48%),
     var(--bg);
 }
 
@@ -45,7 +59,29 @@ textarea {
   font: inherit;
 }
 
-/* ================= LAYOUT ================= */
+input,
+select,
+textarea {
+  background: var(--surface);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--text-muted) 70%, var(--surface) 30%);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* ================= APP SHELL (Sidebar + Topbar + Main Layout) ================= */
 .layout {
   display: flex;
   min-height: 100vh;
@@ -53,9 +89,9 @@ textarea {
 
 .sidebar {
   width: 250px;
-  background: linear-gradient(180deg, var(--sidebar-bg) 0%, #101d31 100%);
+  background: var(--gradient-sidebar);
   color: var(--sidebar-text);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   position: sticky;
@@ -68,7 +104,7 @@ textarea {
   font-size: 18px;
   letter-spacing: 0.08em;
   font-weight: 800;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--sidebar-divider);
 }
 
 .sidebar-nav {
@@ -80,7 +116,7 @@ textarea {
 
 .sidebar-nav a {
   text-decoration: none;
-  color: rgba(226, 232, 240, 0.84);
+  color: var(--sidebar-link);
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 14px;
@@ -89,14 +125,14 @@ textarea {
 }
 
 .sidebar-nav a:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.11);
+  color: var(--text-inverse);
+  background: var(--sidebar-link-hover-bg);
 }
 
 .sidebar-nav a.active {
-  color: #fff;
-  background: linear-gradient(125deg, var(--primary) 0%, #1d4ed8 100%);
-  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
+  color: var(--text-inverse);
+  background: var(--gradient-brand);
+  box-shadow: var(--shadow-primary);
 }
 
 .main-section {
@@ -112,7 +148,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
   border-bottom: 1px solid var(--ui-border);
   backdrop-filter: blur(8px);
   position: sticky;
@@ -139,10 +175,28 @@ textarea {
   height: 34px;
   border: 1px solid var(--ui-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   font-size: 14px;
   font-weight: 600;
+}
+
+.theme-toggle-btn {
+  height: 34px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-soft);
 }
 
 .account-name {
@@ -194,7 +248,7 @@ textarea {
   width: 100%;
 }
 
-/* ================= AVATAR / STATUS HELPERS ================= */
+/* ================= SHARED UTILITY ELEMENTS ================= */
 .avatar-circle {
   width: 36px;
   height: 36px;
@@ -202,8 +256,8 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(140deg, var(--primary) 0%, #1d4ed8 100%);
-  color: #fff;
+  background: var(--gradient-avatar);
+  color: var(--text-inverse);
   font-weight: 800;
   box-shadow: var(--ui-shadow-sm);
 }
@@ -229,7 +283,7 @@ textarea {
   font-size: 12px;
 }
 
-/* ================= PAGE HEADER ================= */
+/* ================= SHARED PAGE HEADERS ================= */
 .page-header {
   display: flex;
   align-items: center;
@@ -251,7 +305,7 @@ textarea {
   gap: 12px;
 }
 
-/* ================= HEADER SEARCH ================= */
+/* ================= SHARED HEADER SEARCH ================= */
 .header-search-wrapper {
   position: relative;
   display: flex;
@@ -262,7 +316,7 @@ textarea {
   position: absolute;
   left: 11px;
   display: inline-flex;
-  color: #7c8ca3;
+  color: var(--icon-muted);
   pointer-events: none;
 }
 
@@ -282,22 +336,22 @@ textarea {
 .header-search:focus {
   width: 272px;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  box-shadow: var(--focus-ring);
 }
 
 .header-search::placeholder {
-  color: #92a0b4;
+  color: var(--placeholder);
 }
 
-/* ================= LOGIN ================= */
+/* ================= AUTH (Login Page) ================= */
 .login-container {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.2), transparent 38%),
-    radial-gradient(circle at 100% 100%, rgba(22, 163, 74, 0.15), transparent 42%),
+    radial-gradient(circle at 0% 0%, var(--bg-accent-start), transparent 38%),
+    radial-gradient(circle at 100% 100%, var(--bg-accent-end), transparent 42%),
     var(--bg);
 }
 
@@ -322,8 +376,8 @@ textarea {
   border: none;
   border-radius: 10px;
   padding: 11px 14px;
-  background: linear-gradient(125deg, var(--primary), #1d4ed8);
-  color: #fff;
+  background: var(--gradient-brand);
+  color: var(--text-inverse);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -331,7 +385,7 @@ textarea {
 
 .login-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 9px 16px rgba(37, 99, 235, 0.3);
+  box-shadow: var(--shadow-primary-strong);
 }
 
 .password-wrapper {
@@ -359,13 +413,13 @@ textarea {
 }
 
 .error-text {
-  color: #dc2626;
+  color: var(--danger-600);
   font-size: 13px;
   margin-bottom: 10px;
   text-align: center;
 }
 
-/* ================= DASHBOARD ================= */
+/* ================= DASHBOARD UI ================= */
 .card-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -400,7 +454,7 @@ textarea {
   color: var(--primary);
 }
 
-/* ================= TABLES ================= */
+/* ================= SHARED TABLES (Manage Pages) ================= */
 .role-table {
   width: 100%;
   border-collapse: separate;
@@ -422,7 +476,7 @@ textarea {
 
 .role-table thead th {
   background: var(--ui-surface-muted);
-  color: #3b4f66;
+  color: var(--text-subtle);
   font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -452,7 +506,7 @@ textarea {
   min-height: 30px;
   border: 1px solid var(--ui-border-strong);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   padding: 4px 8px;
   font-size: 13px;
@@ -466,7 +520,7 @@ textarea {
   min-width: 150px;
 }
 
-/* ================= BADGES ================= */
+/* ================= STATUS BADGES ================= */
 .status-badge,
 .role-status {
   display: inline-flex;
@@ -481,61 +535,61 @@ textarea {
 
 .status-open,
 .open {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--status-open-bg);
+  color: var(--status-open-text);
 }
 
 .status-in-progress,
 .in-progress {
-  background: #fff6d8;
-  color: #b45309;
+  background: var(--status-progress-bg);
+  color: var(--status-progress-text);
 }
 
 .status-pending,
 .pending {
-  background: #f5e8ff;
-  color: #7e22ce;
+  background: var(--status-pending-bg);
+  color: var(--status-pending-text);
 }
 
 .status-on-hold,
 .on-hold {
-  background: #efe7ff;
-  color: #6d28d9;
+  background: var(--status-hold-bg);
+  color: var(--status-hold-text);
 }
 
 .status-closed,
 .closed {
-  background: #e2f7ee;
-  color: #0f766e;
+  background: var(--status-closed-bg);
+  color: var(--status-closed-text);
 }
 
 .status-completed,
 .completed {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--status-completed-bg);
+  color: var(--status-completed-text);
 }
 
 .status-cancelled,
 .cancelled {
-  background: #ffe4e6;
-  color: #be123c;
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled-text);
 }
 
 .status-active,
 .role-status.active,
 .active {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--status-active-bg);
+  color: var(--status-active-text);
 }
 
 .status-inactive,
 .role-status.inactive,
 .inactive {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--status-inactive-bg);
+  color: var(--status-inactive-text);
 }
 
-/* ================= FORMS ================= */
+/* ================= SHARED FORMS (Tasks/Roles/Projects/Settings) ================= */
 .project-form,
 .task-card,
 .role-form-card,
@@ -595,7 +649,7 @@ textarea {
 .field-label {
   font-size: 13px;
   font-weight: 700;
-  color: #4a5f78;
+  color: var(--text-soft);
 }
 
 .form-group input,
@@ -605,7 +659,7 @@ textarea {
   width: 100%;
   border: 1px solid var(--ui-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   padding: 10px 12px;
   font-size: 14px;
@@ -625,7 +679,7 @@ textarea.field-input {
 .role-table select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  box-shadow: var(--focus-ring);
 }
 
 .field-wrapper-full,
@@ -641,12 +695,12 @@ textarea.field-input {
 }
 
 .field-error {
-  border-color: #dc2626;
+  border-color: var(--danger-600);
 }
 
 .field-error-msg {
   font-size: 12px;
-  color: #dc2626;
+  color: var(--danger-600);
 }
 
 select.field-input {
@@ -703,11 +757,11 @@ select.field-input {
   color: var(--muted);
 }
 
-/* ================= MENTION + TAGS ================= */
+/* ================= MENTION + TAG INPUT UI ================= */
 .team-tags {
   border: 1px solid var(--ui-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   min-height: 42px;
   display: flex;
   align-items: center;
@@ -725,8 +779,8 @@ select.field-input {
 }
 
 .team-tag {
-  background: #e6eefb;
-  color: #1f3d66;
+  background: var(--team-tag-bg);
+  color: var(--team-tag-text);
   border-radius: 999px;
   padding: 4px 10px;
   display: inline-flex;
@@ -739,7 +793,7 @@ select.field-input {
 .team-tag button {
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--team-tag-icon);
   cursor: pointer;
   font-size: 14px;
 }
@@ -753,7 +807,7 @@ select.field-input {
   overflow-y: auto;
   border: 1px solid var(--ui-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: var(--ui-shadow-md);
 }
 
@@ -777,7 +831,7 @@ select.field-input {
   border: 1px solid var(--ui-border);
 }
 
-/* ================= FILTERS / PAGINATION ================= */
+/* ================= LIST FILTERS + PAGINATION ================= */
 .task-filters {
   display: flex;
   flex-wrap: wrap;
@@ -788,7 +842,7 @@ select.field-input {
 
 .manage-role-container > p {
   margin-bottom: 10px;
-  color: #334155;
+  color: var(--text-subtle);
   font-weight: 600;
 }
 
@@ -813,10 +867,10 @@ select.field-input {
 .page-info {
   font-size: 14px;
   font-weight: 700;
-  color: #3a4f66;
+  color: var(--text-subtle);
 }
 
-/* ================= TASK DETAILS ================= */
+/* ================= TASK DETAILS PAGE ================= */
 .details-grid {
   margin-top: 12px;
   display: grid;
@@ -920,7 +974,7 @@ select.field-input {
   justify-content: center;
   border-radius: 8px;
   background: var(--primary);
-  color: #fff;
+  color: var(--text-inverse);
   padding: 6px 10px;
   font-size: 13px;
   font-weight: 700;
@@ -930,7 +984,7 @@ select.field-input {
   background: var(--primary-600);
 }
 
-/* ================= EXISTING FILE BLOCK ================= */
+/* ================= TASK ATTACHMENT EDIT BLOCK ================= */
 .existing-files {
   margin-bottom: 14px;
   padding: 12px;
@@ -949,13 +1003,13 @@ select.field-input {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.05em;
-  color: #5f7088;
+  color: var(--text-soft);
 }
 
 .existing-item {
   border: 1px solid var(--ui-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -977,17 +1031,17 @@ select.field-input {
   height: 26px;
   border: none;
   border-radius: 7px;
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--status-inactive-bg);
+  color: var(--status-inactive-text);
   cursor: pointer;
   font-weight: 800;
 }
 
 .delete-btn:hover {
-  background: #fecaca;
+  background: color-mix(in srgb, var(--status-inactive-bg) 80%, var(--danger) 20%);
 }
 
-/* ================= ROLE MATRIX ================= */
+/* ================= ROLE PERMISSION MATRIX ================= */
 .permission-matrix {
   margin-top: 18px;
   border: 1px solid var(--ui-border);
@@ -1020,7 +1074,7 @@ select.field-input {
   text-align: left;
 }
 
-/* ================= MODAL ================= */
+/* ================= MODAL UI ================= */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1048,7 +1102,38 @@ select.field-input {
   margin-top: 8px;
 }
 
-/* ================= COMMON BUTTONS ================= */
+/* ================= DOCUMENT CKEDITOR THEME OVERRIDES ================= */
+.document-editor-modal .ck.ck-editor {
+  color: var(--text);
+}
+
+.document-editor-modal .ck.ck-toolbar {
+  background: var(--ui-surface-muted);
+  border-color: var(--ui-border);
+}
+
+.document-editor-modal .ck.ck-toolbar .ck-button,
+.document-editor-modal .ck.ck-toolbar .ck-button .ck-icon {
+  color: var(--text);
+}
+
+.document-editor-modal .ck.ck-toolbar .ck-button:hover {
+  background: var(--ui-surface-soft);
+}
+
+.document-editor-modal .ck.ck-editor__main > .ck-editor__editable {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--ui-border);
+  min-height: 120px;
+}
+
+.document-editor-modal .ck.ck-editor__main > .ck-editor__editable.ck-focused {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+}
+
+/* ================= BUTTON SYSTEM ================= */
 .btn,
 .save-btn,
 .cancel-btn,
@@ -1087,8 +1172,8 @@ select.field-input {
 .btn-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.38);
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, var(--text-inverse) 38%, transparent);
+  border-top-color: var(--text-inverse);
   border-radius: 999px;
   animation: spin 0.9s linear infinite;
 }
@@ -1113,54 +1198,54 @@ select.field-input {
 .primary-btn,
 .create-role-btn,
 .login-btn {
-  background: linear-gradient(130deg, var(--primary), #1d4ed8);
-  color: #fff;
+  background: var(--gradient-brand);
+  color: var(--text-inverse);
 }
 
 .btn-primary:hover:not(:disabled),
 .save-btn:hover,
 .primary-btn:hover,
-.create-role-btn:hover,
-.logout-btn:hover {
+.create-role-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-secondary,
 .cancel-btn,
 .secondary-btn {
-  background: #e5edf7;
-  border-color: #d7e2f0;
-  color: #29425f;
+  background: var(--btn-secondary-bg);
+  border-color: var(--btn-secondary-border);
+  color: var(--btn-secondary-text);
 }
 
 .btn-secondary:hover:not(:disabled),
 .cancel-btn:hover,
 .secondary-btn:hover {
-  background: #d9e5f4;
+  background: var(--btn-secondary-bg-hover);
 }
 
 .btn-danger,
 .delete-role-btn,
 .logout-btn {
-  background: #ef4444;
-  color: #fff;
+  background: var(--danger);
+  color: var(--text-inverse);
 }
 
 .btn-danger:hover:not(:disabled),
-.delete-role-btn:hover {
-  background: #dc2626;
+.delete-role-btn:hover,
+.logout-btn:hover:not(:disabled) {
+  background: var(--danger-600);
 }
 
 .btn-warning,
 .edit-role-btn {
-  background: #f59e0b;
-  color: #fff;
+  background: var(--warning);
+  color: var(--text-inverse);
 }
 
 .btn-warning:hover:not(:disabled),
 .edit-role-btn:hover {
-  background: #d97706;
+  background: var(--warning-600);
 }
 
 .btn-ghost {
@@ -1170,10 +1255,10 @@ select.field-input {
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(37, 99, 235, 0.09);
+  background: var(--focus-ring-soft);
 }
 
-/* ================= SPINNER ================= */
+/* ================= LOADING SPINNER UI ================= */
 .spinner-wrapper {
   display: flex;
   flex-direction: column;
@@ -1186,13 +1271,13 @@ select.field-input {
 .spinner-fullpage {
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--overlay-light);
   z-index: 999;
 }
 
 .spinner {
   border-style: solid;
-  border-color: rgba(37, 99, 235, 0.18);
+  border-color: var(--spinner-track);
   border-top-color: var(--primary);
   border-radius: 999px;
   animation: spin 1s linear infinite;
@@ -1222,7 +1307,7 @@ select.field-input {
   font-weight: 600;
 }
 
-/* ================= INLINE SELECT ================= */
+/* ================= REACT-SELECT INLINE CONTROL ================= */
 .inline-select {
   min-width: 140px;
   font-size: 13px;
@@ -1232,6 +1317,8 @@ select.field-input {
   min-height: 34px;
   border: 1px solid var(--ui-border);
   border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
   box-shadow: none;
 }
 
@@ -1240,7 +1327,7 @@ select.field-input {
   font-size: 13px;
 }
 
-/* ================= ANIMATIONS ================= */
+/* ================= GLOBAL ANIMATIONS ================= */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -1259,7 +1346,7 @@ select.field-input {
   }
 }
 
-/* ================= RESPONSIVE ================= */
+/* ================= RESPONSIVE BREAKPOINTS ================= */
 @media (max-width: 1024px) {
   .sidebar {
     width: 220px;

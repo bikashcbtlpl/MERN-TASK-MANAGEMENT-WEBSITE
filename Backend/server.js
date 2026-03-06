@@ -1,9 +1,10 @@
+require("dotenv").config();
+
 const dns = require("dns");
 if (process.env.FORCE_GOOGLE_DNS === "true") {
   dns.setServers(["8.8.8.8", "8.8.4.4"]);
 }
 
-require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -14,6 +15,24 @@ const { Server } = require("socket.io");
 const syncPermissions = require("./utils/syncPermissions");
 
 const app = express();
+
+// Mongoose v9 compatibility shim:
+// Normalize deprecated `{ new: true/false }` query option to
+// `{ returnDocument: "after"/"before" }` so legacy code paths do not emit warnings.
+(() => {
+  const originalSetOptions = mongoose.Query.prototype.setOptions;
+  mongoose.Query.prototype.setOptions = function patchedSetOptions(options, ...rest) {
+    if (options && Object.prototype.hasOwnProperty.call(options, "new")) {
+      const normalized = { ...options };
+      if (!Object.prototype.hasOwnProperty.call(normalized, "returnDocument")) {
+        normalized.returnDocument = normalized.new ? "after" : "before";
+      }
+      delete normalized.new;
+      return originalSetOptions.call(this, normalized, ...rest);
+    }
+    return originalSetOptions.call(this, options, ...rest);
+  };
+})();
 
 /* ================= ALLOWED ORIGINS ================= */
 const configuredOrigins = process.env.ALLOWED_ORIGINS
@@ -112,19 +131,39 @@ if (!MONGO_URI) {
   process.exit(1);
 }
 
-mongoose
-  .connect(MONGO_URI)
-  .then(async () => {
+const connectMongo = async () => {
+  try {
+    await mongoose.connect(MONGO_URI);
     console.log("✅ MongoDB Connected Successfully");
-    const result = await syncPermissions({ syncSuperAdmin: true });
-    console.log(
-      `✅ Permissions synced (created: ${result.created}, defaults: ${result.total}, super-admin: ${result.superAdminSynced ? "ok" : "missing"})`,
+  } catch (err) {
+    const canRetryWithDnsFallback =
+      MONGO_URI.startsWith("mongodb+srv://") &&
+      err?.code === "ECONNREFUSED" &&
+      err?.syscall === "querySrv" &&
+      process.env.MONGO_DNS_FALLBACK !== "disabled";
+
+    if (!canRetryWithDnsFallback) {
+      throw err;
+    }
+
+    console.warn(
+      "Mongo SRV DNS resolution failed. Retrying with Google DNS fallback...",
     );
-  })
-  .catch((err) => {
-    console.error("MongoDB Connection Error:", err);
-    process.exit(1);
-  });
+    dns.setServers(["8.8.8.8", "8.8.4.4"]);
+    await mongoose.connect(MONGO_URI);
+    console.log("✅ MongoDB Connected Successfully (DNS fallback)");
+  }
+
+  const result = await syncPermissions({ syncSuperAdmin: true });
+  console.log(
+    `✅ Permissions synced (created: ${result.created}, defaults: ${result.total}, super-admin: ${result.superAdminSynced ? "ok" : "missing"})`,
+  );
+};
+
+connectMongo().catch((err) => {
+  console.error("MongoDB Connection Error:", err);
+  process.exit(1);
+});
 
 /* ================= SOCKET.IO SETUP ================= */
 const server = http.createServer(app);
@@ -184,4 +223,13 @@ process.on("unhandledRejection", (reason, promise) => {
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception:", err);
   process.exit(1);
+});
+
+process.on("warning", (warning) => {
+  if (
+    warning?.name === "MongooseError" ||
+    String(warning?.message || "").toLowerCase().includes("mongoose")
+  ) {
+    console.warn("[process-warning]", warning?.stack || warning);
+  }
 });

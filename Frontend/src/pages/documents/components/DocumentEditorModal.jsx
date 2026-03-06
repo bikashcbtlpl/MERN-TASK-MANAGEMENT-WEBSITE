@@ -37,13 +37,14 @@ function DocumentEditorModal({
 
   return (
     <div
+      className="document-editor-modal"
       style={{
         position: "fixed",
         left: 0,
         top: 0,
         right: 0,
         bottom: 0,
-        background: "rgba(0,0,0,0.4)",
+        background: "var(--ui-overlay)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -53,12 +54,14 @@ function DocumentEditorModal({
     >
       <div
         style={{
-          background: "white",
+          background: "var(--surface)",
+          color: "var(--text)",
+          border: "1px solid var(--ui-border)",
           padding: 20,
           width: "100%",
           maxWidth: 680,
           borderRadius: 12,
-          boxShadow: "0 18px 40px rgba(2, 6, 23, 0.28)",
+          boxShadow: "var(--ui-shadow-lg)",
           maxHeight: "90vh",
           overflowY: "auto",
         }}
@@ -85,15 +88,22 @@ function DocumentEditorModal({
             />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 6,
+                fontWeight: 600,
+                color: "var(--text-soft)",
+              }}
+            >
               Editor Content
             </label>
             <div
               style={{
-                border: "1px solid #cbd5e1",
+                border: "1px solid var(--ui-border)",
                 borderRadius: 10,
                 padding: 8,
-                background: "#fff",
+                background: "var(--surface)",
               }}
             >
               <CKEditor
@@ -124,7 +134,7 @@ function DocumentEditorModal({
                   alignItems: "center",
                   gap: 8,
                   fontSize: 13,
-                  color: "#334155",
+                  color: "var(--text-soft)",
                   cursor: "pointer",
                 }}
               >
@@ -136,7 +146,7 @@ function DocumentEditorModal({
                 Auto Save editor text
               </label>
               {!editDoc && autoSaveEnabled && lastAutoSavedAt && (
-                <span style={{ fontSize: 12, color: "#64748b" }}>
+                <span style={{ fontSize: 12, color: "var(--muted)" }}>
                   Last saved at {lastAutoSavedAt}
                 </span>
               )}
@@ -189,7 +199,7 @@ function DocumentEditorModal({
                 Clear Content
               </Button>
             </div>
-            <p style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b" }}>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--muted)" }}>
               You can upload a file, write content in the editor, or use both. If
               Auto Save is off, click Save Content before submitting.
             </p>
@@ -204,25 +214,32 @@ function DocumentEditorModal({
             />
           </div>
           <div style={{ marginBottom: 8 }}>
-            <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 6,
+                fontWeight: 600,
+                color: "var(--text-soft)",
+              }}
+            >
               Give Access
             </label>
 
             <div
               style={{
                 minHeight: 52,
-                border: "1px solid #cbd5e1",
+                border: "1px solid var(--ui-border)",
                 borderRadius: 10,
                 padding: 8,
                 display: "flex",
                 flexWrap: "wrap",
                 gap: 8,
-                background: "#f8fafc",
+                background: "var(--ui-surface-soft)",
                 marginBottom: 10,
               }}
             >
               {selectedUsers.length === 0 && (
-                <span style={{ color: "#64748b", fontSize: 13 }}>
+                <span style={{ color: "var(--muted)", fontSize: 13 }}>
                   No users selected
                 </span>
               )}
@@ -264,11 +281,11 @@ function DocumentEditorModal({
 
             <div
               style={{
-                border: "1px solid #cbd5e1",
+                border: "1px solid var(--ui-border)",
                 borderRadius: 10,
                 maxHeight: 170,
                 overflowY: "auto",
-                background: "#fff",
+                background: "var(--surface)",
                 padding: 6,
               }}
             >
@@ -289,11 +306,13 @@ function DocumentEditorModal({
                       borderRadius: 8,
                       padding: "8px 10px",
                       cursor: "pointer",
-                      background: checked ? "#ecfeff" : "transparent",
+                      background: checked
+                        ? "color-mix(in srgb, var(--primary) 16%, var(--surface) 84%)"
+                        : "transparent",
                       textAlign: "left",
                     }}
                   >
-                    <span style={{ fontSize: 13, color: "#0f172a" }}>
+                    <span style={{ fontSize: 13, color: "var(--text)" }}>
                       {u.name} ({u.email})
                     </span>
                     <span
@@ -302,10 +321,10 @@ function DocumentEditorModal({
                         height: 18,
                         borderRadius: 4,
                         border: checked
-                          ? "1px solid #0ea5e9"
-                          : "1px solid #94a3b8",
-                        background: checked ? "#0ea5e9" : "#fff",
-                        color: "#fff",
+                          ? "1px solid var(--primary)"
+                          : "1px solid var(--ui-border-strong)",
+                        background: checked ? "var(--primary)" : "var(--surface)",
+                        color: "var(--text-inverse)",
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",

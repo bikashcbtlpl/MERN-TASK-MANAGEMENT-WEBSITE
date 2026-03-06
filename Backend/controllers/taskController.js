@@ -2,30 +2,28 @@ const Task = require("../models/Task");
 const User = require("../models/User");
 const mongoose = require("mongoose");
 const Project = require("../models/Project");
-const runCloudinaryWorker = require("../utils/runCloudinaryWorker");
 const emailQueue = require("../queues/emailQueue");
 const { canAccessTask } = require("../utils/taskAccess");
+const { serializeTask, serializeIssue } = require("../utils/serializers");
+
+const escapeRegex = (value = "") =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /* =====================================================
-   SAFE CLOUDINARY FILE EXTRACTOR
-   Passes files to the cloudinaryWorker via the shared util.
+   NORMALIZE CLOUDINARY FILE URLS FROM MULTER
 ===================================================== */
 const processTaskFiles = async (files = {}) => {
-  const images = (files.images || []).map((f) => ({ path: f.path }));
-  const videos = (files.videos || []).map((f) => ({ path: f.path }));
-  const attachments = (files.attachments || []).map((f) => ({ path: f.path }));
-
-  // Skip worker if no files to process
-  if (!images.length && !videos.length && !attachments.length) {
-    return { images: [], videos: [], attachments: [] };
-  }
-
-  const result = await runCloudinaryWorker({ images, videos, attachments });
   return {
-    images: result.images || [],
-    videos: result.videos || [],
-    attachments: result.attachments || [],
+    images: (files.images || []).map((f) => f.path).filter(Boolean),
+    videos: (files.videos || []).map((f) => f.path).filter(Boolean),
+    attachments: (files.attachments || []).map((f) => f.path).filter(Boolean),
   };
+};
+
+const queueTaskEmail = (payload) => {
+  Promise.resolve()
+    .then(() => emailQueue.add(payload))
+    .catch((e) => console.warn("[emailQueue] add failed:", e?.message || e));
 };
 
 /* =====================================================
@@ -125,7 +123,7 @@ exports.createTask = async (req, res) => {
       ) {
         for (const member of assignedProject.team) {
           if (member.email) {
-            await emailQueue.add({
+            queueTaskEmail({
               to: member.email,
               subject: "New Task Assigned to Project",
               text: `A new task has been assigned to the project "${assignedProject.name}":\n\nTitle: ${newTask.title}\nStatus: ${newTask.taskStatus}\n\nPlease login to view the details.`,
@@ -137,7 +135,7 @@ exports.createTask = async (req, res) => {
       // Fallback: Notify individual if task is not in a project but assigned to them
       const assignedUser = await User.findById(assignedTo).lean();
       if (assignedUser?.email) {
-        await emailQueue.add({
+        queueTaskEmail({
           to: assignedUser.email,
           subject: "New Task Assigned",
           text: `You have been assigned a new task:\n\nTitle: ${newTask.title}\nStatus: ${newTask.taskStatus}\n\nPlease login to view the details.`,
@@ -146,7 +144,7 @@ exports.createTask = async (req, res) => {
     }
 
     req.app.get("io")?.emit("taskUpdated");
-    res.status(201).json(newTask);
+    res.status(201).json(serializeTask(newTask));
   } catch (error) {
     console.error("Create Task Error:", error);
     if (error.message?.includes("End date cannot be before start date")) {
@@ -171,12 +169,11 @@ exports.updateTask = async (req, res) => {
 
     const isSuperAdmin = user.role?.name === "Super Admin";
     const hasEditPerm = isSuperAdmin || userPermissions.includes("Edit Task");
-    const isOnlyViewer = userPermissions.includes("View Task") && !hasEditPerm;
     const isAssignedUser =
       task.assignedTo && String(task.assignedTo) === String(user._id);
 
-    // Only-viewer who is not the assigned user cannot edit
-    if (isOnlyViewer && !isAssignedUser) {
+    // Without edit permission, only the assigned user can proceed.
+    if (!hasEditPerm && !isAssignedUser) {
       return res.status(403).json({ message: "Not allowed to edit this task" });
     }
 
@@ -244,8 +241,8 @@ exports.updateTask = async (req, res) => {
       }
     });
 
-    // If user is only a viewer but is the assigned user → restrict to taskStatus only
-    if (isOnlyViewer && isAssignedUser) {
+    // Assigned users without Edit Task can only update status.
+    if (!hasEditPerm && isAssignedUser) {
       updateData = { taskStatus };
     }
 
@@ -265,7 +262,7 @@ exports.updateTask = async (req, res) => {
     const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
 
     // Sync project task lists if project changed
@@ -299,7 +296,7 @@ exports.updateTask = async (req, res) => {
       ) {
         for (const member of assignedProject.team) {
           if (member.email) {
-            await emailQueue.add({
+            queueTaskEmail({
               to: member.email,
               subject: "Task Added to Project",
               text: `A task has been added to the project "${assignedProject.name}":\n\nTitle: ${updatedTask.title}\nStatus: ${updatedTask.taskStatus}\n\nPlease login to view the details.`,
@@ -315,7 +312,7 @@ exports.updateTask = async (req, res) => {
       // Email individual if task is not in a project but got reassigned
       const reassignedUser = await User.findById(assignedTo).lean();
       if (reassignedUser?.email) {
-        await emailQueue.add({
+        queueTaskEmail({
           to: reassignedUser.email,
           subject: "Task Assigned to You",
           text: `A task has been assigned to you:\n\nTitle: ${updatedTask.title}\nStatus: ${updatedTask.taskStatus}\n\nPlease login to view the details.`,
@@ -324,7 +321,7 @@ exports.updateTask = async (req, res) => {
     }
 
     req.app.get("io")?.emit("taskUpdated");
-    res.json(updatedTask);
+    res.json(serializeTask(updatedTask));
   } catch (error) {
     console.error("Update Task Error:", error);
     if (error.message?.includes("End date cannot be before start date")) {
@@ -362,8 +359,9 @@ exports.getTasks = async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(projectFilter)) {
         projectClause = { project: projectFilter };
       } else {
+        const safeProjectFilter = escapeRegex(projectFilter);
         const matchingProjects = await Project.find({
-          name: { $regex: new RegExp(`^${projectFilter}$`, "i") },
+          name: { $regex: new RegExp(`^${safeProjectFilter}$`, "i") },
         })
           .select("_id")
           .lean();
@@ -380,10 +378,11 @@ exports.getTasks = async (req, res) => {
 
     // Search
     if (req.query.search) {
+      const safeSearch = escapeRegex(req.query.search);
       const searchFilter = {
         $or: [
-          { title: { $regex: req.query.search, $options: "i" } },
-          { description: { $regex: req.query.search, $options: "i" } },
+          { title: { $regex: safeSearch, $options: "i" } },
+          { description: { $regex: safeSearch, $options: "i" } },
         ],
       };
       filter =
@@ -413,7 +412,7 @@ exports.getTasks = async (req, res) => {
     ]);
 
     res.json({
-      tasks,
+      tasks: tasks.map((task) => serializeTask(task)),
       totalTasks,
       currentPage: page,
       totalPages: Math.ceil(totalTasks / limit),
@@ -452,7 +451,10 @@ exports.getTaskById = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json({ ...task, issues });
+    res.json({
+      ...serializeTask(task),
+      issues: issues.map((issue) => serializeIssue(issue)),
+    });
   } catch (err) {
     console.error("Get Task By ID Error:", err);
     res.status(500).json({ message: "Error fetching task" });
@@ -521,9 +523,10 @@ exports.getMyTasks = async (req, res) => {
     }
 
     if (search) {
+      const safeSearch = escapeRegex(search);
       const searchOr = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
+        { title: { $regex: safeSearch, $options: "i" } },
+        { description: { $regex: safeSearch, $options: "i" } },
       ];
       // Merge search with existing filter
       filter =
@@ -549,7 +552,7 @@ exports.getMyTasks = async (req, res) => {
     ]);
 
     res.json({
-      tasks,
+      tasks: tasks.map((task) => serializeTask(task)),
       totalTasks,
       currentPage: page,
       totalPages: Math.ceil(totalTasks / limit),

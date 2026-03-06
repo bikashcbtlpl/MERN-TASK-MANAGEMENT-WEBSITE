@@ -13,7 +13,7 @@ axiosInstance.interceptors.response.use(
   (error) => {
     // 🔐 Auto logout if token expired
     if (error.response?.status === 401) {
-      localStorage.clear();
+      localStorage.removeItem("user");
       window.location.href = "/login";
     }
 

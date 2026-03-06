@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { Button } from "./common";
 
 function Topbar() {
@@ -9,6 +10,7 @@ function Topbar() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { user, setUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const dropdownRef = useRef();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(() => {
@@ -106,6 +108,16 @@ function Topbar() {
       <div className="page-title">{formatPageTitle()}</div>
 
       <div className="account-section" ref={dropdownRef}>
+        <button
+          type="button"
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        >
+          {theme === "dark" ? "Light" : "Dark"}
+        </button>
+
         <div className="account-name" onClick={() => setOpen(!open)}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {/* Project selector for team projects (moved left of account) */}

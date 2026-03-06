@@ -23,7 +23,6 @@ function Login() {
       const normalizedUser = normalizeUser(response.data.user);
       setUser(normalizedUser);
       localStorage.setItem("user", JSON.stringify(normalizedUser));
-      localStorage.setItem("loginTime", Date.now());
       navigate("/dashboard");
     } catch (error) {
       const message = error.response?.data?.message || "Login failed";

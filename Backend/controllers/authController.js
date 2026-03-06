@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { serializeAuthUser } = require("../utils/serializers");
 
 /* ================= LOGIN ================= */
 exports.login = async (req, res) => {
@@ -70,13 +71,7 @@ exports.login = async (req, res) => {
     // Return user data (no sensitive fields)
     res.status(200).json({
       message: "Login successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role.name,
-        permissions: (user.role.permissions || []).map((p) => p.name),
-      },
+      user: serializeAuthUser(user),
     });
   } catch (error) {
     console.error("Login Error:", error);
@@ -110,13 +105,7 @@ exports.verify = async (req, res) => {
     }
 
     res.status(200).json({
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role.name,
-        permissions: (user.role.permissions || []).map((p) => p.name),
-      },
+      user: serializeAuthUser(user),
     });
   } catch (error) {
     console.error("Verify Error:", error);

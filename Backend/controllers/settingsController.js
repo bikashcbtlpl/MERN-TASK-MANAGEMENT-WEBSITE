@@ -5,22 +5,27 @@ const bcrypt = require("bcryptjs");
 exports.getSettings = async (req, res) => {
   try {
     const user = req.user;
+    const isSuperAdmin = user?.role?.name === "Super Admin";
 
-    res.json({
+    const payload = {
       profile: {
         name: user.name,
         email: user.email,
       },
-      emailConfig: {
+      security: {
+        minPasswordLength: 8,
+      },
+    };
+
+    if (isSuperAdmin) {
+      payload.emailConfig = {
         smtpHost: process.env.SMTP_HOST || "",
         smtpPort: process.env.SMTP_PORT || "",
         senderEmail: process.env.EMAIL_USER || "",
-      },
-      security: {
-        minPasswordLength: 8,
-        sessionTimeout: 60,
-      },
-    });
+      };
+    }
+
+    res.json(payload);
   } catch (error) {
     console.error("Get Settings Error:", error);
     res.status(500).json({ message: "Error fetching settings" });
@@ -104,16 +109,7 @@ exports.updateEmailSettings = async (req, res) => {
 /* ================= UPDATE SECURITY SETTINGS ================= */
 exports.updateSecuritySettings = async (req, res) => {
   try {
-    const { sessionTimeout, minPasswordLength } = req.body;
-
-    if (
-      sessionTimeout !== undefined &&
-      (isNaN(sessionTimeout) || sessionTimeout < 1)
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Session timeout must be a positive number" });
-    }
+    const { minPasswordLength } = req.body;
 
     if (
       minPasswordLength !== undefined &&

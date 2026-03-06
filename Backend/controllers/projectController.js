@@ -2,6 +2,10 @@ const Project = require("../models/Project");
 const Task = require("../models/Task");
 const User = require("../models/User");
 const emailQueue = require("../queues/emailQueue");
+const { serializeProject } = require("../utils/serializers");
+
+const escapeRegex = (value = "") =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /* ================= CREATE PROJECT ================= */
 exports.createProject = async (req, res) => {
@@ -19,6 +23,10 @@ exports.createProject = async (req, res) => {
       status: status || "active",
       team: team || [],
     });
+
+    const responseProject = await Project.findById(project._id)
+      .populate("team", "name email")
+      .lean();
 
     if (team && team.length > 0) {
       const users = await User.find({ _id: { $in: team } })
@@ -41,7 +49,7 @@ exports.createProject = async (req, res) => {
       }
     }
 
-    res.status(201).json(project);
+    res.status(201).json(serializeProject(responseProject));
   } catch (err) {
     console.error("Create Project Error:", err);
     res.status(500).json({ message: "Error creating project" });
@@ -71,7 +79,7 @@ exports.getProjects = async (req, res) => {
     }
 
     if (search) {
-      const regex = { $regex: search, $options: "i" };
+      const regex = { $regex: escapeRegex(search), $options: "i" };
       baseFilter.$or = [{ name: regex }, { description: regex }];
     }
 
@@ -86,7 +94,7 @@ exports.getProjects = async (req, res) => {
     ]);
 
     res.json({
-      projects,
+      projects: projects.map((project) => serializeProject(project)),
       totalProjects,
       currentPage: page,
       totalPages: Math.ceil(totalProjects / limit),
@@ -111,12 +119,12 @@ exports.getProjectById = async (req, res) => {
     const canViewAll =
       user?.role?.name === "Super Admin" || perms.includes("View Project");
 
-    if (canViewAll) return res.json(project);
+    if (canViewAll) return res.json(serializeProject(project));
 
     const isTeamMember = project.team.some(
       (t) => String(t._id) === String(user._id),
     );
-    if (isTeamMember) return res.json(project);
+    if (isTeamMember) return res.json(serializeProject(project));
 
     return res.status(403).json({
       message: "Access denied - You are not a member of this project",
@@ -148,9 +156,11 @@ exports.updateProject = async (req, res) => {
     if (team !== undefined) updateData.team = team;
 
     const project = await Project.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
-    }).lean();
+    })
+      .populate("team", "name email")
+      .lean();
 
     if (team !== undefined) {
       const oldTeamStr = (oldProject.team || []).map(String);
@@ -177,7 +187,7 @@ exports.updateProject = async (req, res) => {
       }
     }
 
-    res.json(project);
+    res.json(serializeProject(project));
   } catch (err) {
     console.error("Update Project Error:", err);
     res.status(500).json({ message: "Error updating project" });
