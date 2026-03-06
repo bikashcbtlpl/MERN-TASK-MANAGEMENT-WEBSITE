@@ -25,6 +25,7 @@ function Documents() {
   const [accessList, setAccessList] = useState([]); // array of user ids
   const [file, setFile] = useState(null);
   const [editDoc, setEditDoc] = useState(null);
+  const [isViewOnlyModal, setIsViewOnlyModal] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
 
   const [showManageModalFor, setShowManageModalFor] = useState(null);
@@ -41,9 +42,13 @@ function Documents() {
   const [hasUnsavedEditorChanges, setHasUnsavedEditorChanges] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
 
-  const editorDraftKey = useMemo(
+  const editorDraftBaseKey = useMemo(
     () => `documents_editor_draft_${currentUserId || "guest"}`,
     [currentUserId],
+  );
+  const activeEditorDraftKey = useMemo(
+    () => `${editorDraftBaseKey}_${editDoc?._id || "new"}`,
+    [editorDraftBaseKey, editDoc],
   );
 
   const normalizeHtmlValue = (value = "") =>
@@ -58,8 +63,8 @@ function Documents() {
 
     try {
       const plain = getPlainText(editorContent);
-      if (plain) localStorage.setItem(editorDraftKey, editorContent);
-      else localStorage.removeItem(editorDraftKey);
+      if (plain) localStorage.setItem(activeEditorDraftKey, editorContent);
+      else localStorage.removeItem(activeEditorDraftKey);
     } catch {
       // Ignore local storage errors.
     }
@@ -118,6 +123,31 @@ function Documents() {
     fetchUsers();
   }, [fetchDocuments, fetchUsers]);
 
+  const openEditorModalForDoc = (doc, viewOnly = false) => {
+    setShowManageModalFor(null); // close manage access if open
+    setEditDoc(doc);
+    setIsViewOnlyModal(viewOnly);
+    setName(doc.name || "");
+    setDescription(doc.description || "");
+    let draft = "";
+    try {
+      draft =
+        localStorage.getItem(`${editorDraftBaseKey}_${doc?._id || "new"}`) || "";
+    } catch {
+      // Ignore draft loading errors.
+    }
+    const initialContent = draft || doc.content || "";
+    setContent(initialContent);
+    setEditorContent(initialContent);
+    setLastManualSavedAt("");
+    setHasUnsavedEditorChanges(false);
+    setAccessList(
+      (doc.access || []).map((a) => String(a.user?._id || a.user || a)),
+    );
+    setFileInputKey((k) => k + 1);
+    setShowModal(true);
+  };
+
   const openDocument = (doc) => {
     const isOwner =
       String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
@@ -134,12 +164,38 @@ function Documents() {
       );
       return;
     }
+    openEditorModalForDoc(doc, true);
+  };
+
+  const downloadAttachment = (doc) => {
+    const isOwner =
+      String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
+    const hasAccess =
+      isOwner ||
+      (doc.access || []).some(
+        (a) => String(a.user?._id || a.user || a) === String(currentUserId),
+      ) ||
+      checkSuperAdmin(user);
+
+    if (!hasAccess) {
+      showFeedback(
+        "warning",
+        "You do not have access. You can request access.",
+      );
+      return;
+    }
+
     const fileUrl =
       Array.isArray(doc.attachments) && doc.attachments.length
         ? doc.attachments[0]
         : null;
-    if (fileUrl) window.open(fileUrl, "_blank");
-    else showFeedback("info", "No file attached");
+
+    if (!fileUrl) {
+      showFeedback("info", "No file attached");
+      return;
+    }
+
+    window.open(fileUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleCreate = async (e) => {
@@ -198,13 +254,11 @@ function Documents() {
       setLastManualSavedAt("");
       setHasUnsavedEditorChanges(false);
 
-      if (!editDoc) {
-        try {
-          localStorage.removeItem(editorDraftKey);
-          setLastAutoSavedAt("");
-        } catch {
-          // Ignore draft clearing errors.
-        }
+      try {
+        localStorage.removeItem(activeEditorDraftKey);
+        setLastAutoSavedAt("");
+      } catch {
+        // Ignore draft clearing errors.
       }
 
       fetchDocuments();
@@ -312,14 +366,14 @@ function Documents() {
   }, [autoSaveEnabled]);
 
   useEffect(() => {
-    if (!showModal || !!editDoc || !autoSaveEnabled) return;
+    if (!showModal || !autoSaveEnabled || isViewOnlyModal) return;
 
     const timeout = setTimeout(() => {
       try {
         const plainEditorText = getPlainText(editorContent);
         if (plainEditorText)
-          localStorage.setItem(editorDraftKey, editorContent);
-        else localStorage.removeItem(editorDraftKey);
+          localStorage.setItem(activeEditorDraftKey, editorContent);
+        else localStorage.removeItem(activeEditorDraftKey);
 
         setContent(editorContent);
         setHasUnsavedEditorChanges(false);
@@ -330,15 +384,22 @@ function Documents() {
     }, 700);
 
     return () => clearTimeout(timeout);
-  }, [editorContent, autoSaveEnabled, showModal, editDoc, editorDraftKey]);
+  }, [
+    editorContent,
+    autoSaveEnabled,
+    showModal,
+    isViewOnlyModal,
+    activeEditorDraftKey,
+  ]);
 
   const openCreateModal = () => {
     setAccessPopupDocId(null);
     setEditDoc(null);
+    setIsViewOnlyModal(false);
     setName("");
     let draft = "";
     try {
-      draft = localStorage.getItem(editorDraftKey) || "";
+      draft = localStorage.getItem(`${editorDraftBaseKey}_new`) || "";
     } catch {
       // Ignore draft loading errors.
     }
@@ -356,6 +417,7 @@ function Documents() {
   const cancelModal = () => {
     setShowModal(false);
     setEditDoc(null);
+    setIsViewOnlyModal(false);
     setName("");
     setDescription("");
     setContent("");
@@ -465,6 +527,15 @@ function Documents() {
                         Open
                       </Button>
                     )}
+                    {hasAccess && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => downloadAttachment(doc)}
+                      >
+                        Download
+                      </Button>
+                    )}
                     {!hasAccess && (
                       <Button
                         variant="secondary"
@@ -500,23 +571,7 @@ function Documents() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => {
-                          setShowManageModalFor(null); // close manage access if open
-                          setEditDoc(doc);
-                          setName(doc.name || "");
-                          setDescription(doc.description || "");
-                          setContent(doc.content || "");
-                          setEditorContent(doc.content || "");
-                          setLastManualSavedAt("");
-                          setHasUnsavedEditorChanges(false);
-                          setAccessList(
-                            (doc.access || []).map((a) =>
-                              String(a.user?._id || a.user || a),
-                            ),
-                          );
-                          setFileInputKey((k) => k + 1);
-                          setShowModal(true);
-                        }}
+                        onClick={() => openEditorModalForDoc(doc)}
                       >
                         Edit
                       </Button>
@@ -544,6 +599,7 @@ function Documents() {
       <DocumentEditorModal
         showModal={showModal}
         editDoc={editDoc}
+        isViewOnlyModal={isViewOnlyModal}
         name={name}
         setName={setName}
         description={description}
@@ -560,7 +616,7 @@ function Documents() {
         setLastAutoSavedAt={setLastAutoSavedAt}
         setLastManualSavedAt={setLastManualSavedAt}
         setHasUnsavedEditorChanges={setHasUnsavedEditorChanges}
-        editorDraftKey={editorDraftKey}
+        editorDraftKey={activeEditorDraftKey}
         showFeedback={showFeedback}
         fileInputKey={fileInputKey}
         setFile={setFile}
