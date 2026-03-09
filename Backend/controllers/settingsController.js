@@ -106,6 +106,55 @@ exports.updateEmailSettings = async (req, res) => {
   }
 };
 
+/* ================= GET USER PREFERENCES ================= */
+exports.getPreferences = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("preferences").lean();
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user.preferences || { theme: "system", selectedProject: "" });
+  } catch (error) {
+    console.error("Get Preferences Error:", error);
+    res.status(500).json({ message: "Error fetching preferences" });
+  }
+};
+
+/* ================= UPDATE USER PREFERENCES ================= */
+exports.updatePreferences = async (req, res) => {
+  try {
+    const { theme, selectedProject, autoSaveDocuments } = req.body;
+    const update = {};
+
+    if (theme !== undefined) {
+      const allowed = ["light", "dark", "system"];
+      if (!allowed.includes(theme))
+        return res.status(400).json({ message: "Invalid theme value" });
+      update["preferences.theme"] = theme;
+    }
+
+    if (selectedProject !== undefined) {
+      update["preferences.selectedProject"] = String(selectedProject || "");
+    }
+
+    if (autoSaveDocuments !== undefined) {
+      update["preferences.autoSaveDocuments"] = Boolean(autoSaveDocuments);
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: update },
+      { new: true, select: "preferences" },
+    ).lean();
+
+    res.json({
+      message: "Preferences updated",
+      preferences: user?.preferences || {},
+    });
+  } catch (error) {
+    console.error("Update Preferences Error:", error);
+    res.status(500).json({ message: "Preferences update failed" });
+  }
+};
+
 /* ================= UPDATE SECURITY SETTINGS ================= */
 exports.updateSecuritySettings = async (req, res) => {
   try {

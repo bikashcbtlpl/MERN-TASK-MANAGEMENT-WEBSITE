@@ -11,6 +11,10 @@ router.get("/", authMiddleware, settingsController.getSettings);
 /* ================= PROFILE UPDATE (ALL AUTHENTICATED USERS) ================= */
 router.put("/profile", authMiddleware, settingsController.updateProfile);
 
+/* ================= USER PREFERENCES (THEME + SELECTED PROJECT) ================= */
+router.get("/preferences", authMiddleware, settingsController.getPreferences);
+router.put("/preferences", authMiddleware, settingsController.updatePreferences);
+
 /* ================= EMAIL SETTINGS (SUPER ADMIN ONLY) ================= */
 router.put(
   "/email",

@@ -26,6 +26,21 @@ const userSchema = new mongoose.Schema(
       enum: ["Active", "Inactive"],
       default: "Active",
     },
+    preferences: {
+      theme: {
+        type: String,
+        enum: ["light", "dark", "system"],
+        default: "system",
+      },
+      selectedProject: {
+        type: String,
+        default: "",
+      },
+      autoSaveDocuments: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   { timestamps: true },
 );

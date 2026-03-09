@@ -37,8 +37,8 @@ const app = express();
 /* ================= ALLOWED ORIGINS ================= */
 const configuredOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
-      .map((o) => o.trim())
-      .filter(Boolean)
+    .map((o) => o.trim())
+    .filter(Boolean)
   : ["http://localhost:5173"];
 
 const allowedOrigins = Array.from(
@@ -246,6 +246,12 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 process.on("unhandledRejection", (reason, promise) => {
+  // Swallow Redis connection errors — they are already handled in emailQueue.js
+  const code = reason?.code || reason?.errno;
+  if (code === "ECONNREFUSED" || code === "ETIMEDOUT") {
+    console.warn("[unhandledRejection] Suppressed Redis connection error:", reason?.message);
+    return;
+  }
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 

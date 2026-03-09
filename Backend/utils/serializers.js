@@ -86,6 +86,11 @@ const serializeAuthUser = (user) => {
     email: user.email || "",
     role: user.role?.name || null,
     permissions,
+    preferences: {
+      theme: user.preferences?.theme || "system",
+      selectedProject: user.preferences?.selectedProject || "",
+      autoSaveDocuments: user.preferences?.autoSaveDocuments ?? false,
+    },
   };
 };
 

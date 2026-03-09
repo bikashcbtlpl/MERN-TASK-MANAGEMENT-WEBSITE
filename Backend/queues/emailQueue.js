@@ -21,8 +21,8 @@ const noopQueue = {
       return null;
     });
   },
-  process: () => {},
-  on: () => {},
+  process: () => { },
+  on: () => { },
   close: () => Promise.resolve(),
 };
 
@@ -56,11 +56,11 @@ if (!REDIS_ENABLED) {
   const redisConfig = redisUrl
     ? redisUrl
     : {
-        ...baseRedisOptions,
-        host: redisHost,
-        port: redisPort,
-        ...(redisPassword ? { password: redisPassword } : {}),
-      };
+      ...baseRedisOptions,
+      host: redisHost,
+      port: redisPort,
+      ...(redisPassword ? { password: redisPassword } : {}),
+    };
 
   let emailQueue;
 
@@ -81,15 +81,32 @@ if (!REDIS_ENABLED) {
       },
     });
 
-    // Suppress ECONNREFUSED so it never crashes the server
-    emailQueue.client.on("error", (err) => {
-      if (err.code !== "ECONNREFUSED") {
+    // Bull creates 3 internal ioredis clients: client, subscriber, bclient.
+    // We must handle errors on ALL of them — unhandled errors crash the process.
+    const suppressRedisError = (err) => {
+      if (err.code !== "ECONNREFUSED" && err.code !== "ETIMEDOUT") {
         console.error("[emailQueue] Redis client error:", err.message);
       }
+    };
+
+    emailQueue.client.on("error", suppressRedisError);
+
+    // subscriber and bclient are created lazily by Bull — wait for them
+    emailQueue.on("ready", () => {
+      try {
+        if (emailQueue.subscriber) emailQueue.subscriber.on("error", suppressRedisError);
+        if (emailQueue.bclient) emailQueue.bclient.on("error", suppressRedisError);
+      } catch { /* ignore */ }
     });
 
+    // Also catch them immediately if already assigned
+    try {
+      if (emailQueue.subscriber) emailQueue.subscriber.on("error", suppressRedisError);
+      if (emailQueue.bclient) emailQueue.bclient.on("error", suppressRedisError);
+    } catch { /* ignore */ }
+
     emailQueue.on("error", (err) => {
-      if (err.code !== "ECONNREFUSED") {
+      if (err.code !== "ECONNREFUSED" && err.code !== "ETIMEDOUT") {
         console.error("[emailQueue] Queue error:", err.message);
       }
     });

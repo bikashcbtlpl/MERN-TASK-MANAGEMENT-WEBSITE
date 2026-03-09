@@ -22,7 +22,7 @@ router.get(
 router.get(
   "/",
   authMiddleware,
-  checkPermission(["View Issue"]),
+  checkPermission(["View Issue", "View Task", "Create Task", "Edit Task", "Delete Task"]),
   issueController.getAllIssues,
 );
 
