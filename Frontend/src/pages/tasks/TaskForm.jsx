@@ -9,15 +9,18 @@ import {
   FeedbackMessage,
 } from "../../components/common";
 import { isSuperAdmin } from "../../permissions/can";
+import { useProject } from "../../context/ProjectContext";
+import { useAuth } from "../../context/AuthContext";
 
 function TaskForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
+  const { selectedProject, projects } = useProject();
+  const { user: loggedInUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
-  const [projects, setProjects] = useState([]);
   const [mentionInput, setMentionInput] = useState("");
 
   const [formData, setFormData] = useState({
@@ -63,26 +66,14 @@ function TaskForm() {
   const fetchUsers = async () => {
     try {
       const res = await axiosInstance.get("/users");
-      const loggedIn = JSON.parse(localStorage.getItem("user")) || {};
       const list = Array.isArray(res.data) ? res.data : res.data.users || [];
-      if (!isSuperAdmin(loggedIn)) {
+      if (!isSuperAdmin(loggedInUser)) {
         setUsers(list.filter((u) => u.role?.name !== "Super Admin"));
       } else {
         setUsers(list);
       }
     } catch (err) {
       console.error("Error fetching users", err);
-    }
-  };
-
-  const fetchProjects = async () => {
-    try {
-      const res = await axiosInstance.get("/projects");
-      const data = res.data || {};
-      const list = Array.isArray(data) ? data : data.projects || [];
-      setProjects(Array.isArray(list) ? list : []);
-    } catch (err) {
-      console.error("Error fetching projects", err);
     }
   };
 
@@ -113,11 +104,17 @@ function TaskForm() {
 
   useEffect(() => {
     const load = async () => {
-      await Promise.all([fetchUsers(), fetchProjects()]);
-      if (isEditMode) await fetchTask(id);
+      await fetchUsers();
+      if (isEditMode) {
+        await fetchTask(id);
+      } else {
+        // Auto-assign the currently selected project for new tasks
+        setFormData((f) => ({ ...f, project: selectedProject || "" }));
+      }
       setLoading(false);
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEditMode]);
 
   const handleFileChange = (e, field) => {
@@ -177,10 +174,12 @@ function TaskForm() {
 
   if (loading) return <LoadingSpinner message="Loading task form..." />;
 
-  const projectOptions = [
-    { value: "", label: "No Project" },
-    ...projects.map((p) => ({ value: p._id, label: p.name })),
-  ];
+  // Resolve project name for display (read-only in both create and edit mode)
+  const assignedProjectName = isEditMode
+    ? projects.find((p) => p._id === formData.project)?.name || "No Project"
+    : selectedProject
+      ? projects.find((p) => p._id === selectedProject)?.name || "Selected Project"
+      : "No Project";
 
   return (
     <div className="task-page">
@@ -219,20 +218,33 @@ function TaskForm() {
               />
             </FormField>
 
+            {/* Project field — always read-only, set from topbar or existing task */}
             <FormField label="Project">
-              <select
-                value={formData.project || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, project: e.target.value })
-                }
+              <div
+                style={{
+                  padding: "10px 12px",
+                  border: "1px solid var(--ui-border)",
+                  borderRadius: 10,
+                  background: "var(--ui-surface-soft)",
+                  color: "var(--text)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
               >
-                {projectOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                {assignedProjectName}
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: 12,
+                    color: "var(--muted)",
+                    fontWeight: 400,
+                  }}
+                >
+                  {isEditMode ? "(assigned project)" : "(set from topbar)"}
+                </span>
+              </div>
             </FormField>
+
 
             {isEditMode && (
               <div className="form-group">

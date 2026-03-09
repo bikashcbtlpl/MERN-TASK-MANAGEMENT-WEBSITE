@@ -1102,6 +1102,73 @@ select.field-input {
   margin-top: 8px;
 }
 
+/* ── Extended modal classes (shared across pages) ── */
+.modal-box {
+  width: min(520px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
+  box-shadow: var(--ui-shadow-lg);
+  overflow: hidden;
+  animation: fadeIn 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-surface-soft);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.modal-close {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: var(--ui-surface-muted);
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: var(--danger-soft, color-mix(in srgb, var(--danger, #ef4444) 12%, transparent));
+  color: var(--danger, #ef4444);
+}
+
+.modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--ui-border);
+  background: var(--ui-surface-soft);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 /* ================= DOCUMENT CKEDITOR THEME OVERRIDES ================= */
 .document-editor-modal .ck.ck-editor {
   color: var(--text);

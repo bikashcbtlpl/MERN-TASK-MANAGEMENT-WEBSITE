@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -9,6 +9,16 @@ import AccessAvatars from "../../components/documents/AccessAvatars";
 import { isSuperAdmin as checkSuperAdmin } from "../../permissions/can";
 import DocumentEditorModal from "./components/DocumentEditorModal";
 
+/* ── helpers ── */
+const getPlainText = (value = "") =>
+  String(value)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeHtmlValue = (value = "") =>
+  String(value).replace(/\s+/g, " ").trim();
+
 function Documents() {
   const { user } = useAuth();
   const currentUserId = user?._id || user?.id;
@@ -16,71 +26,64 @@ function Documents() {
   const [documents, setDocuments] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  /* ── modal state ── */
   const [showModal, setShowModal] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
-  const [editorContent, setEditorContent] = useState("");
-  const [accessList, setAccessList] = useState([]); // array of user ids
-  const [file, setFile] = useState(null);
   const [editDoc, setEditDoc] = useState(null);
   const [isViewOnlyModal, setIsViewOnlyModal] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [editorContent, setEditorContent] = useState("");
+  const [content, setContent] = useState("");
+  const [accessList, setAccessList] = useState([]);
+  const [file, setFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
 
+  /* ── auto-save state ── */
+  // Bootstrap from server preference (user.preferences.autoSaveDocuments)
+  const [autoSaveEnabled, setAutoSaveEnabledState] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle"); // idle|saving|saved|error
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState("");
+  const [hasUnsavedEditorChanges, setHasUnsavedEditorChanges] = useState(false);
+
+  // Sync autoSaveEnabled from user preferences when user loads
+  useEffect(() => {
+    if (user?.preferences?.autoSaveDocuments !== undefined) {
+      setAutoSaveEnabledState(Boolean(user.preferences.autoSaveDocuments));
+    }
+  }, [user?._id]);
+
+  // Wrap setter so every toggle also persists to the server
+  const setAutoSaveEnabled = useCallback(async (val) => {
+    const next = Boolean(val);
+    setAutoSaveEnabledState(next);
+    try {
+      await axiosInstance.put("/settings/preferences", { autoSaveDocuments: next });
+    } catch (err) {
+      console.warn("Failed to save autoSave preference:", err?.message);
+    }
+  }, []);
+
+  /* ── access modals ── */
   const [showManageModalFor, setShowManageModalFor] = useState(null);
   const [accessPopupDocId, setAccessPopupDocId] = useState(null);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
-    try {
-      return localStorage.getItem("documents_editor_autosave") === "on";
-    } catch {
-      return false;
-    }
-  });
-  const [lastAutoSavedAt, setLastAutoSavedAt] = useState("");
-  const [, setLastManualSavedAt] = useState("");
-  const [hasUnsavedEditorChanges, setHasUnsavedEditorChanges] = useState(false);
+
   const [feedback, setFeedback] = useState({ type: "", message: "" });
 
-  const editorDraftBaseKey = useMemo(
-    () => `documents_editor_draft_${currentUserId || "guest"}`,
-    [currentUserId],
-  );
-  const activeEditorDraftKey = useMemo(
-    () => `${editorDraftBaseKey}_${editDoc?._id || "new"}`,
-    [editorDraftBaseKey, editDoc],
-  );
-
-  const normalizeHtmlValue = (value = "") =>
-    String(value).replace(/\s+/g, " ").trim();
-
+  const autoSaveTimerRef = useRef(null);
   const showFeedback = (type, message) => setFeedback({ type, message });
 
-  const saveEditorContent = (showToast = true) => {
-    setContent(editorContent);
-    setHasUnsavedEditorChanges(false);
-    setLastManualSavedAt(new Date().toLocaleTimeString());
-
-    try {
-      const plain = getPlainText(editorContent);
-      if (plain) localStorage.setItem(activeEditorDraftKey, editorContent);
-      else localStorage.removeItem(activeEditorDraftKey);
-    } catch {
-      // Ignore local storage errors.
-    }
-
-    if (showToast) showFeedback("success", "Editor content saved");
-  };
-
+  /* ============================================================
+     DATA FETCHING
+  ============================================================ */
   const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axiosInstance.get("/documents");
-      // Expecting array of documents with fields: _id, name, description, createdBy, access, attachments (array of file urls)
       setDocuments(res.data || []);
     } catch (err) {
-      console.error(err);
-      console.error("Failed to load documents");
+      console.error("Failed to load documents", err);
     } finally {
       setLoading(false);
     }
@@ -89,31 +92,154 @@ function Documents() {
   const fetchUsers = useCallback(async () => {
     const endpoints = ["/documents/access-users", "/users/for-access", "/users"];
     let lastError = null;
-
     for (const endpoint of endpoints) {
       try {
         const res = await axiosInstance.get(endpoint);
         const payload = res.data;
         const list = Array.isArray(payload)
           ? payload
-          : Array.isArray(payload?.users)
-            ? payload.users
-            : [];
-        const visibleUsers = list.filter((u) => u?.role?.name !== "Super Admin");
-        setUsers(visibleUsers);
+          : Array.isArray(payload?.users) ? payload.users : [];
+        setUsers(list.filter((u) => u?.role?.name !== "Super Admin"));
         return;
       } catch (err) {
         lastError = err;
       }
     }
-
-    // Users list is optional for this page. Keep UI functional even if restricted.
     if (lastError?.response?.status && lastError.response.status !== 403) {
       showFeedback("error", "Unable to load users for access management");
     }
     setUsers([]);
   }, []);
 
+  useEffect(() => {
+    fetchDocuments();
+    fetchUsers();
+  }, [fetchDocuments, fetchUsers]);
+
+  /* ============================================================
+     AUTO-SAVE — API ONLY (no localStorage)
+     Fires 1.5 s after the user stops typing when autoSave is on.
+     For existing docs  → PUT /documents/:id
+     For new docs       → POST /documents to create, then switch to PUT
+  ============================================================ */
+  useEffect(() => {
+    if (!showModal || !autoSaveEnabled || isViewOnlyModal) return;
+    if (!hasUnsavedEditorChanges) return;
+
+    setAutoSaveStatus("idle");
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      const plainText = getPlainText(editorContent);
+      if (!plainText) {
+        // Nothing to save yet
+        setAutoSaveStatus("idle");
+        setHasUnsavedEditorChanges(false);
+        return;
+      }
+
+      setAutoSaveStatus("saving");
+      try {
+        const form = new FormData();
+        form.append("content", editorContent);
+
+        if (editDoc?._id) {
+          // Existing document — update via PUT
+          form.append("name", name || editDoc.name || "Untitled");
+          form.append("description", description || "");
+          await axiosInstance.put(`/documents/${editDoc._id}`, form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        } else {
+          // New document — create via POST, then track its _id for future saves
+          form.append("name", name || "Untitled");
+          form.append("description", description || "");
+          form.append("access", JSON.stringify(accessList));
+          const res = await axiosInstance.post("/documents", form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          // Backend returns the serialized doc object directly
+          const created = res.data;
+          if (created?._id) {
+            setEditDoc(created);
+            fetchDocuments();
+          }
+        }
+
+        setAutoSaveStatus("saved");
+      } catch (err) {
+        console.error("Auto-save failed:", err);
+        setAutoSaveStatus("error");
+      }
+
+      setContent(editorContent);
+      setHasUnsavedEditorChanges(false);
+      setLastAutoSavedAt(new Date().toLocaleTimeString());
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [
+    editorContent,
+    autoSaveEnabled,
+    showModal,
+    isViewOnlyModal,
+    editDoc,
+    hasUnsavedEditorChanges,
+    name,
+    description,
+    accessList,
+  ]);
+
+  /* ============================================================
+     MANUAL SAVE (Save Content button — only shown when autoSave off)
+  ============================================================ */
+  const saveEditorContent = async (showToast = true) => {
+    setContent(editorContent);
+    setHasUnsavedEditorChanges(false);
+
+    try {
+      const form = new FormData();
+      form.append("content", editorContent);
+
+      if (editDoc?._id) {
+        form.append("name", name || editDoc.name || "Untitled");
+        form.append("description", description || "");
+        await axiosInstance.put(`/documents/${editDoc._id}`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        // Auto-create if no document yet
+        const plainText = getPlainText(editorContent);
+        if (!plainText) {
+          if (showToast) showFeedback("info", "Write some content first");
+          return;
+        }
+        form.append("name", name || "Untitled");
+        form.append("description", description || "");
+        form.append("access", JSON.stringify(accessList));
+        const res = await axiosInstance.post("/documents", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        // Backend returns the serialized doc object directly
+        const created = res.data;
+        if (created?._id) {
+          setEditDoc(created);
+          fetchDocuments();
+        }
+      }
+
+      if (showToast) showFeedback("success", "Editor content saved");
+    } catch (err) {
+      console.error("Manual save to API failed:", err);
+      showFeedback("error", "Save failed — check your connection");
+    }
+  };
+
+  /* ============================================================
+     ACCESS HELPERS
+  ============================================================ */
   const getAccessTypeForUser = (doc, userId) => {
     const entry = (doc.access || []).find(
       (a) => String(a?.user?._id || a?.user || a) === String(userId),
@@ -129,29 +255,43 @@ function Documents() {
     return found?.name || "Deleted User";
   };
 
-  useEffect(() => {
-    fetchDocuments();
-    fetchUsers();
-  }, [fetchDocuments, fetchUsers]);
+  const toggleAccessUser = (userId) => {
+    const normalized = String(userId);
+    setAccessList((prev) =>
+      prev.includes(normalized)
+        ? prev.filter((id) => id !== normalized)
+        : [...prev, normalized],
+    );
+  };
+
+  /* ============================================================
+     MODAL OPENERS / CLOSERS
+  ============================================================ */
+  const resetModalState = () => {
+    setName("");
+    setDescription("");
+    setContent("");
+    setEditorContent("");
+    setAccessList([]);
+    setFile(null);
+    setLastAutoSavedAt("");
+    setHasUnsavedEditorChanges(false);
+    setAutoSaveStatus("idle");
+    setFileInputKey((k) => k + 1);
+  };
 
   const openEditorModalForDoc = (doc, viewOnly = false) => {
-    setShowManageModalFor(null); // close manage access if open
+    setShowManageModalFor(null);
     setEditDoc(doc);
     setIsViewOnlyModal(viewOnly);
     setName(doc.name || "");
     setDescription(doc.description || "");
-    let draft = "";
-    try {
-      draft =
-        localStorage.getItem(`${editorDraftBaseKey}_${doc?._id || "new"}`) || "";
-    } catch {
-      // Ignore draft loading errors.
-    }
-    const initialContent = draft || doc.content || "";
+    const initialContent = doc.content || "";
     setContent(initialContent);
     setEditorContent(initialContent);
-    setLastManualSavedAt("");
     setHasUnsavedEditorChanges(false);
+    setAutoSaveStatus("idle");
+    setLastAutoSavedAt("");
     setAccessList(
       (doc.access || []).map((a) => String(a.user?._id || a.user || a)),
     );
@@ -159,9 +299,26 @@ function Documents() {
     setShowModal(true);
   };
 
+  const openCreateModal = () => {
+    setAccessPopupDocId(null);
+    setEditDoc(null);
+    setIsViewOnlyModal(false);
+    resetModalState();
+    setShowModal(true);
+  };
+
+  const cancelModal = () => {
+    setShowModal(false);
+    setEditDoc(null);
+    setIsViewOnlyModal(false);
+    resetModalState();
+  };
+
+  /* ============================================================
+     DOCUMENT ACTIONS
+  ============================================================ */
   const openDocument = (doc) => {
-    const isOwner =
-      String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
+    const isOwner = String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
     const hasAccess =
       isOwner ||
       (doc.access || []).some(
@@ -169,67 +326,44 @@ function Documents() {
       ) ||
       checkSuperAdmin(user);
     if (!hasAccess) {
-      showFeedback(
-        "warning",
-        "You do not have access. You can request access.",
-      );
+      showFeedback("warning", "You do not have access. You can request access.");
       return;
     }
     openEditorModalForDoc(doc, true);
   };
 
   const downloadAttachment = (doc) => {
-    const isOwner =
-      String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
+    const isOwner = String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
     const hasAccess =
       isOwner ||
       (doc.access || []).some(
         (a) => String(a.user?._id || a.user || a) === String(currentUserId),
       ) ||
       checkSuperAdmin(user);
-
     if (!hasAccess) {
-      showFeedback(
-        "warning",
-        "You do not have access. You can request access.",
-      );
+      showFeedback("warning", "You do not have access. You can request access.");
       return;
     }
-
     const fileUrl =
       Array.isArray(doc.attachments) && doc.attachments.length
         ? doc.attachments[0]
         : null;
-
-    if (!fileUrl) {
-      showFeedback("info", "No file attached");
-      return;
-    }
-
+    if (!fileUrl) { showFeedback("info", "No file attached"); return; }
     window.open(fileUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!name) {
-      showFeedback("warning", "Name is required");
-      return;
-    }
+    if (!name) { showFeedback("warning", "Name is required"); return; }
 
     if (!autoSaveEnabled && hasUnsavedEditorChanges) {
-      showFeedback(
-        "warning",
-        "Auto Save is off. Click Save Content before submitting",
-      );
+      showFeedback("warning", "Auto Save is off. Click Save Content before submitting");
       return;
     }
 
     const finalContent = autoSaveEnabled ? editorContent : content;
+    const plainEditorText = getPlainText(finalContent);
 
-    const plainEditorText = (finalContent || "")
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
     if (!editDoc && !file && !plainEditorText) {
       showFeedback("warning", "Upload a file or write content in the editor");
       return;
@@ -242,8 +376,8 @@ function Documents() {
       form.append("content", finalContent);
       form.append("access", JSON.stringify(accessList));
       if (file) form.append("attachments", file);
+
       if (editDoc) {
-        // Update flow
         await axiosInstance.put(`/documents/${editDoc._id}`, form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
@@ -254,24 +388,10 @@ function Documents() {
         });
         showFeedback("success", "Document created");
       }
+
       setShowModal(false);
-      setName("");
-      setDescription("");
-      setContent("");
-      setEditorContent("");
-      setAccessList([]);
-      setFile(null);
       setEditDoc(null);
-      setLastManualSavedAt("");
-      setHasUnsavedEditorChanges(false);
-
-      try {
-        localStorage.removeItem(activeEditorDraftKey);
-        setLastAutoSavedAt("");
-      } catch {
-        // Ignore draft clearing errors.
-      }
-
+      resetModalState();
       fetchDocuments();
     } catch (err) {
       console.error(err);
@@ -281,11 +401,8 @@ function Documents() {
 
   const requestAccess = async (docId) => {
     try {
-      const res = await axiosInstance.post(
-        `/documents/${docId}/request-access`,
-      );
-      const message = res?.data?.message || "Access request sent";
-      showFeedback("success", message);
+      const res = await axiosInstance.post(`/documents/${docId}/request-access`);
+      showFeedback("success", res?.data?.message || "Access request sent");
       fetchDocuments();
     } catch (err) {
       console.error(err);
@@ -307,10 +424,7 @@ function Documents() {
 
   const grantAccessWithType = async (docId, userId, accessType = "view") => {
     try {
-      await axiosInstance.post(`/documents/${docId}/grant`, {
-        userId,
-        accessType,
-      });
+      await axiosInstance.post(`/documents/${docId}/grant`, { userId, accessType });
       showFeedback("success", "Access updated");
       setShowManageModalFor(null);
       fetchDocuments();
@@ -331,116 +445,25 @@ function Documents() {
     }
   };
 
-  const changeAccessType = async (docId, userId, accessType) => {
-    // grant endpoint will update existing entry
-    await grantAccessWithType(docId, userId, accessType);
-  };
+  const changeAccessType = async (docId, userId, accessType) =>
+    grantAccessWithType(docId, userId, accessType);
 
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const getPlainText = (value = "") =>
-    String(value)
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-  const toggleAccessUser = (userId) => {
-    const normalized = String(userId);
-    setAccessList((prev) =>
-      prev.includes(normalized)
-        ? prev.filter((id) => id !== normalized)
-        : [...prev, normalized],
-    );
-  };
-
+  /* ============================================================
+     DERIVED STATE
+  ============================================================ */
   const selectedUsers = users.filter((u) => accessList.includes(String(u._id)));
 
   const filteredDocuments = documents.filter((doc) => {
     const term = searchQuery.toLowerCase();
     return (
       (doc.name || "").toLowerCase().includes(term) ||
-      getPlainText(doc.description || "")
-        .toLowerCase()
-        .includes(term)
+      getPlainText(doc.description || "").toLowerCase().includes(term)
     );
   });
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "documents_editor_autosave",
-        autoSaveEnabled ? "on" : "off",
-      );
-    } catch {
-      // Ignore preference persistence errors.
-    }
-  }, [autoSaveEnabled]);
-
-  useEffect(() => {
-    if (!showModal || !autoSaveEnabled || isViewOnlyModal) return;
-
-    const timeout = setTimeout(() => {
-      try {
-        const plainEditorText = getPlainText(editorContent);
-        if (plainEditorText)
-          localStorage.setItem(activeEditorDraftKey, editorContent);
-        else localStorage.removeItem(activeEditorDraftKey);
-
-        setContent(editorContent);
-        setHasUnsavedEditorChanges(false);
-        setLastAutoSavedAt(new Date().toLocaleTimeString());
-      } catch {
-        // Ignore autosave failures.
-      }
-    }, 700);
-
-    return () => clearTimeout(timeout);
-  }, [
-    editorContent,
-    autoSaveEnabled,
-    showModal,
-    isViewOnlyModal,
-    activeEditorDraftKey,
-  ]);
-
-  const openCreateModal = () => {
-    setAccessPopupDocId(null);
-    setEditDoc(null);
-    setIsViewOnlyModal(false);
-    setName("");
-    let draft = "";
-    try {
-      draft = localStorage.getItem(`${editorDraftBaseKey}_new`) || "";
-    } catch {
-      // Ignore draft loading errors.
-    }
-    setDescription("");
-    setContent(draft);
-    setEditorContent(draft);
-    setAccessList([]);
-    setFile(null);
-    setLastManualSavedAt("");
-    setHasUnsavedEditorChanges(false);
-    setFileInputKey((k) => k + 1);
-    setShowModal(true);
-  };
-
-  const cancelModal = () => {
-    setShowModal(false);
-    setEditDoc(null);
-    setIsViewOnlyModal(false);
-    setName("");
-    setDescription("");
-    setContent("");
-    setEditorContent("");
-    setAccessList([]);
-    setFile(null);
-    setLastAutoSavedAt("");
-    setLastManualSavedAt("");
-    setHasUnsavedEditorChanges(false);
-    setFileInputKey((k) => k + 1);
-  };
-
+  /* ============================================================
+     RENDER
+  ============================================================ */
   return (
     <div className="page-container">
       <FeedbackMessage
@@ -496,8 +519,7 @@ function Documents() {
           <tbody>
             {filteredDocuments.map((doc) => {
               const isOwner =
-                String(doc.createdBy?._id || doc.createdBy) ===
-                String(currentUserId);
+                String(doc.createdBy?._id || doc.createdBy) === String(currentUserId);
               const isSuper = checkSuperAdmin(user);
               const accessType = getAccessTypeForUser(doc, currentUserId);
               const hasAccess = isOwner || isSuper || !!accessType;
@@ -505,9 +527,7 @@ function Documents() {
               return (
                 <tr key={doc._id} style={{ borderTop: "1px solid #ddd" }}>
                   <td style={{ padding: 6 }}>{doc.name}</td>
-                  <td style={{ padding: 6 }}>
-                    {getPlainText(doc.description)}
-                  </td>
+                  <td style={{ padding: 6 }}>{getPlainText(doc.description)}</td>
                   <td style={{ padding: 6 }}>
                     {doc.createdBy?.name || doc.createdBy}
                   </td>
@@ -530,29 +550,17 @@ function Documents() {
                     }}
                   >
                     {hasAccess && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => openDocument(doc)}
-                      >
+                      <Button variant="primary" size="sm" onClick={() => openDocument(doc)}>
                         Open
                       </Button>
                     )}
                     {hasAccess && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => downloadAttachment(doc)}
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => downloadAttachment(doc)}>
                         Download
                       </Button>
                     )}
                     {!hasAccess && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => requestAccess(doc._id)}
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => requestAccess(doc._id)}>
                         Request Access
                       </Button>
                     )}
@@ -625,9 +633,9 @@ function Documents() {
         saveEditorContent={saveEditorContent}
         setContent={setContent}
         setLastAutoSavedAt={setLastAutoSavedAt}
-        setLastManualSavedAt={setLastManualSavedAt}
+        setLastManualSavedAt={() => { }}
         setHasUnsavedEditorChanges={setHasUnsavedEditorChanges}
-        editorDraftKey={activeEditorDraftKey}
+        editorDraftKey={""}
         showFeedback={showFeedback}
         fileInputKey={fileInputKey}
         setFile={setFile}
@@ -638,6 +646,9 @@ function Documents() {
         handleCreate={handleCreate}
         cancelModal={cancelModal}
         normalizeHtmlValue={normalizeHtmlValue}
+        autoSaveStatus={autoSaveStatus}
+        setAutoSaveStatus={setAutoSaveStatus}
+        isExistingDoc={!!editDoc?._id}
       />
     </div>
   );

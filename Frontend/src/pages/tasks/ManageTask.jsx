@@ -13,18 +13,13 @@ import {
   Input,
 } from "../../components/common";
 import usePermissions from "../../hooks/usePermissions";
+import { useProject } from "../../context/ProjectContext";
 
 function ManageTask() {
   const navigate = useNavigate();
-
-  const normalizeProjectSelection = (value) => {
-    const v = String(value || "").trim();
-    const blocked = ["", "all", "all projects", "null", "undefined"];
-    return blocked.includes(v.toLowerCase()) ? "" : v;
-  };
+  const { selectedProject } = useProject();
 
   const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -34,9 +29,6 @@ function ManageTask() {
   const [search, setSearch] = useState("");
   const [taskStatus, setTaskStatus] = useState("");
   const [isActive, setIsActive] = useState("");
-  const [selectedProject, setSelectedProject] = useState(
-    () => normalizeProjectSelection(localStorage.getItem("selectedProject")),
-  );
 
   const { canCreate, canEdit, canDelete, canView } = usePermissions("Task");
 
@@ -76,39 +68,15 @@ function ManageTask() {
   );
 
   useEffect(() => {
-    const syncSelectedProject = () => {
-      setSelectedProject(
-        normalizeProjectSelection(localStorage.getItem("selectedProject")),
-      );
-      setCurrentPage(1);
-    };
-    window.addEventListener("storage", syncSelectedProject);
-    window.addEventListener("projectSelectionChanged", syncSelectedProject);
-    return () => {
-      window.removeEventListener("storage", syncSelectedProject);
-      window.removeEventListener(
-        "projectSelectionChanged",
-        syncSelectedProject,
-      );
-    };
-  }, []);
-
-  useEffect(() => {
     if (canView || canCreate || canEdit || canDelete) {
       fetchTasks(currentPage);
     }
-    const fetchProjects = async () => {
-      try {
-        const res = await axiosInstance.get("/projects");
-        setProjects(
-          Array.isArray(res.data) ? res.data : res.data.projects || [],
-        );
-      } catch {
-        // ignore
-      }
-    };
-    fetchProjects();
   }, [currentPage, fetchTasks, canView, canCreate, canEdit, canDelete]);
+
+  // Re-fetch when project changes (ProjectContext fires storage/custom event)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedProject]);
 
   useEffect(() => {
     const handler = () => fetchTasks(currentPage);
@@ -290,25 +258,7 @@ function ManageTask() {
                   <td>{formatDate(task.endDate)}</td>
 
                   <td onClick={(e) => e.stopPropagation()}>
-                    {canEdit ? (
-                      <select
-                        value={task.project?._id || ""}
-                        onChange={(e) =>
-                          updateTaskField(task._id, {
-                            project: e.target.value || "",
-                          })
-                        }
-                      >
-                        <option value="">Unassigned</option>
-                        {projects.map((p) => (
-                          <option key={p._id} value={p._id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      task.project?.name || "-"
-                    )}
+                    {task.project?.name || "-"}
                   </td>
 
                   <td>

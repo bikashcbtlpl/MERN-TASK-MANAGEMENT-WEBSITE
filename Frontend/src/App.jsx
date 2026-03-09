@@ -14,6 +14,9 @@ import TaskForm from "./pages/tasks/TaskForm";
 import TaskDetails from "./pages/tasks/TaskDetails";
 import MyTask from "./pages/tasks/MyTask";
 
+// ISSUES
+import ManageIssues from "./pages/issues/ManageIssues";
+
 // ROLES
 import RoleForm from "./pages/roles/RoleForm";
 import ManageRole from "./pages/roles/ManageRole";
@@ -119,7 +122,24 @@ function App() {
             }
           />
 
-          {/* ================= ROLES ================= */}
+          {/* ================= ISSUES ================= */}
+          <Route
+            path="issues"
+            element={
+              <ProtectedRoute
+                requiredPermissions={[
+                  PERMS.ISSUE_VIEW,
+                  PERMS.ISSUE_CREATE,
+                  PERMS.ISSUE_EDIT,
+                  PERMS.TASK_VIEW,
+                  PERMS.TASK_CREATE,
+                  PERMS.TASK_EDIT,
+                ]}
+              >
+                <ManageIssues />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="roles"

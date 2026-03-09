@@ -12,15 +12,11 @@ function TaskDetails() {
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
-  const [issues, setIssues] = useState([]);
-  const [issueTitle, setIssueTitle] = useState("");
-  const [issueDescription, setIssueDescription] = useState("");
   const [hoverUser, setHoverUser] = useState(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
 
   const { can } = usePermissions();
   const canEditTask = can(PERMS.TASK_EDIT);
-  const canResolve = can(PERMS.ISSUE_EDIT);
 
   const fetchTask = useCallback(async () => {
     try {
@@ -42,50 +38,10 @@ function TaskDetails() {
     }
   }, []);
 
-  const fetchIssues = useCallback(async () => {
-    try {
-      const res = await axiosInstance.get(`/issues/task/${id}`);
-      setIssues(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.log("Error fetching issues", err);
-    }
-  }, [id]);
-
   useEffect(() => {
     fetchTask();
     fetchUsers();
-    fetchIssues();
-  }, [fetchTask, fetchUsers, fetchIssues]);
-
-  const submitIssue = async (e) => {
-    e.preventDefault();
-    if (!issueTitle || !issueDescription) return;
-    try {
-      const res = await axiosInstance.post(`/issues`, {
-        task: id,
-        title: issueTitle,
-        description: issueDescription,
-      });
-      setIssueTitle("");
-      setIssueDescription("");
-      // prepend new issue
-      setIssues((s) => [res.data, ...s]);
-    } catch (err) {
-      console.error("Error creating issue", err);
-    }
-  };
-
-  const resolveIssue = async (issueId) => {
-    try {
-      const res = await axiosInstance.patch(`/issues/${issueId}/resolve`);
-      // update issue in list
-      setIssues((s) =>
-        s.map((it) => (it._id === res.data._id ? res.data : it)),
-      );
-    } catch (err) {
-      console.error("Error resolving issue", err);
-    }
-  };
+  }, [fetchTask, fetchUsers]);
 
   const resolveHandleToUser = (handle) => {
     if (!handle) return null;
@@ -96,14 +52,12 @@ function TaskDetails() {
         u.email && u.email.split("@")[0].toLowerCase(),
         u.name && u.name.replace(/\s+/g, "").toLowerCase(),
       ].filter(Boolean);
-
       return candidates.includes(h);
     });
   };
 
   const renderDescription = (text) => {
     if (!text) return null;
-    // Split on @mentions but keep the marker
     const parts = text.split(/(@[A-Za-z0-9_.-]+)/g);
     return parts.map((part, i) => {
       if (part.startsWith("@")) {
@@ -140,6 +94,7 @@ function TaskDetails() {
   return (
     <div className="task-page">
       <div className="task-card">
+
         {/* HEADER */}
         <div className="task-header">
           <div>
@@ -156,7 +111,6 @@ function TaskDetails() {
                 Edit
               </Button>
             )}
-
             <Button variant="secondary" onClick={() => navigate("/tasks")}>
               Back
             </Button>
@@ -179,7 +133,6 @@ function TaskDetails() {
             </span>
           </div>
 
-          {/* ✅ NEW: ACTIVE / INACTIVE STATUS */}
           <div className="detail-box">
             <label>Task Visibility</label>
             <span
@@ -258,11 +211,10 @@ function TaskDetails() {
           </div>
         </div>
 
-        {/* ================= IMAGES ================= */}
+        {/* IMAGES */}
         {task.images?.length > 0 && (
           <div className="media-section">
             <h3>Images</h3>
-
             <div className="image-grid">
               {task.images.map((img, i) => (
                 <a key={i} href={img} target="_blank" rel="noreferrer">
@@ -277,11 +229,10 @@ function TaskDetails() {
           </div>
         )}
 
-        {/* ================= VIDEOS ================= */}
+        {/* VIDEOS */}
         {task.videos?.length > 0 && (
           <div className="media-section">
             <h3>Videos</h3>
-
             <div className="video-grid">
               {task.videos.map((video, i) => (
                 <video
@@ -298,21 +249,18 @@ function TaskDetails() {
           </div>
         )}
 
-        {/* ================= ATTACHMENTS ================= */}
+        {/* ATTACHMENTS */}
         {task.attachments?.length > 0 && (
           <div className="media-section">
             <h3>Attachments</h3>
-
             <ul className="attachment-list">
               {task.attachments.map((file, i) => {
                 const fileName = file
                   ? decodeURIComponent(file.split("/").pop())
                   : "file";
-
                 return (
                   <li key={i} className="attachment-item">
                     <span className="file-icon">📄</span>
-
                     <a
                       href={`${file}?fl_attachment`}
                       target="_blank"
@@ -321,16 +269,13 @@ function TaskDetails() {
                     >
                       {fileName}
                     </a>
-
                     <a
                       href={`${file}?fl_attachment`}
                       target="_blank"
                       rel="noreferrer"
                       style={{ textDecoration: "none" }}
                     >
-                      <Button size="sm" variant="primary">
-                        Download
-                      </Button>
+                      <Button size="sm" variant="primary">Download</Button>
                     </a>
                   </li>
                 );
@@ -339,85 +284,6 @@ function TaskDetails() {
           </div>
         )}
 
-        {/* ================= ISSUES ================= */}
-        <div className="media-section">
-          <h3>Issues</h3>
-
-          <div style={{ marginBottom: 12 }}>
-            <form onSubmit={submitIssue}>
-              <input
-                placeholder="Issue title"
-                value={issueTitle}
-                onChange={(e) => setIssueTitle(e.target.value)}
-                style={{ width: "100%", padding: 8, marginBottom: 8 }}
-              />
-              <textarea
-                placeholder="Describe the issue"
-                value={issueDescription}
-                onChange={(e) => setIssueDescription(e.target.value)}
-                style={{ width: "100%", padding: 8, minHeight: 80 }}
-              />
-              <div style={{ marginTop: 8 }}>
-                <Button variant="primary" type="submit">
-                  Report Issue
-                </Button>
-              </div>
-            </form>
-          </div>
-
-          {issues.length === 0 ? (
-            <div>No issues reported for this task.</div>
-          ) : (
-            <ul className="attachment-list">
-              {issues.map((iss) => (
-                <li key={iss._id} className="attachment-item">
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      width: "100%",
-                    }}
-                  >
-                    <div>
-                      <strong>{iss.title}</strong>
-                      <div style={{ fontSize: 13, color: "#444" }}>
-                        {iss.description}
-                      </div>
-                      <div style={{ fontSize: 12, color: "#666" }}>
-                        Reported by: {iss.reportedBy?.email || "Unknown"}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 12 }}>
-                        {new Date(iss.createdAt).toLocaleString()}
-                      </div>
-                      <div
-                        style={{
-                          marginTop: 6,
-                          display: "flex",
-                          gap: 8,
-                          justifyContent: "flex-end",
-                          alignItems: "center",
-                        }}
-                      >
-                        <span className="status-badge">{iss.status}</span>
-                        {canResolve && iss.status !== "Resolved" && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => resolveIssue(iss._id)}
-                          >
-                            Resolve
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -33,6 +33,9 @@ function DocumentEditorModal({
   handleCreate,
   cancelModal,
   normalizeHtmlValue,
+  autoSaveStatus,
+  setAutoSaveStatus,
+  isExistingDoc,
 }) {
   if (!showModal) return null;
 
@@ -161,8 +164,76 @@ function DocumentEditorModal({
                     Auto Save editor text
                   </label>
                   {autoSaveEnabled && lastAutoSavedAt && (
-                    <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                      Last saved at {lastAutoSavedAt}
+                    <span
+                      style={{
+                        fontSize: 12,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        color:
+                          autoSaveStatus === "error"
+                            ? "#dc2626"
+                            : autoSaveStatus === "saving"
+                              ? "var(--muted)"
+                              : "#16a34a",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {autoSaveStatus === "saving" && (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{
+                            animation: "spin 1s linear infinite",
+                          }}
+                        >
+                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg>
+                      )}
+                      {autoSaveStatus === "saved" && (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                      {autoSaveStatus === "error" && (
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                      )}
+                      {autoSaveStatus === "saving" && "Saving to server..."}
+                      {autoSaveStatus === "saved" &&
+                        isExistingDoc &&
+                        `Saved to server at ${lastAutoSavedAt}`}
+                      {autoSaveStatus === "saved" &&
+                        !isExistingDoc &&
+                        `Draft saved locally at ${lastAutoSavedAt}`}
+                      {autoSaveStatus === "error" &&
+                        "Auto-save failed – changes kept locally"}
+                      {autoSaveStatus === "idle" &&
+                        lastAutoSavedAt &&
+                        (isExistingDoc
+                          ? `Saved to server at ${lastAutoSavedAt}`
+                          : `Draft saved locally at ${lastAutoSavedAt}`)}
                     </span>
                   )}
                   {!autoSaveEnabled && hasUnsavedEditorChanges && (
@@ -205,11 +276,6 @@ function DocumentEditorModal({
                       setLastAutoSavedAt("");
                       setLastManualSavedAt("");
                       setHasUnsavedEditorChanges(false);
-                      try {
-                        localStorage.removeItem(editorDraftKey);
-                      } catch {
-                        // Ignore draft clearing errors.
-                      }
                       showFeedback("info", "Editor content cleared");
                     }}
                   >

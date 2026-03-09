@@ -8,6 +8,7 @@ function Sidebar() {
 
   const canManageTask = canAny(user, PERM_GROUPS.TASK_MANAGE);
   const canViewTask = canAny(user, [PERMS.TASK_VIEW]);
+  const canViewIssues = canAny(user, [PERMS.ISSUE_VIEW, PERMS.ISSUE_CREATE, PERMS.ISSUE_EDIT]);
 
   return (
     <div className="sidebar">
@@ -17,22 +18,23 @@ function Sidebar() {
         {/* Always Visible */}
         <NavLink to="/dashboard">Dashboard</NavLink>
 
-        {/* PROJECT SECTION - visible only to users with project permissions */}
+        {/* PROJECT SECTION */}
         {canAny(user, PERM_GROUPS.PROJECT_MANAGE) && (
           <NavLink to="/projects">Manage Projects</NavLink>
         )}
 
-        {/* DOCUMENTS - visible to all authenticated users; access controlled on page */}
+        {/* DOCUMENTS */}
         <NavLink to="/documents">Documents</NavLink>
 
         {/* TASK SECTION */}
-
-        {/* If user can manage tasks */}
         {canManageTask && <NavLink to="/tasks">Manage Task</NavLink>}
-
-        {/* If user only has view permission, show My Task (not Manage Task) */}
         {!canManageTask && canViewTask && (
           <NavLink to="/my-tasks">My Task</NavLink>
+        )}
+
+        {/* ISSUES */}
+        {(canViewIssues || canViewTask) && (
+          <NavLink to="/issues">Manage Issues</NavLink>
         )}
 
         {/* ROLE */}

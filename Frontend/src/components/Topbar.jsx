@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useProject } from "../context/ProjectContext";
 import { Button } from "./common";
 
 function Topbar() {
@@ -11,66 +12,27 @@ function Topbar() {
   const [open, setOpen] = useState(false);
   const { user, setUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { projects, selectedProject, setSelectedProject } = useProject();
   const dropdownRef = useRef();
-  const [projects, setProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState(() => {
-    return localStorage.getItem("selectedProject") || "";
-  });
 
   /* ================= PAGE TITLE LOGIC ================= */
-
   const formatPageTitle = () => {
     const path = location.pathname;
-
     if (path === "/dashboard") return "Dashboard";
     if (path === "/roles") return "Roles";
     if (path === "/roles/create") return "Role / Create";
-
     if (path.startsWith("/roles/edit/")) {
       const roleName = decodeURIComponent(path.split("/")[3] || "");
       return `Role / Edit / ${roleName}`;
     }
-
     if (path === "/tasks") return "Tasks";
     if (path === "/permissions") return "Permissions";
     if (path === "/users") return "Users";
     if (path === "/settings") return "Settings";
-
     return path.replace("/", "").toUpperCase();
   };
 
-  /* ================= LOAD USER ================= */
-
-  useEffect(() => {
-    const loadUser = () => {
-      // projects will be fetched below via API using authenticated cookie
-    };
-
-    loadUser();
-    const handleStorage = () =>
-      setSelectedProject(localStorage.getItem("selectedProject") || "");
-    window.addEventListener("storage", handleStorage);
-
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
-
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const res = await axiosInstance.get("/projects");
-        const data = res.data || {};
-        const list = data.projects || data;
-        setProjects(Array.isArray(list) ? list : []);
-      } catch (err) {
-        console.log("Error loading projects for topbar:", err);
-      }
-    };
-
-    if (user) fetchProjects();
-  }, [user]);
-
   /* ================= LOGOUT ================= */
-
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/auth/logout");
@@ -83,20 +45,17 @@ function Topbar() {
   };
 
   /* ================= CLOSE DROPDOWN ================= */
-
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* ================= AVATAR INITIAL ================= */
-
   const getInitial = () => {
     if (user?.name) return user.name.charAt(0).toUpperCase();
     if (user?.email) return user.email.charAt(0).toUpperCase();
@@ -126,26 +85,14 @@ function Topbar() {
 
         <div className="account-name" onClick={() => setOpen(!open)}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Project selector for team projects (moved left of account) */}
+            {/* Project selector — saves to server via ProjectContext */}
             {projects.length > 0 && (
               <select
                 value={selectedProject}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  const selectedName =
-                    e.target.options[e.target.selectedIndex]?.text || "";
-                  setSelectedProject(val);
-                  localStorage.setItem("selectedProject", val);
-                  localStorage.setItem("selectedProjectName", selectedName);
-                  // fire storage event for other tabs
-                  window.dispatchEvent(new Event("storage"));
-                  // notify same-tab screens that project scope changed
-                  window.dispatchEvent(
-                    new CustomEvent("projectSelectionChanged", {
-                      detail: { projectId: val },
-                    }),
-                  );
+                  e.stopPropagation();
+                  setSelectedProject(e.target.value);
                 }}
                 style={{ marginRight: 4, padding: 6, borderRadius: 4 }}
               >
@@ -159,7 +106,6 @@ function Topbar() {
             )}
 
             <div className="avatar-circle">{getInitial()}</div>
-
             <span>{user?.name || user?.email?.split("@")[0] || "User"}</span>
           </div>
         </div>
@@ -167,10 +113,8 @@ function Topbar() {
         {open && (
           <div className="profile-dropdown">
             <div className="avatar-circle large">{getInitial()}</div>
-
             <h4>{user?.name || user?.email}</h4>
             <p>{getDisplayRoleName()}</p>
-
             <Button variant="danger" fullWidth onClick={handleLogout}>
               Logout
             </Button>

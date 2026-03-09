@@ -5,16 +5,23 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-/* ================= RESPONSE SUCCESS ================= */
+/* ================= RESPONSE INTERCEPTORS ================= */
 axiosInstance.interceptors.response.use(
   (response) => response,
 
-  /* ================= GLOBAL ERROR HANDLER ================= */
   (error) => {
-    // 🔐 Auto logout if token expired
     if (error.response?.status === 401) {
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+      const requestUrl = error.config?.url || "";
+
+      // Never redirect on verify — that's the normal "not logged in" response
+      // Never redirect if already on the login page
+      const isVerify = requestUrl.includes("/auth/verify");
+      const isLoginPage = window.location.pathname === "/login";
+
+      if (!isVerify && !isLoginPage) {
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);

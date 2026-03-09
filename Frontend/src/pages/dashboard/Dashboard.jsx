@@ -4,12 +4,13 @@ import socket from "../../socket";
 import { LoadingSpinner } from "../../components/common";
 import { useAuth } from "../../context/AuthContext";
 import { isAdminUser } from "../../permissions/can";
+import { useProject } from "../../context/ProjectContext";
 
 function Dashboard() {
   const { user, loading: authLoading } = useAuth();
+  const { selectedProject } = useProject();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const isAdmin = isAdminUser(user);
 
   const fetchStats = useCallback(async () => {
@@ -20,7 +21,6 @@ function Dashboard() {
       if (!isAdmin) {
         try {
           const params = { page: 1, limit: 10 };
-          const selectedProject = localStorage.getItem("selectedProject") || "";
           if (selectedProject) params.project = selectedProject;
 
           const myRes = await axiosInstance.get("/tasks/my", { params });
@@ -46,21 +46,11 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, selectedProject]);
 
   useEffect(() => {
     if (!authLoading && user) fetchStats();
   }, [fetchStats, authLoading, user]);
-
-  useEffect(() => {
-    const handler = () => fetchStats();
-    window.addEventListener("projectSelectionChanged", handler);
-    window.addEventListener("storage", handler);
-    return () => {
-      window.removeEventListener("projectSelectionChanged", handler);
-      window.removeEventListener("storage", handler);
-    };
-  }, [fetchStats]);
 
   useEffect(() => {
     if (!socket.connected) socket.connect();

@@ -59,10 +59,7 @@ function Settings() {
       });
 
       if (user) {
-        const updatedUser = { ...user, name: profile.name };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        window.dispatchEvent(new Event("storage"));
+        setUser({ ...user, name: profile.name });
       }
 
       setFeedback({ type: "success", message: "Profile updated" });

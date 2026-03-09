@@ -4,6 +4,7 @@ import axiosInstance from "../../api/axiosInstance";
 import socket from "../../socket";
 import { PERMS, can as canPermission } from "../../permissions/can";
 import { useAuth } from "../../context/AuthContext";
+import { useProject } from "../../context/ProjectContext";
 import {
   PageHeader,
   Pagination,
@@ -18,12 +19,7 @@ import {
 function MyTask() {
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  const normalizeProjectSelection = (value) => {
-    const v = String(value || "").trim();
-    const blocked = ["", "all", "all projects", "null", "undefined"];
-    return blocked.includes(v.toLowerCase()) ? "" : v;
-  };
+  const { selectedProject } = useProject();
 
   const [tasks, setTasks] = useState([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -43,9 +39,6 @@ function MyTask() {
         else setInitialLoading(true);
 
         const params = new URLSearchParams({ page, limit: 10 });
-        const selectedProject = normalizeProjectSelection(
-          localStorage.getItem("selectedProject"),
-        );
         if (selectedProject) params.append("project", selectedProject);
         if (search) params.append("search", search);
         if (taskStatus) params.append("taskStatus", taskStatus);
@@ -63,12 +56,17 @@ function MyTask() {
         setRefreshing(false);
       }
     },
-    [search, taskStatus],
+    [search, taskStatus, selectedProject],
   );
 
   useEffect(() => {
     fetchMyTasks(currentPage, true);
   }, [fetchMyTasks, currentPage]);
+
+  // Re-fetch when selected project changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedProject]);
 
   const updateStatus = async (taskId, status) => {
     try {
@@ -81,16 +79,6 @@ function MyTask() {
       setRefreshing(false);
     }
   };
-
-  useEffect(() => {
-    const handler = () => fetchMyTasks(1, true);
-    window.addEventListener("storage", handler);
-    window.addEventListener("projectSelectionChanged", handler);
-    return () => {
-      window.removeEventListener("storage", handler);
-      window.removeEventListener("projectSelectionChanged", handler);
-    };
-  }, [fetchMyTasks]);
 
   useEffect(() => {
     const handler = () => fetchMyTasks(currentPage, true);
