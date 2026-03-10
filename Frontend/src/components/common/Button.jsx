@@ -25,6 +25,7 @@ const Button = ({
   children,
   className = "",
   style = {},
+  ...rest
 }) => {
   const classes = [
     "btn",
@@ -44,6 +45,7 @@ const Button = ({
       disabled={disabled || loading}
       onClick={onClick}
       style={style}
+      {...rest}
     >
       {loading && <span className="btn-spinner" />}
       {children}

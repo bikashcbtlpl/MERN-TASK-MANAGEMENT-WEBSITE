@@ -144,16 +144,18 @@ exports.updateTask = async (req, res) => {
       return res.status(403).json({ message: "Not allowed to edit this task" });
     }
 
-    let {
+    const {
       taskStatus = task.taskStatus,
       existingImages,
       existingVideos,
       existingAttachments,
-      project,
     } = req.body;
 
-    // Normalize empty strings to null
-    if (project === "" || project === "null") project = null;
+    const projectProvided = Object.prototype.hasOwnProperty.call(req.body, "project");
+    let project = projectProvided ? req.body.project : undefined;
+
+    // Normalize empty strings to null when provided
+    if (projectProvided && (project === "" || project === "null")) project = null;
 
     // Parse existing media arrays safely
     let parsedExistingImages = [];
@@ -184,11 +186,11 @@ exports.updateTask = async (req, res) => {
     // Build explicit update object
     let updateData = {
       taskStatus,
-      project,
       images: finalImages,
       videos: finalVideos,
       attachments: finalAttachments,
     };
+    if (projectProvided) updateData.project = project;
 
     // Include other updatable fields if present in body
     const otherFields = [
@@ -231,9 +233,9 @@ exports.updateTask = async (req, res) => {
 
     // Sync project task lists if project changed
     const oldProjectId = task.project ? String(task.project) : null;
-    const newProjectId = project ? String(project) : null;
+    const newProjectId = projectProvided ? (project ? String(project) : null) : oldProjectId;
 
-    if (oldProjectId !== newProjectId) {
+    if (projectProvided && oldProjectId !== newProjectId) {
       const Project = require("../models/Project");
       if (oldProjectId) {
         await Project.findByIdAndUpdate(oldProjectId, {
@@ -248,7 +250,7 @@ exports.updateTask = async (req, res) => {
     }
 
     // Email notification if task was added to a new project
-    if (newProjectId && oldProjectId !== newProjectId) {
+    if (projectProvided && newProjectId && oldProjectId !== newProjectId) {
       const Project = require("../models/Project");
       const assignedProject = await Project.findById(newProjectId)
         .populate("team", "email")

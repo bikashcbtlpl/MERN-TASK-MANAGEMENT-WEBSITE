@@ -8,7 +8,11 @@ const Project = require("../models/Project");
 const canAccessTask = async (user, task) => {
   if (!user || !task) return false;
 
-  if (user.role?.name === "Super Admin") return true;
+  const roleName = String(user.role?.name || user.role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  if (roleName === "superadmin") return true;
 
   const taskProject = task.project?._id || task.project;
   if (!taskProject) return false;

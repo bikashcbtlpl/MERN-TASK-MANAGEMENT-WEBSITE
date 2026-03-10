@@ -147,7 +147,11 @@ exports.resolveIssue = async (req, res) => {
     const user = req.user;
 
     // Use permission-based check instead of hardcoded role names
-    const isSuperAdmin = user.role?.name === "Super Admin";
+    const roleName = String(user.role?.name || user.role || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "");
+    const isSuperAdmin = roleName === "superadmin";
     const userPermissions = (user.role?.permissions || [])
       .filter((p) => p && p.status !== "Inactive")
       .map((p) => p.name);
@@ -178,5 +182,29 @@ exports.resolveIssue = async (req, res) => {
   } catch (err) {
     console.error("Resolve Issue Error:", err);
     res.status(500).json({ message: "Error resolving issue" });
+  }
+};
+
+/* ================= DELETE ISSUE ================= */
+exports.deleteIssue = async (req, res) => {
+  try {
+    const issue = await Issue.findById(req.params.id)
+      .populate("task", "project")
+      .lean();
+    if (!issue) return res.status(404).json({ message: "Issue not found" });
+
+    // Permission middleware already guards Delete Issue access.
+
+    await Issue.deleteOne({ _id: issue._id });
+
+    req.app.get("io")?.emit("issueDeleted", {
+      issueId: String(issue._id),
+      task: issue.task?._id || issue.task,
+    });
+
+    res.json({ message: "Issue deleted" });
+  } catch (err) {
+    console.error("Delete Issue Error:", err);
+    res.status(500).json({ message: "Error deleting issue" });
   }
 };

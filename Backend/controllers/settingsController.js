@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Settings = require("../models/Settings");
 const bcrypt = require("bcryptjs");
 
 /* ================= GET SETTINGS ================= */
@@ -7,21 +8,24 @@ exports.getSettings = async (req, res) => {
     const user = req.user;
     const isSuperAdmin = user?.role?.name === "Super Admin";
 
+    const stored = await Settings.findOne().lean();
+    const minPasswordLength = stored?.minPasswordLength ?? 8;
+
     const payload = {
       profile: {
         name: user.name,
         email: user.email,
       },
       security: {
-        minPasswordLength: 8,
+        minPasswordLength,
       },
     };
 
     if (isSuperAdmin) {
       payload.emailConfig = {
-        smtpHost: process.env.SMTP_HOST || "",
-        smtpPort: process.env.SMTP_PORT || "",
-        senderEmail: process.env.EMAIL_USER || "",
+        smtpHost: stored?.smtpHost || process.env.SMTP_HOST || "",
+        smtpPort: stored?.smtpPort || process.env.SMTP_PORT || "",
+        senderEmail: stored?.senderEmail || process.env.EMAIL_USER || "",
       };
     }
 
@@ -40,6 +44,9 @@ exports.updateProfile = async (req, res) => {
     // Fetch fresh user with password for verification
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    const stored = await Settings.findOne().lean();
+    const minPasswordLength = stored?.minPasswordLength ?? 8;
 
     if (name !== undefined) {
       if (!name.trim()) {
@@ -63,10 +70,12 @@ exports.updateProfile = async (req, res) => {
           .json({ message: "Current password is incorrect" });
       }
 
-      if (newPassword.length < 8) {
+      if (newPassword.length < minPasswordLength) {
         return res
           .status(400)
-          .json({ message: "New password must be at least 8 characters" });
+          .json({
+            message: `New password must be at least ${minPasswordLength} characters`,
+          });
       }
 
       user.password = await bcrypt.hash(newPassword, 12);
@@ -89,16 +98,27 @@ exports.updateEmailSettings = async (req, res) => {
   try {
     // In a real app, persist these to DB (Settings model) or update env config
     // For now just acknowledge the update
-    const { smtpPort } = req.body;
+    const { smtpHost, smtpPort, senderEmail } = req.body;
 
     // Basic validation
     if (smtpPort && isNaN(Number(smtpPort))) {
       return res.status(400).json({ message: "SMTP port must be a number" });
     }
 
+    await Settings.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          ...(smtpHost !== undefined ? { smtpHost: String(smtpHost) } : {}),
+          ...(smtpPort !== undefined ? { smtpPort: Number(smtpPort) } : {}),
+          ...(senderEmail !== undefined ? { senderEmail: String(senderEmail) } : {}),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
+
     res.json({
       message: "Email settings updated successfully",
-      note: "Restart may be required for full effect",
     });
   } catch (error) {
     console.error("Update Email Settings Error:", error);
@@ -158,7 +178,7 @@ exports.updatePreferences = async (req, res) => {
 /* ================= UPDATE SECURITY SETTINGS ================= */
 exports.updateSecuritySettings = async (req, res) => {
   try {
-    const { minPasswordLength } = req.body;
+    const { minPasswordLength, enableRegistration } = req.body;
 
     if (
       minPasswordLength !== undefined &&
@@ -168,6 +188,21 @@ exports.updateSecuritySettings = async (req, res) => {
         .status(400)
         .json({ message: "Minimum password length must be at least 6" });
     }
+
+    await Settings.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          ...(minPasswordLength !== undefined
+            ? { minPasswordLength: Number(minPasswordLength) }
+            : {}),
+          ...(enableRegistration !== undefined
+            ? { enableRegistration: Boolean(enableRegistration) }
+            : {}),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
 
     res.json({ message: "Security settings updated successfully" });
   } catch (error) {

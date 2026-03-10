@@ -4,11 +4,9 @@ import socket from "../../socket";
 import { LoadingSpinner } from "../../components/common";
 import { useAuth } from "../../context/AuthContext";
 import { isAdminUser } from "../../permissions/can";
-import { useProject } from "../../context/ProjectContext";
 
 function Dashboard() {
   const { user, loading: authLoading } = useAuth();
-  const { selectedProject } = useProject();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const isAdmin = isAdminUser(user);
@@ -18,35 +16,12 @@ function Dashboard() {
       const res = await axiosInstance.get("/dashboard");
       setStats(res.data);
 
-      if (!isAdmin) {
-        try {
-          const params = { page: 1, limit: 10 };
-          if (selectedProject) params.project = selectedProject;
-
-          const myRes = await axiosInstance.get("/tasks/my", { params });
-          const myTasks = (myRes.data.tasks || []).filter(
-            (t) => t.isActive !== false,
-          );
-
-          setStats({
-            totalUsers: res.data.totalUsers || 0,
-            totalTasks: myTasks.length,
-            completedTasks: myTasks.filter((t) => t.taskStatus === "Completed")
-              .length,
-            activeTasks: myTasks.filter(
-              (t) => t.taskStatus !== "Closed" && t.taskStatus !== "Cancelled",
-            ).length,
-          });
-        } catch (err) {
-          console.log("Error fetching user-scoped task counts", err);
-        }
-      }
     } catch (error) {
       console.log("Dashboard Error:", error.response?.data?.message);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, selectedProject]);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!authLoading && user) fetchStats();

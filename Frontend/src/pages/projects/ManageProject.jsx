@@ -21,7 +21,7 @@ const ManageProject = () => {
   const [loading, setLoading] = useState(true);
   const [teamPopupProjectId, setTeamPopupProjectId] = useState(null);
   const navigate = useNavigate();
-  const { loading: authLoading, setUser } = useAuth();
+  const { loading: authLoading } = useAuth();
 
   const { canCreate, canEdit, canDelete } = usePermissions("Project");
 
@@ -57,21 +57,6 @@ const ManageProject = () => {
   useEffect(() => {
     if (!authLoading) fetchProjects(1);
   }, [authLoading, fetchProjects]);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === "user") {
-        try {
-          const newUser = e.newValue ? JSON.parse(e.newValue) : null;
-          if (newUser) setUser(newUser);
-        } catch {
-          // ignore
-        }
-      }
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, [setUser]);
 
   useEffect(() => {
     if (!authLoading) fetchProjects(1);

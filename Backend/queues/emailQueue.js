@@ -26,11 +26,11 @@ const noopQueue = {
   close: () => Promise.resolve(),
 };
 
-const REDIS_ENABLED = process.env.REDIS_ENABLED === "true";
+const REDIS_ENABLED = process.env.REDIS_ENABLED !== "false";
 
 if (!REDIS_ENABLED) {
   console.warn(
-    "[emailQueue] Redis disabled (REDIS_ENABLED != true) — emails are sent directly by API process; worker will stay idle.",
+    "[emailQueue] Redis disabled (REDIS_ENABLED=false) — emails are sent directly by API process; worker will stay idle.",
   );
   module.exports = noopQueue;
 } else {

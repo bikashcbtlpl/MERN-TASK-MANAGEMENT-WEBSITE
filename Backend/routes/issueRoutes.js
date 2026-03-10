@@ -40,4 +40,19 @@ router.patch(
   issueController.resolveIssue,
 );
 
+router.delete(
+  "/:id",
+  authMiddleware,
+  checkPermission(["Delete Issue"]),
+  issueController.deleteIssue,
+);
+
+// Fallback for environments that block DELETE
+router.post(
+  "/:id/delete",
+  authMiddleware,
+  checkPermission(["Delete Issue"]),
+  issueController.deleteIssue,
+);
+
 module.exports = router;

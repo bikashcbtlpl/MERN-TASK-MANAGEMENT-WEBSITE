@@ -22,6 +22,7 @@ function ManageIssues() {
         || can(PERMS.TASK_EDIT);
     // Only privileged users can resolve
     const canResolve = can(PERMS.ISSUE_EDIT);
+    const canDelete = can(PERMS.ISSUE_DELETE);
 
     /* ── data ── */
     const [issues, setIssues] = useState([]);
@@ -42,6 +43,7 @@ function ManageIssues() {
 
     /* ── resolve state ── */
     const [resolvingId, setResolvingId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
 
     const showFeedback = (type, message) => setFeedback({ type, message });
 
@@ -124,6 +126,30 @@ function ManageIssues() {
             showFeedback("error", err.response?.data?.message || "Failed to resolve issue");
         } finally {
             setResolvingId(null);
+        }
+    };
+
+    /* ════════════════════════════════════
+       DELETE
+    ════════════════════════════════════ */
+    const handleDelete = async (issueId) => {
+        if (!window.confirm("Delete this issue? This action cannot be undone.")) return;
+        setDeletingId(issueId);
+        try {
+            try {
+                await axiosInstance.delete(`/issues/${issueId}`);
+            } catch (err) {
+                // Some environments block DELETE; fallback to POST.
+                const status = err?.response?.status;
+                if (status !== 404 && status !== 405) throw err;
+                await axiosInstance.post(`/issues/${issueId}/delete`);
+            }
+            setIssues((prev) => prev.filter((iss) => iss._id !== issueId));
+            showFeedback("success", "Issue deleted");
+        } catch (err) {
+            showFeedback("error", err.response?.data?.message || "Failed to delete issue");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -219,7 +245,7 @@ function ManageIssues() {
                                 <th style={{ minWidth: 130 }}>Reported By</th>
                                 <th style={{ minWidth: 100 }}>Status</th>
                                 <th style={{ minWidth: 120 }}>Date</th>
-                                {canResolve && <th style={{ minWidth: 100 }}>Action</th>}
+                                {(canResolve || canDelete) && <th style={{ minWidth: 140 }}>Action</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -259,20 +285,34 @@ function ManageIssues() {
                                             })}
                                         </span>
                                     </td>
-                                    {canResolve && (
+                                    {(canResolve || canDelete) && (
                                         <td>
-                                            {iss.status !== "Resolved" ? (
-                                                <Button
-                                                    variant="primary"
-                                                    size="sm"
-                                                    onClick={() => handleResolve(iss._id)}
-                                                    disabled={resolvingId === iss._id}
-                                                >
-                                                    {resolvingId === iss._id ? "Resolving…" : "Resolve"}
-                                                </Button>
-                                            ) : (
-                                                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>✓ Done</span>
-                                            )}
+                                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                                {canResolve && (
+                                                    iss.status !== "Resolved" ? (
+                                                        <Button
+                                                            variant="primary"
+                                                            size="sm"
+                                                            onClick={() => handleResolve(iss._id)}
+                                                            disabled={resolvingId === iss._id || deletingId === iss._id}
+                                                        >
+                                                            {resolvingId === iss._id ? "Resolving…" : "Resolve"}
+                                                        </Button>
+                                                    ) : (
+                                                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>✓ Done</span>
+                                                    )
+                                                )}
+                                                {canDelete && (
+                                                    <Button
+                                                        variant="danger"
+                                                        size="sm"
+                                                        onClick={() => handleDelete(iss._id)}
+                                                        disabled={deletingId === iss._id || resolvingId === iss._id}
+                                                    >
+                                                        {deletingId === iss._id ? "Deleting…" : "Delete"}
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </td>
                                     )}
                                 </tr>

@@ -100,7 +100,7 @@ exports.createUser = async (req, res) => {
     await queueUserEmailSafely({
       to: email,
       subject: "Your Account Was Created - Task Management System",
-      text: `Welcome to the Task Management System!\n\nYour account has been created for ${email}.\nFor security reasons, credentials are not sent by email.\nPlease contact your administrator for secure credential handoff.\nLogin at: ${process.env.FRONTEND_URL || "http://localhost:5173"}`,
+      text: `Welcome to the Task Management System!\n\nYour account has been created for ${email}.\n\nLogin credentials:\nEmail: ${email}\nTemporary password: ${plainPassword}\n\nPlease log in and change your password immediately.\nLogin at: ${process.env.FRONTEND_URL || "http://localhost:5173"}`,
     });
 
     // Return user without password
@@ -110,7 +110,7 @@ exports.createUser = async (req, res) => {
       ...serializeUser(userWithoutPassword),
       temporaryPassword: plainPassword,
       passwordDelivery:
-        "Share this temporary password securely; it is not sent by email.",
+        "Temporary password was sent by email; user should change it on first login.",
     });
   } catch (error) {
     console.error("Create User Error:", error);

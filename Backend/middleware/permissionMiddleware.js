@@ -19,8 +19,13 @@ const checkPermission = (requiredPermissions = []) => {
         });
       }
 
+      const roleName = String(user.role?.name || user.role || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "");
+
       // Super Admin bypass — full access
-      if (user.role.name === "Super Admin") {
+      if (roleName === "superadmin") {
         return next();
       }
 

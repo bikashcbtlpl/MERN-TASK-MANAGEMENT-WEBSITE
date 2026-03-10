@@ -10,7 +10,7 @@ const sendEmail = require("../utils/sendEmail");
 const startWorker = async () => {
   if (emailQueue.isNoop) {
     console.warn(
-      "[emailWorker] Queue is in direct-send mode (REDIS_ENABLED != true). No background jobs will be processed here.",
+      "[emailWorker] Queue is in direct-send mode (REDIS_ENABLED=false). No background jobs will be processed here.",
     );
     return;
   }

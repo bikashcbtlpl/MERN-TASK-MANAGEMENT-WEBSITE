@@ -121,6 +121,16 @@ app.use("/api/settings", require("./routes/settingsRoutes"));
 app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/documents", require("./routes/documentRoutes"));
 
+/* ================= DIAGNOSTICS ================= */
+app.get("/api/_diag", (req, res) => {
+  res.json({
+    status: "ok",
+    cwd: process.cwd(),
+    serverFile: __filename,
+    issueDeleteVersion: "v3-2026-03-10",
+  });
+});
+
 /* ================= HEALTH CHECK ================= */
 app.get("/", (req, res) => {
   res.json({
