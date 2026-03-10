@@ -39,7 +39,7 @@ const configuredOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
     .map((o) => o.trim())
     .filter(Boolean)
-  : ["http://localhost:5173"];
+  : ["http://localhost:5174","http://192.168.1.5:5174/"];
 
 const allowedOrigins = Array.from(
   new Set(
