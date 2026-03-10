@@ -163,6 +163,9 @@ const serializeTask = (task) => {
 const serializeIssue = (issue) => {
   if (!issue) return null;
 
+  const rawStatus = issue.status || "Open";
+  const normalizedStatus = rawStatus === "Resolved" ? "Closed" : rawStatus;
+
   return {
     _id: toIdString(issue),
     task: issue.task && typeof issue.task === "object"
@@ -173,7 +176,11 @@ const serializeIssue = (issue) => {
     reportedBy: serializeTaskUser(issue.reportedBy),
     title: issue.title || "",
     description: issue.description || "",
-    status: issue.status || "Open",
+    priority: issue.priority || "Medium",
+    module: issue.module || "Auth",
+    attachmentName: issue.attachmentName || "",
+    attachmentUrl: issue.attachmentUrl || "",
+    status: normalizedStatus,
     isActive: issue.isActive !== undefined ? Boolean(issue.isActive) : true,
     createdAt: issue.createdAt,
     updatedAt: issue.updatedAt,

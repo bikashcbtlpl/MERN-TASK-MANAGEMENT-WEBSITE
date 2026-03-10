@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const emailQueue = require("../queues/emailQueue");
 const sendEmail = require("../utils/sendEmail");
+const startIssueBulkWorker = require("./issueBulkWorker");
 
 /* =====================================================
    📧 PROCESS EMAIL JOBS
@@ -50,4 +51,8 @@ const startWorker = async () => {
 
 startWorker().catch((err) => {
   console.error("[emailWorker] Startup error:", err);
+});
+
+startIssueBulkWorker().catch((err) => {
+  console.error("[issueBulkWorker] Startup error:", err);
 });

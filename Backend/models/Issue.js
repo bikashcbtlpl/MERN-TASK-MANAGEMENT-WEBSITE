@@ -5,7 +5,7 @@ const issueSchema = new mongoose.Schema(
     task: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Task",
-      required: true,
+      required: false,
     },
 
     reportedBy: {
@@ -26,9 +26,33 @@ const issueSchema = new mongoose.Schema(
       trim: true,
     },
 
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High", "Critical"],
+      default: "Medium",
+    },
+
+    module: {
+      type: String,
+      enum: ["Auth", "Payment", "Dashboard", "Task", "Project", "Role", "Permission", "Other"],
+      default: "Auth",
+    },
+
+    attachmentName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    attachmentUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     status: {
       type: String,
-      enum: ["Open", "In Progress", "Resolved", "Closed"],
+      enum: ["Open", "Closed"],
       default: "Open",
     },
 

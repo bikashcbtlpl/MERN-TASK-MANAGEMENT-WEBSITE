@@ -4,11 +4,57 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const checkPermission = require("../middleware/permissionMiddleware");
 const issueController = require("../controllers/issueController");
+const issueBulkUpload = require("../middleware/issueBulkUpload");
+const issueAttachmentUpload = require("../middleware/issueAttachmentUpload");
+
+router.get(
+  "/bulk-template",
+  authMiddleware,
+  checkPermission(["Create Issue", "View Issue"]),
+  issueController.downloadIssueCsvTemplate,
+);
+
+router.post(
+  "/bulk-upload",
+  authMiddleware,
+  checkPermission(["Create Issue"]),
+  (req, res, next) => {
+    issueBulkUpload(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: err.message || "Invalid upload file" });
+      }
+      return next();
+    });
+  },
+  issueController.bulkUploadIssues,
+);
+
+router.get(
+  "/bulk-upload/:jobId",
+  authMiddleware,
+  checkPermission(["Create Issue", "View Issue"]),
+  issueController.getBulkUploadStatus,
+);
 
 router.post(
   "/",
   authMiddleware,
-  checkPermission(["View Task", "Create Task", "Edit Task", "Delete Task"]),
+  checkPermission([
+    "Create Issue",
+    "View Issue",
+    "View Task",
+    "Create Task",
+    "Edit Task",
+    "Delete Task",
+  ]),
+  (req, res, next) => {
+    issueAttachmentUpload(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: err.message || "Invalid attachment file" });
+      }
+      return next();
+    });
+  },
   issueController.createIssue,
 );
 

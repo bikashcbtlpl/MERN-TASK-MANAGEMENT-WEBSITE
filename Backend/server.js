@@ -35,11 +35,21 @@ const app = express();
 })();
 
 /* ================= ALLOWED ORIGINS ================= */
+const normalizeOrigin = (value) => {
+  if (!value) return value;
+  try {
+    const parsed = new URL(value);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return String(value).replace(/\/$/, "");
+  }
+};
+
 const configuredOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
-    .map((o) => o.trim())
+    .map((o) => normalizeOrigin(o.trim()))
     .filter(Boolean)
-  : ["http://localhost:5174","http://192.168.1.5:5174/"];
+  : ["http://localhost:5174", "http://192.168.1.5:5174"].map(normalizeOrigin);
 
 const allowedOrigins = Array.from(
   new Set(
@@ -54,7 +64,7 @@ const allowedOrigins = Array.from(
           const otherHost =
             parsed.hostname === "localhost" ? "127.0.0.1" : "localhost";
           return [
-            origin,
+            normalizeOrigin(origin),
             `${parsed.protocol}//${otherHost}${parsed.port ? `:${parsed.port}` : ""}`,
           ];
         }
@@ -68,16 +78,34 @@ const allowedOrigins = Array.from(
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
+const isPrivateIpv4 = (hostname) => {
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(hostname);
+  if (!match) return false;
+  const octets = match.slice(1).map((part) => Number(part));
+  if (octets.some((octet) => Number.isNaN(octet) || octet < 0 || octet > 255)) {
+    return false;
+  }
+  const [a, b] = octets;
+  if (a === 10) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  return false;
+};
+
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
-  if (allowedOrigins.includes(origin)) return true;
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (allowedOrigins.includes(normalizedOrigin)) return true;
 
   // In development, accept localhost/loopback origins on any port
   // so Vite can use fallback ports without breaking API calls.
   if (isDevelopment) {
     try {
-      const parsed = new URL(origin);
-      if (["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)) {
+      const parsed = new URL(normalizedOrigin);
+      if (
+        ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname) ||
+        isPrivateIpv4(parsed.hostname)
+      ) {
         return true;
       }
     } catch {
@@ -178,13 +206,9 @@ const connectMongo = async () => {
     if (!canRetryWithDnsFallback) {
       throw err;
     }
-
-    console.warn(
-      "Mongo SRV DNS resolution failed. Retrying with Google DNS fallback...",
-    );
     dns.setServers(["8.8.8.8", "8.8.4.4"]);
     await mongoose.connect(MONGO_URI);
-    console.log("✅ MongoDB Connected Successfully (DNS fallback)");
+    console.log("✅ MongoDB Connected Successfully");
   }
 
   const result = await syncPermissions({ syncSuperAdmin: true });
