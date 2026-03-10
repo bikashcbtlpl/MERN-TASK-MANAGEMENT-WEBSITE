@@ -8,10 +8,12 @@ import {
     PageHeader,
     LoadingSpinner,
     FeedbackMessage,
+    Pagination,
 } from "../../components/common";
 
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
 const MODULES = ["Auth", "Payment", "Dashboard", "Task", "Project", "Role", "Permission", "Other"];
+const PAGE_SIZE = 50;
 
 const normalizeIssueStatus = (status) =>
     status === "Resolved" ? "Closed" : status;
@@ -37,6 +39,9 @@ function ManageIssues() {
     const [feedback, setFeedback] = useState({ type: "", message: "" });
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState("All");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalIssues, setTotalIssues] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -88,7 +93,7 @@ function ManageIssues() {
     const fetchIssues = useCallback(async () => {
         try {
             setLoading(true);
-            const params = {};
+            const params = { page: currentPage, limit: PAGE_SIZE };
             if (filterStatus !== "All") params.status = filterStatus;
             const res = await axiosInstance.get("/issues", { params });
             const rawIssues = res.data?.issues || res.data || [];
@@ -97,13 +102,15 @@ function ManageIssues() {
                 status: normalizeIssueStatus(issue.status || "Open"),
             }));
             setIssues(normalizedIssues);
+            setTotalPages(res.data?.totalPages || 1);
+            setTotalIssues(res.data?.total || normalizedIssues.length);
         } catch (err) {
             console.error("Fetch issues error", err);
             showFeedback("error", "Failed to load issues");
         } finally {
             setLoading(false);
         }
-    }, [filterStatus]);
+    }, [filterStatus, currentPage]);
 
     useEffect(() => {
         fetchIssues();
@@ -179,6 +186,7 @@ function ManageIssues() {
                 ...res.data,
                 status: normalizeIssueStatus(res.data?.status || "Open"),
             };
+            setCurrentPage(1);
             setIssues((prev) => [created, ...prev]);
             showFeedback("success", "Issue reported successfully");
             closeModal();
@@ -318,7 +326,7 @@ function ManageIssues() {
     });
 
     const stats = {
-        total: issues.length,
+        total: totalIssues,
         open: issues.filter((i) => i.status === "Open").length,
         closed: issues.filter((i) => i.status === "Closed").length,
     };
@@ -358,7 +366,10 @@ function ManageIssues() {
                             type="text"
                             placeholder="Search by title, reporter, module..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setCurrentPage(1);
+                                setSearchQuery(e.target.value);
+                            }}
                         />
                     </div>
                     {canBulkUpload && (
@@ -377,7 +388,10 @@ function ManageIssues() {
                 ].map(({ label, count, key }) => (
                     <button
                         key={key}
-                        onClick={() => setFilterStatus(key)}
+                        onClick={() => {
+                            setCurrentPage(1);
+                            setFilterStatus(key);
+                        }}
                         className={filterStatus === key ? "btn btn-primary" : "btn btn-secondary"}
                         style={{ borderRadius: 20, padding: "6px 18px", fontSize: 13 }}
                     >
@@ -402,8 +416,9 @@ function ManageIssues() {
                         : 'No issues reported yet. Click "+ Create Issue" to get started.'}
                 </div>
             ) : (
-                <div style={{ overflowX: "auto" }}>
-                    <table className="role-table" style={{ marginTop: 0 }}>
+                <>
+                    <div style={{ overflowX: "auto" }}>
+                        <table className="role-table" style={{ marginTop: 0 }}>
                         <thead>
                             <tr>
                                 <th style={{ minWidth: 170 }}>Title</th>
@@ -479,8 +494,17 @@ function ManageIssues() {
                                 </tr>
                             ))}
                         </tbody>
-                    </table>
-                </div>
+                        </table>
+                    </div>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        totalCount={totalIssues}
+                        countLabel="Issues"
+                    />
+                </>
             )}
 
             {previewUrl && (
