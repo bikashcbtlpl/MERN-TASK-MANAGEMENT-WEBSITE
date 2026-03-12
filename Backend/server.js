@@ -133,8 +133,8 @@ app.use(
 );
 
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "50gb" }));
+app.use(express.urlencoded({ extended: true, limit: "50gb" }));
 app.use(cookieParser());
 
 /* ================= ROUTES ================= */

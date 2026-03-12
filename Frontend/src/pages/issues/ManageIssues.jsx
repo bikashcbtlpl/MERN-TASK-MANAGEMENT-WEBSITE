@@ -649,14 +649,17 @@ function ManageIssues() {
                                 <Button variant="secondary" onClick={handleDownloadTemplate}>
                                     Download CSV Template
                                 </Button>
+                                <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-muted)" }}>
+                                    (Template is in CSV, but Excel files are also supported)
+                                </div>
                             </div>
 
                             <div className="form-group" style={{ marginTop: 14 }}>
-                                <label htmlFor="bulk-csv">Step 2: Upload File</label>
+                                <label htmlFor="bulk-csv">Step 2: Upload File (CSV / Excel, massive files supported)</label>
                                 <input
                                     id="bulk-csv"
                                     type="file"
-                                    accept=".csv,text/csv"
+                                    accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                     onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
                                 />
                                 {bulkFile && (

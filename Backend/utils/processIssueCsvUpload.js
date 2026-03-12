@@ -1,5 +1,6 @@
 const fs = require("fs");
 const csv = require("csv-parser");
+const xlsx = require("xlsx");
 const Issue = require("../models/Issue");
 
 const PRIORITY_MAP = {
@@ -92,19 +93,17 @@ const processIssueCsvUpload = async ({
   let rowNumber = 1;
 
   try {
-    const stream = fs
-      .createReadStream(filePath)
-      .pipe(csv({ mapHeaders: ({ header }) => normalizeHeader(header) }));
+    const isExcel = filePath.match(/\.(xlsx|xls)$/i);
 
-    for await (const row of stream) {
+    const processRow = async (rowObj) => {
       rowNumber += 1;
       summary.totalRows += 1;
 
-      const title = normalizeText(readCell(row, "title"));
-      const description = normalizeText(readCell(row, "description"));
-      const priorityRaw = normalizeText(readCell(row, "priority")).toLowerCase();
-      const statusRaw = normalizeText(readCell(row, "status")).toLowerCase();
-      const moduleRaw = normalizeText(readCell(row, "module")).toLowerCase();
+      const title = normalizeText(readCell(rowObj, "title"));
+      const description = normalizeText(readCell(rowObj, "description"));
+      const priorityRaw = normalizeText(readCell(rowObj, "priority")).toLowerCase();
+      const statusRaw = normalizeText(readCell(rowObj, "status")).toLowerCase();
+      const moduleRaw = normalizeText(readCell(rowObj, "module")).toLowerCase();
 
       if (!title || !description) {
         summary.failedCount += 1;
@@ -114,7 +113,7 @@ const processIssueCsvUpload = async ({
             message: "title and description are required",
           });
         }
-        continue;
+        return;
       }
 
       if (priorityRaw && !PRIORITY_MAP[priorityRaw]) {
@@ -125,7 +124,7 @@ const processIssueCsvUpload = async ({
             message: "Invalid priority",
           });
         }
-        continue;
+        return;
       }
 
       if (statusRaw && !STATUS_MAP[statusRaw]) {
@@ -136,7 +135,7 @@ const processIssueCsvUpload = async ({
             message: "Invalid status",
           });
         }
-        continue;
+        return;
       }
 
       if (moduleRaw && !MODULE_MAP[moduleRaw]) {
@@ -147,7 +146,7 @@ const processIssueCsvUpload = async ({
             message: "Invalid module",
           });
         }
-        continue;
+        return;
       }
 
       batch.push({
@@ -163,6 +162,30 @@ const processIssueCsvUpload = async ({
       if (batch.length >= batchSize) {
         await flushBatch(batch, summary, maxErrors);
         batch.length = 0;
+      }
+    };
+
+    if (isExcel) {
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+      for (let i = 0; i < jsonData.length; i++) {
+        const rawRow = jsonData[i];
+        const rowObj = {};
+        for (const [k, v] of Object.entries(rawRow)) {
+          rowObj[normalizeHeader(k)] = v;
+        }
+        await processRow(rowObj);
+      }
+    } else {
+      const stream = fs
+        .createReadStream(filePath)
+        .pipe(csv({ mapHeaders: ({ header }) => normalizeHeader(header) }));
+
+      for await (const rowObj of stream) {
+        await processRow(rowObj);
       }
     }
 

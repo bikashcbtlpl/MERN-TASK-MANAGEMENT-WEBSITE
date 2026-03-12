@@ -16,22 +16,24 @@ const storage = multer.diskStorage({
 const fileFilter = (_req, file, cb) => {
   const original = String(file.originalname || "").toLowerCase();
   const isCsvByName = original.endsWith(".csv");
-  const isCsvByMime = String(file.mimetype || "").includes("csv")
-    || file.mimetype === "application/vnd.ms-excel";
+  const isExcelByName = original.endsWith(".xlsx") || original.endsWith(".xls");
+  
+  const isCsvByMime = String(file.mimetype || "").includes("csv");
+  const isExcelByMime = file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || file.mimetype === "application/vnd.ms-excel";
 
-  if (isCsvByName || isCsvByMime) {
+  if (isCsvByName || isCsvByMime || isExcelByName || isExcelByMime) {
     cb(null, true);
     return;
   }
 
-  cb(new Error("Only CSV files are allowed"));
+  cb(new Error("Only CSV and Excel files are allowed"));
 };
 
 const issueBulkUpload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 100 * 1024 * 1024 * 1024, // 100 GB in bytes
   },
 }).single("file");
 

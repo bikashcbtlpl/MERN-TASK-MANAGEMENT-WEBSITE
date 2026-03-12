@@ -36,7 +36,7 @@ exports.downloadIssueCsvTemplate = async (_req, res) => {
 exports.bulkUploadIssues = async (req, res) => {
   try {
     if (!req.file?.path) {
-      return res.status(400).json({ message: "CSV file is required" });
+      return res.status(400).json({ message: "CSV or Excel file is required" });
     }
 
     const reportedBy = req.user?._id;
@@ -71,7 +71,7 @@ exports.bulkUploadIssues = async (req, res) => {
     const summary = await processIssueCsvUpload({
       filePath: req.file.path,
       reportedBy,
-      batchSize: 100,
+      batchSize: 10000,
       maxErrors: 100,
     });
 

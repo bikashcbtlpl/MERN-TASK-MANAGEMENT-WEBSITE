@@ -63,7 +63,7 @@ const startIssueBulkWorker = async () => {
     const summary = await processIssueCsvUpload({
       filePath,
       reportedBy,
-      batchSize: 100,
+      batchSize: 10000,
       maxErrors: 100,
     });
     return summary;
